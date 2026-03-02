@@ -93,6 +93,10 @@ export type CanvasElement = {
   // Component element discriminator
   componentName?: string; // Maps to a React component (e.g. "podcast-player")
 
+  // UDS design system component
+  mcpComponentId?: string; // UDS component name (e.g. "Button", "Avatar")
+  mcpProps?: Record<string, unknown>; // User-set prop values for the UDS component
+
   // Infinite canvas placement
   placement?: "artboard" | "canvas"; // default: "artboard"
 

@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { SectionHeader } from "./ui/section-header";
 import { IconButton } from "./ui/icon-button";
 import { CollapseLayersSmall } from "@/components/icons/editor";
+import { ComponentsBrowser } from "./ComponentsBrowser";
 import {
   FrameVertical16,
   FrameHorizontal16,
@@ -506,6 +507,9 @@ export function LayersPanel() {
   const layerMenu = useContextMenu<{ elementId: string }>();
   layerContextMenuRef.open = (x, y, id) => layerMenu.open(x, y, { elementId: id });
 
+  // Left panel tab: Layers vs Components
+  const [leftTab, setLeftTab] = useState<"layers" | "components">("layers");
+
   // Collapsed state (inverted: absent = expanded by default)
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
 
@@ -765,16 +769,25 @@ export function LayersPanel() {
         />
       </div>
 
-      {/* ── Layers Section ── */}
+      {/* ── Layers / Components Tab ── */}
       <SectionHeader
-        title="Layers"
-        iconButton={hasExpandedContainers ? {
+        tabs={[
+          { value: "layers", label: "Layers" },
+          { value: "components", label: "Components" },
+        ]}
+        activeTab={leftTab}
+        onTabChange={(v) => setLeftTab(v as "layers" | "components")}
+        iconButton={leftTab === "layers" && hasExpandedContainers ? {
           icon: CollapseLayersSmall,
           onClick: collapseAll,
           "aria-label": "Collapse all layers",
         } : undefined}
       />
 
+      {leftTab === "components" ? (
+        <ComponentsBrowser />
+      ) : (
+      <>
       {/* Layer Tree */}
       {(() => {
         const isLegacyComponentPage = !!activePage?.component && !activePage?.provider;
@@ -1043,6 +1056,8 @@ export function LayersPanel() {
           />
         );
       })()}
+      </>
+      )}
     </div>
   );
 }
