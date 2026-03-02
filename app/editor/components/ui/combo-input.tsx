@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverAnchor, PopoverTrigger } from "@/components/ui/popover";
 import { ChevronDown } from "@/components/icons/editor";
 import { DropdownMenu } from "./dropdown-menu";
-import { useScrub, EW_RESIZE_CURSOR } from "@/app/playground/hooks/useScrub";
+import { useScrub, EW_RESIZE_CURSOR } from "@/app/editor/hooks/useScrub";
 import { clampNumericValue } from "./numeric-validation";
 
 export interface ComboInputOption {

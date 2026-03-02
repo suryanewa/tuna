@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { useScrub, EW_RESIZE_CURSOR } from "@/app/playground/hooks/useScrub";
+import { useScrub, EW_RESIZE_CURSOR } from "@/app/editor/hooks/useScrub";
 
 export interface MultiNumberInputField<K extends string = string> {
   key: K;
