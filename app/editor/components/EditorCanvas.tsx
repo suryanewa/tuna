@@ -1322,8 +1322,10 @@ const RenderElement = React.memo(function RenderElement({ elementId, isPreview =
 
     case "component":
       return (
-        <div className={cn(wrapperClasses, styleClasses)} style={elementStyle} {...commonProps}>
-          {/* Component rendering placeholder — podcast removed */}
+        <div className={cn(wrapperClasses, styleClasses, "flex items-center gap-2")} style={elementStyle} {...commonProps}>
+          <span className="text-[11px] font-medium text-stone-500 dark:text-stone-400 truncate select-none pointer-events-none">
+            {element.mcpComponentId ? `<${element.mcpComponentId} />` : "Component"}
+          </span>
         </div>
       );
 
@@ -1892,10 +1894,25 @@ export function EditorCanvas() {
   // ── Space key: hand tool (pan mode) ──
   useEffect(() => {
     const handleKeyDown = (e: globalThis.KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const isTyping = target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable;
+
       if (e.key === "Escape" && viewModeRef.current === "preview") {
         setViewMode("edit");
         return;
       }
+
+      // ── Delete / Backspace: delete selected elements ──
+      if ((e.key === "Backspace" || e.key === "Delete") && !isTyping) {
+        e.preventDefault();
+        const ids = editorStateStore.getSnapshot().selectedIds;
+        if (ids && ids.length > 0) {
+          deleteElements(ids);
+          clearSelection();
+        }
+        return;
+      }
+
       // ── Keyboard zoom (Cmd+= / Cmd+- / Shift+0) ──
       if ((e.metaKey || e.ctrlKey) && (e.key === '=' || e.key === '+')) {
         e.preventDefault();
@@ -2358,9 +2375,6 @@ export function EditorCanvas() {
                 }
               },
             },
-            { type: "separator" },
-            { label: "Cursor Chat", shortcut: "/", onClick: () => { document.dispatchEvent(new KeyboardEvent("keydown", { key: "/", bubbles: true })); } },
-            { label: "Reactions", shortcut: "E", onClick: () => { document.dispatchEvent(new KeyboardEvent("keydown", { key: "e", bubbles: true })); } },
           ];
         } else if (meta.type === "text") {
           menuWidth = 200;

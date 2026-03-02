@@ -98,18 +98,19 @@ export function ComponentsBrowser() {
     const selectedId = selectedIds?.[0];
     const selectedEl = selectedId ? elements[selectedId] : null;
 
+    // Default styles — give component a visible placeholder size
+    const styles = { width: "w-full", height: "h-10", padding: "p-3" };
+
     if (selectedId === ARTBOARD_LAYER_ID || selectedEl?.type === "container") {
       const parentId = selectedId === ARTBOARD_LAYER_ID ? null : selectedId;
-      const newId = addElement("component", parentId, {
-        styles: { width: "w-auto", height: "h-auto" },
-      });
+      const newId = addElement("component", parentId, { styles });
       if (newId) updateElement(newId, { mcpComponentId: componentId, name: componentId });
     } else if (selectedEl?.parentId && elements[selectedEl.parentId]) {
       const parent = elements[selectedEl.parentId];
       const siblingIndex = parent.children?.indexOf(selectedId!) ?? -1;
       const newId = addElement("component", selectedEl.parentId, {
         insertIndex: siblingIndex >= 0 ? siblingIndex + 1 : undefined,
-        styles: { width: "w-auto", height: "h-auto" },
+        styles,
       });
       if (newId) updateElement(newId, { mcpComponentId: componentId, name: componentId });
     } else {
