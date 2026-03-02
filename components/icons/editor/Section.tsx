@@ -1,0 +1,24 @@
+import * as React from "react";
+
+export interface SectionProps extends React.SVGProps<SVGSVGElement> {
+  size?: number | string;
+}
+
+export const Section = React.forwardRef<SVGSVGElement, SectionProps>(
+  ({ size = 24, className, ...props }, ref) => (
+    <svg
+      ref={ref}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      {...props}
+    >
+      <path fillRule="evenodd" clipRule="evenodd" d="M13 5H18C18.5523 5 19 5.44771 19 6V18C19 18.5523 18.5523 19 18 19H6C5.44771 19 5 18.5523 5 18V10H12C12.5523 10 13 9.55229 13 9V5ZM12 5H6C5.44771 5 5 5.44771 5 6V9H12V5ZM12 4H18C19.1046 4 20 4.89543 20 6V18C20 19.1046 19.1046 20 18 20H6C4.89543 20 4 19.1046 4 18V9V6C4 4.89543 4.89543 4 6 4H12Z" fill="currentColor" fillOpacity={0.9}/>
+    </svg>
+  )
+);
+
+Section.displayName = "Section";

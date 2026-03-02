@@ -1,0 +1,25 @@
+import * as React from "react";
+
+export interface BooleanUnionProps extends React.SVGProps<SVGSVGElement> {
+  size?: number | string;
+}
+
+export const BooleanUnion = React.forwardRef<SVGSVGElement, BooleanUnionProps>(
+  ({ size = 24, className, ...props }, ref) => (
+    <svg
+      ref={ref}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      {...props}
+    >
+      <path fillRule="evenodd" clipRule="evenodd" d="M14 5H5V14H10V19H19V10H14V5Z" fill="currentColor" fillOpacity={0.3}/>
+      <path fillRule="evenodd" clipRule="evenodd" d="M10 14V15V19H19V10L15 10H14V9V5L5 5V14H9H10ZM4 5V14C4 14.5523 4.44772 15 5 15H8H9V16V19C9 19.5523 9.44772 20 10 20H19C19.5523 20 20 19.5523 20 19V10C20 9.44771 19.5523 9 19 9H16H15V8V5C15 4.44772 14.5523 4 14 4H5C4.44771 4 4 4.44772 4 5Z" fill="currentColor" fillOpacity={0.9}/>
+    </svg>
+  )
+);
+
+BooleanUnion.displayName = "BooleanUnion";
