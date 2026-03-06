@@ -17,7 +17,9 @@ import {
 
 export interface ColorPickerProps {
   value: string; // hex color
+  alpha?: number; // 0-100
   onChange: (hex: string) => void;
+  onAlphaChange?: (alpha: number) => void;
   onClose: () => void;
   anchorRect: { top: number; left: number; width: number; height: number };
 }
@@ -26,7 +28,7 @@ function clamp(v: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, v));
 }
 
-export function ColorPicker({ value, onChange, onClose, anchorRect }: ColorPickerProps) {
+export function ColorPicker({ value, alpha = 100, onChange, onAlphaChange, onClose, anchorRect }: ColorPickerProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const [hsva, setHsva] = useState<HSVA>(() => hexToHsva(value || "#000000"));
   const lastSentRef = useRef("");
@@ -87,14 +89,14 @@ export function ColorPicker({ value, onChange, onClose, anchorRect }: ColorPicke
   }, [onClose]);
 
   // Position the panel
-  const panelWidth = 240;
-  const panelEstimatedHeight = 280;
+  const panelWidth = anchorRect.width;
+  const panelEstimatedHeight = 320;
   const spaceBelow = window.innerHeight - anchorRect.top - anchorRect.height - 4;
   const flipUp = spaceBelow < panelEstimatedHeight && anchorRect.top > spaceBelow;
   const top = flipUp
     ? anchorRect.top - panelEstimatedHeight - 4
     : anchorRect.top + anchorRect.height + 4;
-  const left = Math.min(anchorRect.left, window.innerWidth - panelWidth - 8);
+  const left = anchorRect.left;
 
   // ── SV Picker ───────────────────────────────────────────────────────
 
@@ -166,6 +168,45 @@ export function ColorPicker({ value, onChange, onClose, anchorRect }: ColorPicke
     document.addEventListener("pointermove", handleMove);
     document.addEventListener("pointerup", handleUp);
   }, [getHue, emitChange]);
+
+  // ── Alpha Slider ───────────────────────────────────────────────────
+
+  const alphaRef = useRef<HTMLDivElement>(null);
+  const [localAlpha, setLocalAlpha] = useState(alpha);
+  const onAlphaChangeRef = useRef(onAlphaChange);
+  onAlphaChangeRef.current = onAlphaChange;
+
+  // Sync alpha from parent
+  const [prevAlpha, setPrevAlpha] = useState(alpha);
+  if (alpha !== prevAlpha) {
+    setPrevAlpha(alpha);
+    setLocalAlpha(alpha);
+  }
+
+  const getAlpha = useCallback((clientX: number) => {
+    if (!alphaRef.current) return 100;
+    const rect = alphaRef.current.getBoundingClientRect();
+    return clamp(Math.round(((clientX - rect.left) / rect.width) * 100), 0, 100);
+  }, []);
+
+  const handleAlphaPointerDown = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
+    const a = getAlpha(e.clientX);
+    setLocalAlpha(a);
+    onAlphaChangeRef.current?.(a);
+
+    const handleMove = (me: PointerEvent) => {
+      const a = getAlpha(me.clientX);
+      setLocalAlpha(a);
+      onAlphaChangeRef.current?.(a);
+    };
+    const handleUp = () => {
+      document.removeEventListener("pointermove", handleMove);
+      document.removeEventListener("pointerup", handleUp);
+    };
+    document.addEventListener("pointermove", handleMove);
+    document.addEventListener("pointerup", handleUp);
+  }, [getAlpha]);
 
   // ── Hex commit ──────────────────────────────────────────────────────
 
@@ -248,29 +289,67 @@ export function ColorPicker({ value, onChange, onClose, anchorRect }: ColorPicke
         </div>
       </div>
 
-      {/* Hue Slider */}
-      <div className="composer-cp-slider-row">
+      {/* Sliders */}
+      <div className="composer-cp-sliders">
         {/* Color preview swatch */}
-        <div
-          className="composer-cp-preview"
-          style={{ backgroundColor: currentHex }}
-        />
-        <div
-          ref={hueRef}
-          className="composer-cp-hue"
-          onPointerDown={handleHuePointerDown}
-        >
+        <div className="composer-cp-preview-wrap">
+          <div className="composer-cp-preview-checker" />
           <div
-            className="composer-cp-handle"
-            style={{
-              left: `${(hsva.h / 360) * 100}%`,
-              top: "50%",
+            className="composer-cp-preview"
+            style={{ backgroundColor: localAlpha < 100
+              ? `rgba(${hsvToRgb(hsva.h, hsva.s, hsva.v).r}, ${hsvToRgb(hsva.h, hsva.s, hsva.v).g}, ${hsvToRgb(hsva.h, hsva.s, hsva.v).b}, ${localAlpha / 100})`
+              : currentHex
             }}
+          />
+        </div>
+        <div className="composer-cp-slider-tracks">
+          {/* Hue */}
+          <div
+            ref={hueRef}
+            className="composer-cp-hue"
+            onPointerDown={handleHuePointerDown}
           >
             <div
-              className="composer-cp-handle-inner"
-              style={{ backgroundColor: `hsl(${hsva.h}, 100%, 50%)` }}
+              className="composer-cp-handle"
+              style={{
+                left: `${(hsva.h / 360) * 100}%`,
+                top: "50%",
+              }}
+            >
+              <div
+                className="composer-cp-handle-inner"
+                style={{ backgroundColor: `hsl(${hsva.h}, 100%, 50%)` }}
+              />
+            </div>
+          </div>
+          {/* Alpha */}
+          <div
+            ref={alphaRef}
+            className="composer-cp-alpha"
+            onPointerDown={handleAlphaPointerDown}
+          >
+            <div className="composer-cp-alpha-checker" />
+            <div
+              className="composer-cp-alpha-gradient"
+              style={{
+                background: `linear-gradient(to right, transparent, ${currentHex})`,
+              }}
             />
+            <div
+              className="composer-cp-handle"
+              style={{
+                left: `${localAlpha}%`,
+                top: "50%",
+              }}
+            >
+              <div
+                className="composer-cp-handle-inner"
+                style={{ backgroundColor: localAlpha < 100
+                  ? `rgba(${hsvToRgb(hsva.h, hsva.s, hsva.v).r}, ${hsvToRgb(hsva.h, hsva.s, hsva.v).g}, ${hsvToRgb(hsva.h, hsva.s, hsva.v).b}, ${localAlpha / 100})`
+                  : currentHex
+                }}
+              />
+            </div>
           </div>
         </div>
       </div>

@@ -59,7 +59,14 @@ export function ColorInput({ prop, value, onChange }: ColorInputProps) {
     const el = swatchRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    setAnchorRect({ top: rect.top, left: rect.left, width: rect.width, height: rect.height });
+    // Match picker width to the row content area
+    const row = el.closest(".composer-row");
+    if (row) {
+      const rowRect = row.getBoundingClientRect();
+      setAnchorRect({ top: rect.top, left: rowRect.left, width: rowRect.width, height: rect.height });
+    } else {
+      setAnchorRect({ top: rect.top, left: rect.left, width: rect.width, height: rect.height });
+    }
     setPickerOpen(true);
   }, [pickerOpen]);
 
@@ -67,6 +74,11 @@ export function ColorInput({ prop, value, onChange }: ColorInputProps) {
   const handlePickerChange = useCallback((hex: string) => {
     setHexLocal(hex.replace("#", "").toUpperCase());
     emitColor(hex, currentOpacityRef.current);
+  }, [emitColor]);
+
+  const handlePickerAlphaChange = useCallback((alpha: number) => {
+    setOpacityLocal(String(alpha));
+    emitColor(currentHexRef.current, alpha);
   }, [emitColor]);
 
   const handlePickerClose = useCallback(() => {
@@ -157,7 +169,9 @@ export function ColorInput({ prop, value, onChange }: ColorInputProps) {
       {pickerOpen && anchorRect && (
         <ColorPicker
           value={currentHexRef.current}
+          alpha={currentOpacityRef.current}
           onChange={handlePickerChange}
+          onAlphaChange={handlePickerAlphaChange}
           onClose={handlePickerClose}
           anchorRect={anchorRect}
         />

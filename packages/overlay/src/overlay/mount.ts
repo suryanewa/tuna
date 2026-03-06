@@ -467,24 +467,46 @@ const OVERLAY_STYLES = `
       0 2px 6px rgba(0, 0, 0, 0.12);
   }
 
-  .composer-cp-slider-row {
+  .composer-cp-sliders {
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 10px 12px;
   }
 
-  .composer-cp-preview {
+  .composer-cp-preview-wrap {
+    position: relative;
     width: 28px;
     height: 28px;
     border-radius: 50%;
     flex-shrink: 0;
+    overflow: hidden;
     box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+  }
+
+  .composer-cp-preview-checker {
+    position: absolute;
+    inset: 0;
+    background-image: repeating-conic-gradient(#e0e0e0 0% 25%, #fff 0% 50%);
+    background-size: 8px 8px;
+  }
+
+  .composer-cp-preview {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+  }
+
+  .composer-cp-slider-tracks {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
   }
 
   .composer-cp-hue {
     position: relative;
-    flex: 1;
     height: 14px;
     border-radius: 7px;
     background: linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
@@ -492,6 +514,30 @@ const OVERLAY_STYLES = `
     touch-action: none;
     overflow: visible;
     box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.1);
+  }
+
+  .composer-cp-alpha {
+    position: relative;
+    height: 14px;
+    border-radius: 7px;
+    cursor: pointer;
+    touch-action: none;
+    overflow: visible;
+    box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.1);
+  }
+
+  .composer-cp-alpha-checker {
+    position: absolute;
+    inset: 0;
+    background-image: repeating-conic-gradient(#e0e0e0 0% 25%, #fff 0% 50%);
+    background-size: 8px 8px;
+    border-radius: 7px;
+  }
+
+  .composer-cp-alpha-gradient {
+    position: absolute;
+    inset: 0;
+    border-radius: 7px;
   }
 
   .composer-cp-inputs {
