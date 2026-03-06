@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "composer": {
+      "command": "node",
+      "args": ["./packages/mcp-server/dist/index.js"],
+      "env": {
+        "COMPOSER_WS_PORT": "9223"
+      }
+    }
+  }
+}
