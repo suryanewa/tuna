@@ -22,6 +22,9 @@ import {
   type CSSProperties,
   Fragment,
 } from "react";
+import { IconChevronTopSmall } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconChevronTopSmall";
+import { IconChevronDownSmall } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconChevronDownSmall";
+import { IconCheckmark1Small } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconCheckmark1Small";
 
 export interface DropdownMenuOption {
   value: string;
@@ -53,23 +56,10 @@ export interface DropdownMenuProps {
 
 const SCROLL_SPEED = 150; // px/sec
 
-const CheckIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-    <path d="M3.5 8.5L6.5 11.5L12.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
+const CheckIcon = () => <IconCheckmark1Small size={16} />;
 
-const ChevronUpIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-    <path d="M3 7.5L6 4.5L9 7.5" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
-const ChevronDownIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-    <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
+const ChevronUpIcon = () => <IconChevronTopSmall size={12} />;
+const ChevronDownIcon = () => <IconChevronDownSmall size={12} />;
 
 export const DropdownMenu = forwardRef<HTMLDivElement, DropdownMenuProps>(
   (

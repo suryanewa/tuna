@@ -7,6 +7,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { DropdownMenu, type DropdownMenuOption } from "./dropdown-menu";
 import { calcMenuPosition, type MenuPosition } from "./menu-position";
+import { IconChevronDownSmall } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconChevronDownSmall";
 
 export interface SelectInputProps {
   label?: string;
@@ -114,9 +115,7 @@ export function SelectInput({ label, prop, value, options, onChange }: SelectInp
         {label && <span className="composer-select-label">{label}</span>}
         <span className="composer-select-value" style={label ? undefined : { paddingLeft: 8 }}>{sentenceCase(localValue)}</span>
         <span className="composer-select-chevron">
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-            <path d="M2.5 4L5 6.5L7.5 4" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <IconChevronDownSmall size={10} />
         </span>
       </button>
       {open && menuPos && (

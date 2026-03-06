@@ -113,11 +113,9 @@ const OVERLAY_STYLES = `
   .composer-panel.right { right: 16px; top: 60px; }
   .composer-panel.left { left: 16px; top: 60px; }
 
-  /* Scrollbar */
-  .composer-panel::-webkit-scrollbar { width: 4px; }
-  .composer-panel::-webkit-scrollbar-track { background: transparent; }
-  .composer-panel::-webkit-scrollbar-thumb { background: #ddd; border-radius: 2px; }
-  .composer-panel::-webkit-scrollbar-thumb:hover { background: #bbb; }
+  /* Hide scrollbar */
+  .composer-panel { scrollbar-width: none; }
+  .composer-panel::-webkit-scrollbar { display: none; }
 
   /* Panel header */
   .composer-panel-header {
@@ -183,7 +181,7 @@ const OVERLAY_STYLES = `
   }
 
   .composer-section-row {
-    padding: 8px 16px;
+    padding: 6px 16px;
   }
 
   /* Row group: wraps multiple rows with equal vertical + horizontal gaps */
@@ -191,7 +189,7 @@ const OVERLAY_STYLES = `
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding: 8px 16px;
+    padding: 6px 16px;
   }
 
   .composer-row-group > .composer-row { /* rows inside group have no extra padding */ }

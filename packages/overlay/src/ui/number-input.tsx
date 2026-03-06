@@ -55,13 +55,13 @@ export function NumberInput({ label, prop, value, onChange }: NumberInputProps) 
       (e.target as HTMLInputElement).blur();
     }
     if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-      const num = parseFloat(localValue);
-      if (isNaN(num)) return;
       e.preventDefault();
+      const num = parseFloat(localValue);
+      const base = isNaN(num) ? 0 : num;
       const step = e.shiftKey ? 10 : 1;
       const delta = e.key === "ArrowUp" ? step : -step;
-      const unit = localValue.replace(/[\d.-]+/, "") || "";
-      const newVal = `${num + delta}${unit}`;
+      const unit = isNaN(num) ? "" : (localValue.replace(/[\d.-]+/, "") || "");
+      const newVal = `${base + delta}${unit}`;
       setLocalValue(newVal);
       onChange(prop, newVal);
     }

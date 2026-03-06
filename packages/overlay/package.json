@@ -10,7 +10,9 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch"
@@ -23,11 +25,12 @@
     "@medv/finder": "^3.2.0"
   },
   "devDependencies": {
+    "@central-icons-react/round-outlined-radius-2-stroke-1.5": "^1.1.153",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tsup": "^8.0.0",
-    "typescript": "^5.5.0",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0"
+    "typescript": "^5.5.0"
   }
 }

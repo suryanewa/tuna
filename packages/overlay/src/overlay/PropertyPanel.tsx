@@ -15,60 +15,23 @@ import { FontInput } from "../ui/font-input";
 import { SegmentedControl } from "../ui/segmented-control";
 import { truncate } from "../ui/helpers";
 import type { SegmentedOption } from "../ui/segmented-control";
-
-/* ── Text Align icons ── */
-const AlignLeftIcon = (
-  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-    <path d="M2 3h10M2 6h6M2 9h8M2 12h4" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
-  </svg>
-);
-const AlignCenterIcon = (
-  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-    <path d="M2 3h10M4 6h6M3 9h8M5 12h4" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
-  </svg>
-);
-const AlignRightIcon = (
-  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-    <path d="M2 3h10M6 6h6M4 9h8M8 12h4" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
-  </svg>
-);
-const AlignJustifyIcon = (
-  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-    <path d="M2 3h10M2 6h10M2 9h10M2 12h10" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
-  </svg>
-);
+import { IconAlignmentLeft } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconAlignmentLeft";
+import { IconAlignmentCenter } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconAlignmentCenter";
+import { IconAlignmentRight } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconAlignmentRight";
+import { IconHorizontalAlignmentTop } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconHorizontalAlignmentTop";
+import { IconHorizontalAlignmentCenter } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconHorizontalAlignmentCenter";
+import { IconHorizontalAlignmentBottom } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconHorizontalAlignmentBottom";
 
 const TEXT_ALIGN_OPTIONS: SegmentedOption[] = [
-  { value: "left", icon: AlignLeftIcon, label: "Left" },
-  { value: "center", icon: AlignCenterIcon, label: "Center" },
-  { value: "right", icon: AlignRightIcon, label: "Right" },
+  { value: "left", icon: <IconAlignmentLeft size={16} />, label: "Left" },
+  { value: "center", icon: <IconAlignmentCenter size={16} />, label: "Center" },
+  { value: "right", icon: <IconAlignmentRight size={16} />, label: "Right" },
 ];
 
-/* ── Vertical Align icons ── */
-const VAlignTopIcon = (
-  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-    <path d="M2 2h10" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
-    <path d="M7 5v7M7 5L5 7M7 5l2 2" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-const VAlignMiddleIcon = (
-  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-    <path d="M2 7h10" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
-    <path d="M7 2v4M7 2L5.5 3.5M7 2l1.5 1.5" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M7 12V8M7 12l-1.5-1.5M7 12l1.5-1.5" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-const VAlignBottomIcon = (
-  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-    <path d="M2 12h10" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
-    <path d="M7 9V2M7 9L5 7M7 9l2-2" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
 const VERTICAL_ALIGN_OPTIONS: SegmentedOption[] = [
-  { value: "top", icon: VAlignTopIcon, label: "Top" },
-  { value: "middle", icon: VAlignMiddleIcon, label: "Middle" },
-  { value: "bottom", icon: VAlignBottomIcon, label: "Bottom" },
+  { value: "top", icon: <IconHorizontalAlignmentTop size={16} />, label: "Top" },
+  { value: "middle", icon: <IconHorizontalAlignmentCenter size={16} />, label: "Middle" },
+  { value: "bottom", icon: <IconHorizontalAlignmentBottom size={16} />, label: "Bottom" },
 ];
 
 /** Map computed textAlign CSS value to our option values */
@@ -181,11 +144,6 @@ export function PropertyPanel({
             </Field>
             <Field label="Left">
               <NumberInput label="L" prop="left" value={s.left} onChange={onPropertyChange} />
-            </Field>
-          </Row>
-          <Row>
-            <Field label="Z Index">
-              <NumberInput label="Z" prop="zIndex" value={s.zIndex} onChange={onPropertyChange} />
             </Field>
           </Row>
         </Section>
@@ -343,7 +301,10 @@ export function PropertyPanel({
       <Section label="Appearance">
         <Row>
           <Field label="Opacity">
-            <SliderInput label="Opacity" prop="opacity" value={s.opacity} min={0} max={1} step={0.01} onChange={onPropertyChange} />
+            <NumberInput prop="opacity" value={s.opacity} onChange={onPropertyChange} />
+          </Field>
+          <Field label="Z Index">
+            <NumberInput prop="zIndex" value={s.zIndex} onChange={onPropertyChange} />
           </Field>
         </Row>
         <RowGroup label="Corner Radius">
