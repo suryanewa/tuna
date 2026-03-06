@@ -45,6 +45,8 @@ export interface DropdownMenuProps {
   showCheckmark?: boolean;
   style?: CSSProperties;
   minWidth?: number;
+  /** Initial scroll position (for macOS-style selected-item alignment) */
+  initialScrollTop?: number;
 }
 
 const SCROLL_SPEED = 150; // px/sec
@@ -79,6 +81,7 @@ export const DropdownMenu = forwardRef<HTMLDivElement, DropdownMenuProps>(
       showCheckmark = true,
       style,
       minWidth,
+      initialScrollTop,
     },
     ref
   ) => {
@@ -138,8 +141,11 @@ export const DropdownMenu = forwardRef<HTMLDivElement, DropdownMenuProps>(
     }, []);
 
     useLayoutEffect(() => {
+      if (initialScrollTop != null && initialScrollTop > 0 && internalRef.current) {
+        internalRef.current.scrollTop = initialScrollTop;
+      }
       updateOverflow();
-    }, [options.length, updateOverflow]);
+    }, [options.length, updateOverflow, initialScrollTop]);
 
     useEffect(() => {
       return () => cancelAnimationFrame(rafRef.current);

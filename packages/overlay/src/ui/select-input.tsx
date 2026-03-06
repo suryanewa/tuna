@@ -1,10 +1,12 @@
 /**
  * SelectInput — dropdown select with a label prefix.
  * Uses the DropdownMenu for a consistent dark-themed dropdown.
+ * macOS-style positioning: selected item aligns with the trigger.
  */
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { DropdownMenu, type DropdownMenuOption } from "./dropdown-menu";
+import { calcMenuPosition, type MenuPosition } from "./menu-position";
 
 export interface SelectInputProps {
   label?: string;
@@ -14,29 +16,39 @@ export interface SelectInputProps {
   onChange: (prop: string, value: string) => void;
 }
 
+function sentenceCase(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1).replace(/-/g, " ");
+}
+
 export function SelectInput({ label, prop, value, options, onChange }: SelectInputProps) {
+  const [localValue, setLocalValue] = useState(value || "");
   const [open, setOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [menuPos, setMenuPos] = useState<MenuPosition | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Sync from parent
+  const [prevValue, setPrevValue] = useState(value);
+  if (value !== prevValue) {
+    setPrevValue(value);
+    setLocalValue(value || "");
+  }
 
   const openDropdown = useCallback(() => {
     const el = containerRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    const estimatedHeight = options.length * 28 + 12;
-    const spaceBelow = window.innerHeight - rect.bottom - 4;
-    const flipUp = spaceBelow < estimatedHeight && rect.top > spaceBelow;
-    const top = flipUp ? rect.top - estimatedHeight - 4 : rect.bottom + 4;
-    setDropdownPos({ top: Math.max(4, top), left: rect.left, width: rect.width });
+    const selectedIndex = Math.max(0, options.indexOf(localValue));
+    const pos = calcMenuPosition(rect, selectedIndex, options.length);
+    setMenuPos(pos);
     setOpen(true);
-    setHighlightedIndex(-1);
-  }, [options.length]);
+    setHighlightedIndex(selectedIndex);
+  }, [options, localValue]);
 
   const closeDropdown = useCallback(() => {
     setOpen(false);
     setHighlightedIndex(-1);
-    setDropdownPos(null);
+    setMenuPos(null);
   }, []);
 
   // Close dropdown on outside click
@@ -57,10 +69,11 @@ export function SelectInput({ label, prop, value, options, onChange }: SelectInp
 
   const menuOptions: DropdownMenuOption[] = options.map((opt) => ({
     value: opt,
-    label: opt,
+    label: sentenceCase(opt),
   }));
 
   const handleSelect = (option: DropdownMenuOption) => {
+    setLocalValue(option.value);
     onChange(prop, option.value);
     closeDropdown();
   };
@@ -99,24 +112,25 @@ export function SelectInput({ label, prop, value, options, onChange }: SelectInp
         onKeyDown={handleKeyDown}
       >
         {label && <span className="composer-select-label">{label}</span>}
-        <span className="composer-select-value" style={label ? undefined : { paddingLeft: 8 }}>{value || ""}</span>
+        <span className="composer-select-value" style={label ? undefined : { paddingLeft: 8 }}>{sentenceCase(localValue)}</span>
         <span className="composer-select-chevron">
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
             <path d="M2.5 4L5 6.5L7.5 4" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </span>
       </button>
-      {open && dropdownPos && (
+      {open && menuPos && (
         <div
           className="composer-select-dropdown-anchor"
-          style={{ top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width }}
+          style={{ top: menuPos.top, left: menuPos.left, width: menuPos.width }}
         >
           <DropdownMenu
             options={menuOptions}
-            value={value}
+            value={localValue}
             highlightedIndex={highlightedIndex}
             onSelect={handleSelect}
             onHighlight={setHighlightedIndex}
+            initialScrollTop={menuPos.scrollTop}
             showCheckmark
           />
         </div>

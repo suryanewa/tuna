@@ -22,8 +22,9 @@ const BORDER_PROPS = [
 ] as const;
 
 const TYPOGRAPHY_PROPS = [
-  "fontSize", "fontWeight", "fontFamily", "lineHeight",
-  "letterSpacing", "textAlign", "textDecoration", "textTransform",
+  "fontSize", "fontWeight", "fontFamily", "fontStyle", "lineHeight",
+  "letterSpacing", "textAlign", "verticalAlign", "textDecoration", "textTransform",
+  "whiteSpace", "wordSpacing", "textIndent",
   "color",
 ] as const;
 

@@ -8,6 +8,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { DropdownMenu, type DropdownMenuOption } from "./dropdown-menu";
+import { calcMenuPosition, type MenuPosition } from "./menu-position";
 
 export interface ComboOption {
   value: string;
@@ -26,7 +27,7 @@ export function ComboInput({ label, prop, value, options, onChange }: ComboInput
   const [localValue, setLocalValue] = useState(value || "");
   const [open, setOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [menuPos, setMenuPos] = useState<MenuPosition | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const labelRef = useRef<HTMLSpanElement>(null);
 
@@ -36,20 +37,17 @@ export function ComboInput({ label, prop, value, options, onChange }: ComboInput
     const el = containerRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    // Estimate dropdown height (~28px per item + 12px padding)
-    const estimatedHeight = options.length * 28 + 12;
-    const spaceBelow = window.innerHeight - rect.bottom - 4;
-    const flipUp = spaceBelow < estimatedHeight && rect.top > spaceBelow;
-    const top = flipUp ? rect.top - estimatedHeight - 4 : rect.bottom + 4;
-    setDropdownPos({ top: Math.max(4, top), left: rect.left, width: rect.width });
+    const selectedIndex = Math.max(0, options.findIndex((opt) => opt.value === localValue));
+    const pos = calcMenuPosition(rect, selectedIndex, options.length);
+    setMenuPos(pos);
     setOpen(true);
-    setHighlightedIndex(-1);
-  }, [options.length]);
+    setHighlightedIndex(selectedIndex);
+  }, [options, localValue]);
 
   const closeDropdown = useCallback(() => {
     setOpen(false);
     setHighlightedIndex(-1);
-    setDropdownPos(null);
+    setMenuPos(null);
   }, []);
 
   // Close dropdown on outside click
@@ -194,10 +192,10 @@ export function ComboInput({ label, prop, value, options, onChange }: ComboInput
           <path d="M2.5 4L5 6.5L7.5 4" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
-      {open && dropdownPos && (
+      {open && menuPos && (
         <div
           className="composer-combo-dropdown-anchor"
-          style={{ top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width }}
+          style={{ top: menuPos.top, left: menuPos.left, width: menuPos.width }}
         >
           <DropdownMenu
             options={options}
@@ -205,6 +203,7 @@ export function ComboInput({ label, prop, value, options, onChange }: ComboInput
             highlightedIndex={highlightedIndex}
             onSelect={handleOptionSelect}
             onHighlight={setHighlightedIndex}
+            initialScrollTop={menuPos.scrollTop}
             showCheckmark
           />
         </div>

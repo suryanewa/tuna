@@ -17,4 +17,6 @@ export { ColorPicker } from "./color-picker";
 export type { ColorPickerProps } from "./color-picker";
 export { cssColorToHex, parseCssColor, hexToRgba } from "./color-utils";
 export type { HSVA, RGB } from "./color-utils";
+export { SegmentedControl } from "./segmented-control";
+export type { SegmentedControlProps, SegmentedOption } from "./segmented-control";
 export { inspectElement, matchesHotkey, truncate, rgbToHex } from "./helpers";

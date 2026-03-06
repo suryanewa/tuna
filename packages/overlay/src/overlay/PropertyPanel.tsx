@@ -11,7 +11,83 @@ import { ColorInput } from "../ui/color-input";
 import { SelectInput } from "../ui/select-input";
 import { SliderInput } from "../ui/slider-input";
 import { TextInput } from "../ui/text-input";
+import { SegmentedControl } from "../ui/segmented-control";
 import { truncate } from "../ui/helpers";
+import type { SegmentedOption } from "../ui/segmented-control";
+
+/* ── Text Align icons ── */
+const AlignLeftIcon = (
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+    <path d="M2 3h10M2 6h6M2 9h8M2 12h4" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
+  </svg>
+);
+const AlignCenterIcon = (
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+    <path d="M2 3h10M4 6h6M3 9h8M5 12h4" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
+  </svg>
+);
+const AlignRightIcon = (
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+    <path d="M2 3h10M6 6h6M4 9h8M8 12h4" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
+  </svg>
+);
+const AlignJustifyIcon = (
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+    <path d="M2 3h10M2 6h10M2 9h10M2 12h10" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
+  </svg>
+);
+
+const TEXT_ALIGN_OPTIONS: SegmentedOption[] = [
+  { value: "left", icon: AlignLeftIcon, label: "Left" },
+  { value: "center", icon: AlignCenterIcon, label: "Center" },
+  { value: "right", icon: AlignRightIcon, label: "Right" },
+];
+
+/* ── Vertical Align icons ── */
+const VAlignTopIcon = (
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+    <path d="M2 2h10" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
+    <path d="M7 5v7M7 5L5 7M7 5l2 2" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+const VAlignMiddleIcon = (
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+    <path d="M2 7h10" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
+    <path d="M7 2v4M7 2L5.5 3.5M7 2l1.5 1.5" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M7 12V8M7 12l-1.5-1.5M7 12l1.5-1.5" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+const VAlignBottomIcon = (
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+    <path d="M2 12h10" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
+    <path d="M7 9V2M7 9L5 7M7 9l2-2" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const VERTICAL_ALIGN_OPTIONS: SegmentedOption[] = [
+  { value: "top", icon: VAlignTopIcon, label: "Top" },
+  { value: "middle", icon: VAlignMiddleIcon, label: "Middle" },
+  { value: "bottom", icon: VAlignBottomIcon, label: "Bottom" },
+];
+
+/** Map computed textAlign CSS value to our option values */
+function mapTextAlign(value: string | undefined): string {
+  if (!value) return "left";
+  if (value === "start") return "left";
+  if (value === "end") return "right";
+  return value; // left, center, right, justify pass through
+}
+
+/** Map computed verticalAlign CSS value to our option values */
+function mapVerticalAlign(value: string | undefined): string {
+  if (!value) return "top";
+  if (value === "middle" || value === "center") return "middle";
+  if (value === "bottom") return "bottom";
+  if (value === "top" || value === "baseline" || value === "text-top") return "top";
+  if (value === "text-bottom" || value === "sub") return "bottom";
+  if (value === "super") return "top";
+  return "top";
+}
 
 const SIZE_OPTIONS: ComboOption[] = [
   { value: "auto", label: "Auto" },
@@ -49,6 +125,10 @@ const LETTER_SPACING_OPTIONS: ComboOption[] = [
   { value: "0.1em", label: "Wider" },
 ];
 
+const WORD_SPACING_OPTIONS: ComboOption[] = [
+  { value: "normal", label: "Normal" },
+];
+
 const GAP_OPTIONS: ComboOption[] = [
   { value: "0px", label: "None" },
   { value: "normal", label: "Normal" },
@@ -68,6 +148,7 @@ export function PropertyPanel({
   const isFlex = element.layoutMode === "flex";
   const isGrid = element.layoutMode === "grid";
   const isPositioned = element.layoutMode === "absolute" || element.layoutMode === "fixed";
+  const hasVerticalAlign = isText || ["IMG", "INPUT", "SELECT", "TEXTAREA"].includes(element.tagName) || isFlex || isGrid;
 
   return (
     <div className={`composer-panel ${position}`}>
@@ -132,6 +213,11 @@ export function PropertyPanel({
       {isText && (
         <Section label="Typography">
           <Row>
+            <Field label="Font">
+              <TextInput prop="fontFamily" value={s.fontFamily} onChange={onPropertyChange} />
+            </Field>
+          </Row>
+          <Row>
             <Field label="Size">
               <NumberInput prop="fontSize" value={s.fontSize} onChange={onPropertyChange} />
             </Field>
@@ -139,7 +225,14 @@ export function PropertyPanel({
               <ComboInput prop="fontWeight" value={s.fontWeight} options={FONT_WEIGHT_OPTIONS} onChange={onPropertyChange} />
             </Field>
           </Row>
-
+          <Row>
+            <Field label="Style">
+              <SelectInput prop="fontStyle" value={s.fontStyle} options={["normal", "italic", "oblique"]} onChange={onPropertyChange} />
+            </Field>
+            <Field label="Decoration">
+              <SelectInput prop="textDecoration" value={s.textDecoration} options={["none", "underline", "line-through", "overline"]} onChange={onPropertyChange} />
+            </Field>
+          </Row>
           <Row>
             <Field label="Line Height">
               <ComboInput prop="lineHeight" value={s.lineHeight} options={LINE_HEIGHT_OPTIONS} onChange={onPropertyChange} />
@@ -152,8 +245,38 @@ export function PropertyPanel({
             <Field label="Color">
               <ColorInput prop="color" value={s.color} onChange={onPropertyChange} />
             </Field>
-            <Field label="Alignment">
-              <SelectInput prop="textAlign" value={s.textAlign} options={["left", "center", "right", "justify"]} onChange={onPropertyChange} />
+          </Row>
+          <Row>
+            <Field label="Align">
+              <SegmentedControl
+                options={TEXT_ALIGN_OPTIONS}
+                value={mapTextAlign(s.textAlign)}
+                onChange={(v) => onPropertyChange("textAlign", v)}
+              />
+            </Field>
+            <Field label="Vertical">
+              <SegmentedControl
+                options={VERTICAL_ALIGN_OPTIONS}
+                value={mapVerticalAlign(s.verticalAlign)}
+                onChange={(v) => onPropertyChange("verticalAlign", v)}
+                disabled={!hasVerticalAlign}
+              />
+            </Field>
+          </Row>
+          <Row>
+            <Field label="Transform">
+              <SelectInput prop="textTransform" value={s.textTransform} options={["none", "uppercase", "lowercase", "capitalize"]} onChange={onPropertyChange} />
+            </Field>
+            <Field label="White Space">
+              <SelectInput prop="whiteSpace" value={s.whiteSpace} options={["normal", "nowrap", "pre", "pre-wrap", "pre-line", "break-spaces"]} onChange={onPropertyChange} />
+            </Field>
+          </Row>
+          <Row>
+            <Field label="Word Spacing">
+              <ComboInput prop="wordSpacing" value={s.wordSpacing} options={WORD_SPACING_OPTIONS} onChange={onPropertyChange} />
+            </Field>
+            <Field label="Text Indent">
+              <NumberInput prop="textIndent" value={s.textIndent} onChange={onPropertyChange} />
             </Field>
           </Row>
         </Section>
