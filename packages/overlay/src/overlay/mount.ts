@@ -171,12 +171,12 @@ const OVERLAY_STYLES = `
   /* Property grid: 2 columns */
   .composer-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 4px;
   }
 
   .composer-grid.single {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   /* Property cell */
@@ -190,6 +190,8 @@ const OVERLAY_STYLES = `
     background: #fafafa;
     border: 1px solid transparent;
     transition: border-color 0.12s ease;
+    min-width: 0;
+    overflow: hidden;
   }
 
   .composer-prop:hover { border-color: #e0e0e0; }
