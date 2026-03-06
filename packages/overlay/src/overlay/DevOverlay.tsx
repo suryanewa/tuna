@@ -287,29 +287,37 @@ function PropertyPanel({
 
       {/* Layout */}
       <Section label="Layout">
-        {/* Padding */}
         <Row>
-          <div className="composer-field">
-            <span className="composer-field-label">Padding</span>
-            <div className="composer-grid-4">
-              <Prop label="T" prop="paddingTop" value={s.paddingTop} onChange={onPropertyChange} />
-              <Prop label="R" prop="paddingRight" value={s.paddingRight} onChange={onPropertyChange} />
-              <Prop label="B" prop="paddingBottom" value={s.paddingBottom} onChange={onPropertyChange} />
-              <Prop label="L" prop="paddingLeft" value={s.paddingLeft} onChange={onPropertyChange} />
-            </div>
-          </div>
+          <Field label="Padding Top">
+            <Prop label="PT" prop="paddingTop" value={s.paddingTop} onChange={onPropertyChange} />
+          </Field>
+          <Field label="Padding Right">
+            <Prop label="PR" prop="paddingRight" value={s.paddingRight} onChange={onPropertyChange} />
+          </Field>
         </Row>
-        {/* Margin */}
         <Row>
-          <div className="composer-field">
-            <span className="composer-field-label">Margin</span>
-            <div className="composer-grid-4">
-              <Prop label="T" prop="marginTop" value={s.marginTop} onChange={onPropertyChange} />
-              <Prop label="R" prop="marginRight" value={s.marginRight} onChange={onPropertyChange} />
-              <Prop label="B" prop="marginBottom" value={s.marginBottom} onChange={onPropertyChange} />
-              <Prop label="L" prop="marginLeft" value={s.marginLeft} onChange={onPropertyChange} />
-            </div>
-          </div>
+          <Field label="Padding Bottom">
+            <Prop label="PB" prop="paddingBottom" value={s.paddingBottom} onChange={onPropertyChange} />
+          </Field>
+          <Field label="Padding Left">
+            <Prop label="PL" prop="paddingLeft" value={s.paddingLeft} onChange={onPropertyChange} />
+          </Field>
+        </Row>
+        <Row>
+          <Field label="Margin Top">
+            <Prop label="MT" prop="marginTop" value={s.marginTop} onChange={onPropertyChange} />
+          </Field>
+          <Field label="Margin Right">
+            <Prop label="MR" prop="marginRight" value={s.marginRight} onChange={onPropertyChange} />
+          </Field>
+        </Row>
+        <Row>
+          <Field label="Margin Bottom">
+            <Prop label="MB" prop="marginBottom" value={s.marginBottom} onChange={onPropertyChange} />
+          </Field>
+          <Field label="Margin Left">
+            <Prop label="ML" prop="marginLeft" value={s.marginLeft} onChange={onPropertyChange} />
+          </Field>
         </Row>
       </Section>
 
@@ -324,13 +332,19 @@ function PropertyPanel({
           </Field>
         </Row>
         <Row>
-          <Field label="Corner Radius">
-            <div className="composer-grid-4">
-              <Prop label="TL" prop="borderTopLeftRadius" value={s.borderTopLeftRadius} onChange={onPropertyChange} />
-              <Prop label="TR" prop="borderTopRightRadius" value={s.borderTopRightRadius} onChange={onPropertyChange} />
-              <Prop label="BL" prop="borderBottomLeftRadius" value={s.borderBottomLeftRadius} onChange={onPropertyChange} />
-              <Prop label="BR" prop="borderBottomRightRadius" value={s.borderBottomRightRadius} onChange={onPropertyChange} />
-            </div>
+          <Field label="Radius TL">
+            <Prop label="TL" prop="borderTopLeftRadius" value={s.borderTopLeftRadius} onChange={onPropertyChange} />
+          </Field>
+          <Field label="Radius TR">
+            <Prop label="TR" prop="borderTopRightRadius" value={s.borderTopRightRadius} onChange={onPropertyChange} />
+          </Field>
+        </Row>
+        <Row>
+          <Field label="Radius BL">
+            <Prop label="BL" prop="borderBottomLeftRadius" value={s.borderBottomLeftRadius} onChange={onPropertyChange} />
+          </Field>
+          <Field label="Radius BR">
+            <Prop label="BR" prop="borderBottomRightRadius" value={s.borderBottomRightRadius} onChange={onPropertyChange} />
           </Field>
         </Row>
       </Section>
