@@ -75,8 +75,8 @@ export function getReactComponentHierarchy(element: Element): string[] {
         current.type?.name ||
         current.elementType?.displayName ||
         current.elementType?.name;
-      // Skip anonymous components and React internals
-      if (name && !name.startsWith("_") && name !== "Fragment") {
+      // Skip anonymous, framework internals, and React internals
+      if (name && !isFrameworkInternal(name)) {
         components.push(name);
       }
     }
@@ -84,6 +84,21 @@ export function getReactComponentHierarchy(element: Element): string[] {
   }
 
   return components;
+}
+
+/** Filter framework/library internals from component hierarchy */
+function isFrameworkInternal(name: string): boolean {
+  // Starts with underscore
+  if (name.startsWith("_")) return true;
+  // React internals
+  if (/^(Fragment|Suspense|StrictMode|Profiler|Lazy|Memo|Forward)/.test(name)) return true;
+  // Ends with common framework suffixes
+  if (/(?:Provider|Consumer|Context|Boundary|Handler|Root|Wrapper)$/.test(name)) return true;
+  // Next.js specific patterns
+  if (/(?:Router|Layout|Template|Loading|Segment|Fallback|Reload|Manager|Metadata|Viewport)/.test(name)) return true;
+  // Very short single-letter or likely minified names
+  if (name.length <= 2) return true;
+  return false;
 }
 
 /** Get props from the nearest React component */

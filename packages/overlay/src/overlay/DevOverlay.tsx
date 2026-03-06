@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * DevOverlay — the main React component users add to their app.
  *
@@ -33,7 +35,8 @@ export function DevOverlay(props: ComposerConfig = {}) {
   const [selectedElement, setSelectedElement] = useState<InspectedElement | null>(null);
   const [changeCount, setChangeCount] = useState(0);
   const [connected, setConnected] = useState(false);
-  const [fidelity, setFidelity] = useState<Fidelity>(config.fidelity);
+  const [fidelity] = useState<Fidelity>(config.fidelity);
+  const [portalTarget, setPortalTarget] = useState<HTMLDivElement | null>(null);
 
   const mountRef = useRef<ReturnType<typeof mountOverlay> | null>(null);
   const pickerRef = useRef<ReturnType<typeof createPicker> | null>(null);
@@ -45,6 +48,7 @@ export function DevOverlay(props: ComposerConfig = {}) {
   useEffect(() => {
     const mount = mountOverlay();
     mountRef.current = mount;
+    setPortalTarget(mount.container);
 
     const preview = new LivePreviewEngine();
     previewRef.current = preview;
@@ -55,7 +59,6 @@ export function DevOverlay(props: ComposerConfig = {}) {
     const bridge = new BridgeClient(config.port);
     bridgeRef.current = bridge;
 
-    // Handle requests from MCP server
     bridge.onRequest(async (method, params) => {
       switch (method) {
         case "getSelection":
@@ -71,7 +74,6 @@ export function DevOverlay(props: ComposerConfig = {}) {
 
     bridge.connect();
 
-    // Poll connection status
     const statusInterval = setInterval(() => {
       setConnected(bridge.connected);
     }, 1000);
@@ -81,8 +83,6 @@ export function DevOverlay(props: ComposerConfig = {}) {
       onSelect: (element) => {
         const inspected = inspectElement(element);
         setSelectedElement(inspected);
-
-        // Start tracking this element
         tracker.track(
           inspected.selector,
           inspected.tagName,
@@ -129,25 +129,21 @@ export function DevOverlay(props: ComposerConfig = {}) {
         e.preventDefault();
         setActive((a) => !a);
       }
-      // Cmd+Z for undo when active
       if (active && (e.metaKey || e.ctrlKey) && e.key === "z" && !e.shiftKey) {
         e.preventDefault();
         handleUndo();
       }
-      // Cmd+Shift+Z for redo when active
       if (active && (e.metaKey || e.ctrlKey) && e.key === "z" && e.shiftKey) {
         e.preventDefault();
         handleRedo();
       }
     }
-
     document.addEventListener("keydown", handleKeyDown, true);
     return () => document.removeEventListener("keydown", handleKeyDown, true);
   }, [active, config.hotkey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handlePropertyChange = useCallback((property: string, value: string) => {
     if (!selectedElement || !previewRef.current || !trackerRef.current) return;
-
     previewRef.current.applyChange(selectedElement.selector, property, value);
     trackerRef.current.recordChange(selectedElement.selector, property, value);
     setChangeCount(trackerRef.current.getPendingChanges().reduce(
@@ -159,17 +155,11 @@ export function DevOverlay(props: ComposerConfig = {}) {
     const tracker = trackerRef.current;
     const preview = previewRef.current;
     if (!tracker || !preview) return;
-
     const entry = tracker.popUndo();
     if (entry) {
-      if (entry.value) {
-        preview.applyChange(entry.selector, entry.property, entry.value);
-      } else {
-        preview.removeChange(entry.selector, entry.property);
-      }
-      setChangeCount(tracker.getPendingChanges().reduce(
-        (sum, c) => sum + c.changes.length, 0
-      ));
+      if (entry.value) preview.applyChange(entry.selector, entry.property, entry.value);
+      else preview.removeChange(entry.selector, entry.property);
+      setChangeCount(tracker.getPendingChanges().reduce((s, c) => s + c.changes.length, 0));
     }
   }, []);
 
@@ -177,38 +167,26 @@ export function DevOverlay(props: ComposerConfig = {}) {
     const tracker = trackerRef.current;
     const preview = previewRef.current;
     if (!tracker || !preview) return;
-
     const entry = tracker.popRedo();
     if (entry) {
       preview.applyChange(entry.selector, entry.property, entry.value);
-      setChangeCount(tracker.getPendingChanges().reduce(
-        (sum, c) => sum + c.changes.length, 0
-      ));
+      setChangeCount(tracker.getPendingChanges().reduce((s, c) => s + c.changes.length, 0));
     }
   }, []);
 
   const handleCopy = useCallback(() => {
     const tracker = trackerRef.current;
     if (!tracker) return;
-
-    const output = formatChanges(tracker.getPendingChanges(), fidelity);
-    navigator.clipboard.writeText(output);
+    navigator.clipboard.writeText(formatChanges(tracker.getPendingChanges(), fidelity));
   }, [fidelity]);
 
   const handleSend = useCallback(async () => {
     const tracker = trackerRef.current;
     const bridge = bridgeRef.current;
     if (!tracker || !bridge) return;
-
     const changes = tracker.getPendingChanges();
     if (changes.length === 0) return;
-
-    try {
-      await bridge.sendChanges(changes);
-    } catch {
-      // If MCP server isn't connected, copy to clipboard instead
-      handleCopy();
-    }
+    try { await bridge.sendChanges(changes); } catch { handleCopy(); }
   }, [handleCopy]);
 
   const handleClear = useCallback(() => {
@@ -218,72 +196,53 @@ export function DevOverlay(props: ComposerConfig = {}) {
     setChangeCount(0);
   }, []);
 
-  // Render into Shadow DOM
-  const shadowRoot = mountRef.current?.root;
-  if (!shadowRoot) return null;
+  if (!portalTarget) return null;
 
   return createPortal(
     <>
       {/* Floating toolbar */}
       <div className={`composer-toolbar ${config.position.replace("-", " ")}`}>
-        {/* Edit mode toggle */}
         <button
           className={`composer-btn ${active ? "active" : ""}`}
           onClick={() => setActive(!active)}
           title={`Toggle edit mode (${config.hotkey})`}
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path
-              d="M11.5 1.5L14.5 4.5L5 14H2V11L11.5 1.5Z"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+            <path d="M11.5 1.5L14.5 4.5L5 14H2V11L11.5 1.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
 
-        {/* Change count */}
         {changeCount > 0 && (
-          <div className="composer-changes-count">{changeCount}</div>
+          <>
+            <div className="composer-divider" />
+            <div className="composer-changes-count">{changeCount}</div>
+            <button className="composer-btn" onClick={handleCopy} title="Copy changes">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M11 5V3.5A1.5 1.5 0 009.5 2h-6A1.5 1.5 0 002 3.5v6A1.5 1.5 0 003.5 11H5" stroke="currentColor" strokeWidth="1.5" />
+              </svg>
+            </button>
+            <button className="composer-btn" onClick={handleSend} title="Send to AI">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <path d="M14 2L7 14L5.5 8.5L2 7L14 2Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+              </svg>
+            </button>
+            <button className="composer-btn" onClick={handleClear} title="Clear">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <path d="M4 4L12 12M4 12L12 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </button>
+          </>
         )}
 
-        {/* Copy */}
-        {changeCount > 0 && (
-          <button className="composer-btn" onClick={handleCopy} title="Copy changes to clipboard">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
-              <path d="M11 5V3.5A1.5 1.5 0 009.5 2h-6A1.5 1.5 0 002 3.5v6A1.5 1.5 0 003.5 11H5" stroke="currentColor" strokeWidth="1.5" />
-            </svg>
-          </button>
-        )}
-
-        {/* Send to AI */}
-        {changeCount > 0 && (
-          <button className="composer-btn" onClick={handleSend} title="Send changes to AI agent">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M14 2L7 14L5.5 8.5L2 7L14 2Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-            </svg>
-          </button>
-        )}
-
-        {/* Clear */}
-        {changeCount > 0 && (
-          <button className="composer-btn" onClick={handleClear} title="Clear all changes">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M4 4L12 12M4 12L12 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
-          </button>
-        )}
-
-        {/* Connection status */}
+        <div className="composer-divider" />
         <div className={`composer-badge ${connected ? "connected" : "disconnected"}`}>
           <div className={`composer-status-dot ${connected ? "connected" : "disconnected"}`} />
-          {connected ? "MCP" : "—"}
+          {connected ? "MCP" : "offline"}
         </div>
       </div>
 
-      {/* Property panel (shown when an element is selected) */}
+      {/* Property panel */}
       {active && selectedElement && (
         <PropertyPanel
           element={selectedElement}
@@ -292,11 +251,11 @@ export function DevOverlay(props: ComposerConfig = {}) {
         />
       )}
     </>,
-    shadowRoot as any
+    portalTarget
   );
 }
 
-// --- Property Panel ---
+// ─── Property Panel ───────────────────────────────────────────
 
 function PropertyPanel({
   element,
@@ -307,129 +266,292 @@ function PropertyPanel({
   position: "left" | "right";
   onPropertyChange: (property: string, value: string) => void;
 }) {
-  const isText = ["P", "H1", "H2", "H3", "H4", "H5", "H6", "SPAN", "A", "BUTTON", "LABEL"].includes(element.tagName);
+  const s = element.computedStyles;
+  const isText = ["P", "H1", "H2", "H3", "H4", "H5", "H6", "SPAN", "A", "BUTTON", "LABEL", "LI", "TD", "TH", "FIGCAPTION", "BLOCKQUOTE", "CITE", "EM", "STRONG", "SMALL"].includes(element.tagName);
   const isFlex = element.layoutMode === "flex";
   const isGrid = element.layoutMode === "grid";
+  const isPositioned = element.layoutMode === "absolute" || element.layoutMode === "fixed";
 
   return (
     <div className={`composer-panel ${position}`}>
+      {/* Header */}
       <div className="composer-panel-header">
-        <div className="composer-panel-title">
-          {element.tagName.toLowerCase()}
-          {element.reactComponents.length > 0 && ` · ${element.reactComponents[0]}`}
-        </div>
+        <div className="composer-el-tag">{element.tagName.toLowerCase()}</div>
+        {element.reactComponents.length > 0 && (
+          <div className="composer-el-component">{element.reactComponents.join(" › ")}</div>
+        )}
+        {element.textContent && (
+          <div className="composer-el-text">"{truncate(element.textContent, 30)}"</div>
+        )}
       </div>
 
       {/* Spacing */}
-      <StyleSection
-        label="Spacing"
-        properties={["paddingTop", "paddingRight", "paddingBottom", "paddingLeft", "marginTop", "marginRight", "marginBottom", "marginLeft"]}
-        styles={element.computedStyles}
-        onChange={onPropertyChange}
-      />
+      <Section label="Spacing">
+        <div className="composer-grid">
+          <Prop label="PT" prop="paddingTop" value={s.paddingTop} onChange={onPropertyChange} />
+          <Prop label="PR" prop="paddingRight" value={s.paddingRight} onChange={onPropertyChange} />
+          <Prop label="PB" prop="paddingBottom" value={s.paddingBottom} onChange={onPropertyChange} />
+          <Prop label="PL" prop="paddingLeft" value={s.paddingLeft} onChange={onPropertyChange} />
+          <Prop label="MT" prop="marginTop" value={s.marginTop} onChange={onPropertyChange} />
+          <Prop label="MR" prop="marginRight" value={s.marginRight} onChange={onPropertyChange} />
+          <Prop label="MB" prop="marginBottom" value={s.marginBottom} onChange={onPropertyChange} />
+          <Prop label="ML" prop="marginLeft" value={s.marginLeft} onChange={onPropertyChange} />
+        </div>
+      </Section>
 
-      {/* Sizing */}
-      <StyleSection
-        label="Size"
-        properties={["width", "height", "borderTopLeftRadius", "borderTopRightRadius", "borderBottomLeftRadius", "borderBottomRightRadius"]}
-        styles={element.computedStyles}
-        onChange={onPropertyChange}
-      />
+      {/* Size */}
+      <Section label="Size">
+        <div className="composer-grid">
+          <Prop label="W" prop="width" value={s.width} onChange={onPropertyChange} />
+          <Prop label="H" prop="height" value={s.height} onChange={onPropertyChange} />
+          <Prop label="TL" prop="borderTopLeftRadius" value={s.borderTopLeftRadius} onChange={onPropertyChange} />
+          <Prop label="TR" prop="borderTopRightRadius" value={s.borderTopRightRadius} onChange={onPropertyChange} />
+          <Prop label="BL" prop="borderBottomLeftRadius" value={s.borderBottomLeftRadius} onChange={onPropertyChange} />
+          <Prop label="BR" prop="borderBottomRightRadius" value={s.borderBottomRightRadius} onChange={onPropertyChange} />
+        </div>
+      </Section>
 
-      {/* Typography (for text elements) */}
+      {/* Typography */}
       {isText && (
-        <StyleSection
-          label="Typography"
-          properties={["fontSize", "fontWeight", "lineHeight", "letterSpacing", "color"]}
-          styles={element.computedStyles}
-          onChange={onPropertyChange}
-        />
+        <Section label="Typography">
+          <div className="composer-grid">
+            <Prop label="Size" prop="fontSize" value={s.fontSize} onChange={onPropertyChange} />
+            <Prop label="Weight" prop="fontWeight" value={s.fontWeight} onChange={onPropertyChange} />
+            <Prop label="Height" prop="lineHeight" value={s.lineHeight} onChange={onPropertyChange} />
+            <Prop label="Spacing" prop="letterSpacing" value={s.letterSpacing} onChange={onPropertyChange} />
+          </div>
+          <div className="composer-grid single" style={{ marginTop: 4 }}>
+            <ColorProp label="Color" prop="color" value={s.color} onChange={onPropertyChange} />
+            <SelectProp label="Align" prop="textAlign" value={s.textAlign} options={["left", "center", "right", "justify"]} onChange={onPropertyChange} />
+          </div>
+        </Section>
       )}
 
-      {/* Background */}
-      <StyleSection
-        label="Background"
-        properties={["backgroundColor", "opacity"]}
-        styles={element.computedStyles}
-        onChange={onPropertyChange}
-      />
+      {/* Fill */}
+      <Section label="Fill">
+        <div className="composer-grid single">
+          <ColorProp label="BG" prop="backgroundColor" value={s.backgroundColor} onChange={onPropertyChange} />
+        </div>
+        <div className="composer-grid" style={{ marginTop: 4 }}>
+          <Prop label="Opacity" prop="opacity" value={s.opacity} onChange={onPropertyChange} />
+        </div>
+      </Section>
 
-      {/* Flex layout */}
+      {/* Flex Layout */}
       {isFlex && (
-        <StyleSection
-          label="Flex"
-          properties={["flexDirection", "alignItems", "justifyContent", "gap"]}
-          styles={element.computedStyles}
-          onChange={onPropertyChange}
-        />
+        <Section label="Flex">
+          <div className="composer-grid">
+            <SelectProp label="Dir" prop="flexDirection" value={s.flexDirection} options={["row", "row-reverse", "column", "column-reverse"]} onChange={onPropertyChange} />
+            <Prop label="Gap" prop="gap" value={s.gap} onChange={onPropertyChange} />
+            <SelectProp label="Align" prop="alignItems" value={s.alignItems} options={["stretch", "flex-start", "center", "flex-end", "baseline"]} onChange={onPropertyChange} />
+            <SelectProp label="Justify" prop="justifyContent" value={s.justifyContent} options={["flex-start", "center", "flex-end", "space-between", "space-around", "space-evenly"]} onChange={onPropertyChange} />
+          </div>
+        </Section>
       )}
 
-      {/* Grid layout */}
+      {/* Grid Layout */}
       {isGrid && (
-        <StyleSection
-          label="Grid"
-          properties={["gridTemplateColumns", "gridTemplateRows", "gap"]}
-          styles={element.computedStyles}
-          onChange={onPropertyChange}
-        />
+        <Section label="Grid">
+          <div className="composer-grid single">
+            <Prop label="Columns" prop="gridTemplateColumns" value={s.gridTemplateColumns} onChange={onPropertyChange} />
+            <Prop label="Rows" prop="gridTemplateRows" value={s.gridTemplateRows} onChange={onPropertyChange} />
+          </div>
+          <div className="composer-grid" style={{ marginTop: 4 }}>
+            <Prop label="Gap" prop="gap" value={s.gap} onChange={onPropertyChange} />
+          </div>
+        </Section>
       )}
 
-      {/* Visual */}
-      <StyleSection
-        label="Effects"
-        properties={["boxShadow"]}
-        styles={element.computedStyles}
-        onChange={onPropertyChange}
-      />
+      {/* Position */}
+      {isPositioned && (
+        <Section label="Position">
+          <div className="composer-grid">
+            <Prop label="Top" prop="top" value={s.top} onChange={onPropertyChange} />
+            <Prop label="Right" prop="right" value={s.right} onChange={onPropertyChange} />
+            <Prop label="Bottom" prop="bottom" value={s.bottom} onChange={onPropertyChange} />
+            <Prop label="Left" prop="left" value={s.left} onChange={onPropertyChange} />
+            <Prop label="Z" prop="zIndex" value={s.zIndex} onChange={onPropertyChange} />
+          </div>
+        </Section>
+      )}
+
+      {/* Effects */}
+      {s.boxShadow && s.boxShadow !== "none" && (
+        <Section label="Effects">
+          <div className="composer-grid single">
+            <Prop label="Shadow" prop="boxShadow" value={s.boxShadow} onChange={onPropertyChange} full />
+          </div>
+        </Section>
+      )}
     </div>
   );
 }
 
-function StyleSection({
-  label,
-  properties,
-  styles,
-  onChange,
-}: {
-  label: string;
-  properties: string[];
-  styles: Record<string, string>;
-  onChange: (property: string, value: string) => void;
-}) {
+// ─── Primitives ───────────────────────────────────────────────
+
+function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="composer-section">
       <div className="composer-section-label">{label}</div>
-      {properties.map((prop) => (
-        <div key={prop} className="composer-row">
-          <label>{formatPropLabel(prop)}</label>
-          {isColorProperty(prop) ? (
-            <>
-              <input
-                type="color"
-                className="composer-color-swatch"
-                value={rgbToHex(styles[prop] || "")}
-                onChange={(e) => onChange(prop, e.target.value)}
-              />
-              <input
-                className="composer-input"
-                value={styles[prop] || ""}
-                onChange={(e) => onChange(prop, e.target.value)}
-              />
-            </>
-          ) : (
-            <input
-              className="composer-input"
-              value={styles[prop] || ""}
-              onChange={(e) => onChange(prop, e.target.value)}
-            />
-          )}
-        </div>
-      ))}
+      {children}
     </div>
   );
 }
 
-// --- Helpers ---
+function Prop({
+  label, prop, value, onChange, full,
+}: {
+  label: string;
+  prop: string;
+  value: string | undefined;
+  onChange: (prop: string, value: string) => void;
+  full?: boolean;
+}) {
+  const [localValue, setLocalValue] = useState(value || "");
+  const labelRef = useRef<HTMLSpanElement>(null);
+
+  // Sync external value changes
+  useEffect(() => { setLocalValue(value || ""); }, [value]);
+
+  // Scrub-to-adjust: drag on label to change numeric values
+  const scrubRef = useRef({ startX: 0, startVal: 0, active: false });
+
+  const handleLabelPointerDown = (e: React.PointerEvent) => {
+    const num = parseFloat(localValue);
+    if (isNaN(num)) return;
+    scrubRef.current = { startX: e.clientX, startVal: num, active: true };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const handleLabelPointerMove = (e: React.PointerEvent) => {
+    if (!scrubRef.current.active) return;
+    const delta = Math.round((e.clientX - scrubRef.current.startX));
+    const unit = localValue.replace(/[\d.-]+/, "") || "";
+    const newVal = `${scrubRef.current.startVal + delta}${unit}`;
+    setLocalValue(newVal);
+    onChange(prop, newVal);
+  };
+
+  const handleLabelPointerUp = () => {
+    scrubRef.current.active = false;
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLocalValue(e.target.value);
+  };
+
+  const handleBlur = () => {
+    onChange(prop, localValue);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      onChange(prop, localValue);
+      (e.target as HTMLInputElement).blur();
+    }
+    // Arrow up/down for numeric values
+    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      const num = parseFloat(localValue);
+      if (isNaN(num)) return;
+      e.preventDefault();
+      const step = e.shiftKey ? 10 : 1;
+      const delta = e.key === "ArrowUp" ? step : -step;
+      const unit = localValue.replace(/[\d.-]+/, "") || "";
+      const newVal = `${num + delta}${unit}`;
+      setLocalValue(newVal);
+      onChange(prop, newVal);
+    }
+  };
+
+  return (
+    <div className={`composer-prop${full ? " full" : ""}`}>
+      <span
+        ref={labelRef}
+        className="composer-prop-label"
+        onPointerDown={handleLabelPointerDown}
+        onPointerMove={handleLabelPointerMove}
+        onPointerUp={handleLabelPointerUp}
+      >
+        {label}
+      </span>
+      <input
+        className="composer-prop-input"
+        value={localValue}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
+        spellCheck={false}
+      />
+    </div>
+  );
+}
+
+function ColorProp({
+  label, prop, value, onChange,
+}: {
+  label: string;
+  prop: string;
+  value: string | undefined;
+  onChange: (prop: string, value: string) => void;
+}) {
+  const [localValue, setLocalValue] = useState(value || "");
+  useEffect(() => { setLocalValue(value || ""); }, [value]);
+
+  const hexValue = rgbToHex(localValue);
+
+  return (
+    <div className="composer-prop color">
+      <span className="composer-prop-label">{label}</span>
+      <div className="composer-color-swatch">
+        <div className="composer-color-swatch-fill" style={{ background: localValue }} />
+        <input
+          type="color"
+          className="composer-color-picker"
+          value={hexValue}
+          onChange={(e) => {
+            setLocalValue(e.target.value);
+            onChange(prop, e.target.value);
+          }}
+        />
+      </div>
+      <input
+        className="composer-prop-input"
+        value={localValue}
+        onChange={(e) => setLocalValue(e.target.value)}
+        onBlur={() => onChange(prop, localValue)}
+        onKeyDown={(e) => { if (e.key === "Enter") { onChange(prop, localValue); (e.target as HTMLInputElement).blur(); } }}
+        spellCheck={false}
+      />
+    </div>
+  );
+}
+
+function SelectProp({
+  label, prop, value, options, onChange,
+}: {
+  label: string;
+  prop: string;
+  value: string | undefined;
+  options: string[];
+  onChange: (prop: string, value: string) => void;
+}) {
+  return (
+    <div className="composer-prop">
+      <span className="composer-prop-label">{label}</span>
+      <select
+        className="composer-prop-select"
+        value={value || ""}
+        onChange={(e) => onChange(prop, e.target.value)}
+      >
+        {options.map((opt) => (
+          <option key={opt} value={opt}>{opt}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+// ─── Helpers ──────────────────────────────────────────────────
 
 function inspectElement(element: Element): InspectedElement {
   return {
@@ -455,7 +577,6 @@ function matchesHotkey(e: KeyboardEvent, hotkey: string): boolean {
   const needsCtrl = parts.includes("ctrl");
   const needsMeta = parts.includes("meta") || parts.includes("cmd");
   const needsShift = parts.includes("shift");
-
   return (
     e.key.toLowerCase() === key &&
     e.altKey === needsAlt &&
@@ -465,22 +586,9 @@ function matchesHotkey(e: KeyboardEvent, hotkey: string): boolean {
   );
 }
 
-function formatPropLabel(prop: string): string {
-  return prop
-    .replace(/([A-Z])/g, " $1")
-    .replace(/^./, (s) => s.toUpperCase())
-    .replace("Padding ", "P ")
-    .replace("Margin ", "M ")
-    .replace("Border ", "B ")
-    .replace(" Top", " T")
-    .replace(" Right", " R")
-    .replace(" Bottom", " B")
-    .replace(" Left", " L")
-    .replace(" Radius", " Rad");
-}
-
-function isColorProperty(prop: string): boolean {
-  return prop.toLowerCase().includes("color") || prop === "backgroundColor";
+function truncate(str: string, len: number): string {
+  const cleaned = str.replace(/\s+/g, " ").trim();
+  return cleaned.length > len ? cleaned.slice(0, len) + "…" : cleaned;
 }
 
 function rgbToHex(rgb: string): string {
