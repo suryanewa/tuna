@@ -12,12 +12,15 @@ import { SelectInput } from "../ui/select-input";
 import { SliderInput } from "../ui/slider-input";
 import { TextInput } from "../ui/text-input";
 import { FontInput } from "../ui/font-input";
+import { ConstraintsInput } from "../ui/constraints-input";
 import { SegmentedControl } from "../ui/segmented-control";
-import { truncate } from "../ui/helpers";
 import type { SegmentedOption } from "../ui/segmented-control";
 import { IconAlignmentLeft } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconAlignmentLeft";
 import { IconAlignmentCenter } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconAlignmentCenter";
 import { IconAlignmentRight } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconAlignmentRight";
+import { IconVerticalAlignmentLeft } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconVerticalAlignmentLeft";
+import { IconVerticalAlignmentCenter } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconVerticalAlignmentCenter";
+import { IconVerticalAlignmentRight } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconVerticalAlignmentRight";
 import { IconHorizontalAlignmentTop } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconHorizontalAlignmentTop";
 import { IconHorizontalAlignmentCenter } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconHorizontalAlignmentCenter";
 import { IconHorizontalAlignmentBottom } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconHorizontalAlignmentBottom";
@@ -111,7 +114,10 @@ export function PropertyPanel({
   const isText = ["P", "H1", "H2", "H3", "H4", "H5", "H6", "SPAN", "A", "BUTTON", "LABEL", "LI", "TD", "TH", "FIGCAPTION", "BLOCKQUOTE", "CITE", "EM", "STRONG", "SMALL"].includes(element.tagName);
   const isFlex = element.layoutMode === "flex";
   const isGrid = element.layoutMode === "grid";
-  const isPositioned = element.layoutMode === "absolute" || element.layoutMode === "fixed";
+  const positionType = s.position || "static";
+  const isPositioned = positionType !== "static";
+  const showOffsets = positionType === "absolute" || positionType === "fixed" || positionType === "relative";
+  const isSticky = positionType === "sticky";
   const hasVerticalAlign = isText || ["IMG", "INPUT", "SELECT", "TEXTAREA"].includes(element.tagName) || isFlex || isGrid;
 
   return (
@@ -122,32 +128,78 @@ export function PropertyPanel({
         {element.reactComponents.length > 0 && (
           <div className="composer-el-component">{element.reactComponents.join(" \u203A ")}</div>
         )}
-        {element.textContent && (
-          <div className="composer-el-text">&ldquo;{truncate(element.textContent, 30)}&rdquo;</div>
-        )}
       </div>
 
       {/* Position */}
-      {isPositioned && (
-        <Section label="Position">
+      <Section label="Position">
+        {(positionType === "absolute" || positionType === "fixed") && (
           <Row>
-            <Field label="Top">
+            <div className="composer-field">
+              <span className="composer-field-label">Alignment</span>
+              <div className="composer-align-row">
+                <div className="composer-btn-group">
+                  <button type="button" className="composer-align-btn" title="Align left" onClick={() => { onPropertyChange("left", "0px"); onPropertyChange("right", "auto"); }}>
+                    <IconVerticalAlignmentLeft size={16} />
+                  </button>
+                  <button type="button" className="composer-align-btn" title="Align center H" onClick={() => { onPropertyChange("left", "50%"); onPropertyChange("right", "auto"); onPropertyChange("transform", "translateX(-50%)"); }}>
+                    <IconVerticalAlignmentCenter size={16} />
+                  </button>
+                  <button type="button" className="composer-align-btn" title="Align right" onClick={() => { onPropertyChange("right", "0px"); onPropertyChange("left", "auto"); }}>
+                    <IconVerticalAlignmentRight size={16} />
+                  </button>
+                </div>
+                <div className="composer-btn-group">
+                  <button type="button" className="composer-align-btn" title="Align top" onClick={() => { onPropertyChange("top", "0px"); onPropertyChange("bottom", "auto"); }}>
+                    <IconHorizontalAlignmentTop size={16} />
+                  </button>
+                  <button type="button" className="composer-align-btn" title="Align center V" onClick={() => { onPropertyChange("top", "50%"); onPropertyChange("bottom", "auto"); onPropertyChange("transform", "translateY(-50%)"); }}>
+                    <IconHorizontalAlignmentCenter size={16} />
+                  </button>
+                  <button type="button" className="composer-align-btn" title="Align bottom" onClick={() => { onPropertyChange("bottom", "0px"); onPropertyChange("top", "auto"); }}>
+                    <IconHorizontalAlignmentBottom size={16} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </Row>
+        )}
+        <Row>
+          <Field label="Type">
+            <SelectInput prop="position" value={positionType} options={["static", "relative", "absolute", "fixed", "sticky"]} onChange={onPropertyChange} />
+          </Field>
+        </Row>
+        {(positionType === "absolute" || positionType === "fixed") && (
+          <Row>
+            <ConstraintsInput
+              top={s.top}
+              right={s.right}
+              bottom={s.bottom}
+              left={s.left}
+              onChange={onPropertyChange}
+            />
+          </Row>
+        )}
+        {positionType === "relative" && (
+          <RowGroup label="Offsets">
+            <div className="composer-row">
               <NumberInput label="T" prop="top" value={s.top} onChange={onPropertyChange} />
-            </Field>
-            <Field label="Right">
               <NumberInput label="R" prop="right" value={s.right} onChange={onPropertyChange} />
-            </Field>
-          </Row>
-          <Row>
-            <Field label="Bottom">
+            </div>
+            <div className="composer-row">
               <NumberInput label="B" prop="bottom" value={s.bottom} onChange={onPropertyChange} />
-            </Field>
-            <Field label="Left">
               <NumberInput label="L" prop="left" value={s.left} onChange={onPropertyChange} />
-            </Field>
-          </Row>
-        </Section>
-      )}
+            </div>
+          </RowGroup>
+        )}
+        {isSticky && (
+          <RowGroup label="Sticky Offset">
+            <div className="composer-row">
+              <NumberInput label="T" prop="top" value={s.top} onChange={onPropertyChange} />
+              <NumberInput label="B" prop="bottom" value={s.bottom} onChange={onPropertyChange} />
+            </div>
+          </RowGroup>
+        )}
+      </Section>
 
       {/* Layout */}
       <Section label="Layout">

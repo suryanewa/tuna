@@ -25,7 +25,7 @@ export interface InspectedElement {
   /** Computed styles (subset relevant to the element type) */
   computedStyles: Record<string, string>;
   /** Detected layout mode */
-  layoutMode: "block" | "flex" | "grid" | "inline" | "absolute" | "fixed";
+  layoutMode: "block" | "flex" | "grid" | "inline" | "absolute" | "fixed" | "relative" | "sticky";
   /** React component hierarchy (if React app) */
   reactComponents: string[];
   /** React component props (from nearest component) */

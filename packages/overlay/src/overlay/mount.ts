@@ -192,7 +192,7 @@ const OVERLAY_STYLES = `
     border-radius: 16px;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
     width: 280px;
-    max-height: calc(100vh - 92px);
+    max-height: calc(100vh - 84px);
     overflow-y: auto;
     overflow-x: hidden;
   }
@@ -209,13 +209,14 @@ const OVERLAY_STYLES = `
     position: sticky;
     top: 0;
     background: #fff;
-    padding: 8px 16px;
+    padding: 12px 16px;
     border-bottom: 1px solid #e7e5e4;
     z-index: 10;
   }
 
   .composer-el-tag {
-    font-size: 11px;
+    font-size: 13px;
+    line-height: 16px;
     font-weight: 550;
     letter-spacing: 0.055px;
     color: #1c1917;
@@ -282,7 +283,127 @@ const OVERLAY_STYLES = `
     padding: 0 16px;
   }
 
-  .composer-row-group > .composer-row { /* rows inside group have no extra padding */ }
+  .composer-row-group > .composer-row + .composer-row { margin-top: 4px; }
+
+  /* ── Alignment buttons (position section) ── */
+  .composer-align-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .composer-btn-group {
+    display: flex;
+    flex: 1;
+    background: #f5f5f4;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .composer-align-btn + .composer-align-btn {
+    border-left: 1px solid #e7e5e4;
+  }
+
+  .composer-align-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .composer-align-btn:hover {
+    background: #e7e5e4;
+    color: rgba(0, 0, 0, 0.8);
+  }
+
+  .composer-align-btn:active {
+    background: #d6d3d1;
+  }
+
+  /* ── Constraints visual (position section) ── */
+  .composer-constraints {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    width: 100%;
+  }
+
+  .composer-constraints-side {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+  }
+
+  .composer-constraints-center {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: stretch;
+  }
+
+  .composer-pin-box {
+    position: relative;
+    background: #f5f5f4;
+    border-radius: 6px;
+    width: 100%;
+    height: 64px;
+  }
+
+  .composer-pin-line {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+  }
+
+  .composer-pin-line.top {
+    left: 50%;
+    transform: translateX(-50%);
+    top: 2px;
+  }
+
+  .composer-pin-line.right {
+    left: calc(75% - 2px);
+    top: 24px;
+  }
+
+  .composer-pin-line.bottom {
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 2px;
+  }
+
+  .composer-pin-line.left {
+    left: calc(25% - 14px);
+    top: 24px;
+  }
+
+  .composer-pin-center {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 24px;
+    height: 24px;
+    background: #fff;
+    border: 1px solid #e7e5e4;
+    border-radius: 6px;
+  }
 
   /* Row layout: flex with gap for side-by-side fields */
   .composer-row {

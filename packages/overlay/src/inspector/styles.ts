@@ -54,7 +54,7 @@ const ALL_PROPS = [
   ...VISUAL_PROPS,
 ] as const;
 
-export type LayoutMode = "block" | "flex" | "grid" | "inline" | "absolute" | "fixed";
+export type LayoutMode = "block" | "flex" | "grid" | "inline" | "absolute" | "fixed" | "relative" | "sticky";
 
 export function getRelevantStyles(element: Element): Record<string, string> {
   const computed = window.getComputedStyle(element);
@@ -77,6 +77,8 @@ export function detectLayoutMode(element: Element): LayoutMode {
 
   if (position === "fixed") return "fixed";
   if (position === "absolute") return "absolute";
+  if (position === "sticky") return "sticky";
+  if (position === "relative") return "relative";
   if (display.includes("flex")) return "flex";
   if (display.includes("grid")) return "grid";
   if (display.includes("inline")) return "inline";
