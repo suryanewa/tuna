@@ -40,78 +40,93 @@ export function createPicker(
   let active = false;
   let hoveredElement: Element | null = null;
   let selectedElement: Element | null = null;
+  let selectionLabelHidden = false;
   let rafId: number | null = null;
+  let hoverTimer: ReturnType<typeof setTimeout> | null = null;
+  let lastSelRect = { top: 0, left: 0, width: 0, height: 0 };
 
-  const BASE_HIGHLIGHT = `
-    position: fixed;
-    pointer-events: none;
-    z-index: 2147483646;
-    box-sizing: border-box;
-    transition: all 0.05s ease;
-  `;
+  // Apply base styles once, then only update position
+  function initBoxStyles(box: HTMLElement, labelEl: HTMLElement) {
+    box.style.cssText = `
+      position: fixed;
+      pointer-events: none;
+      z-index: 2147483646;
+      box-sizing: border-box;
+      display: none;
+    `;
+    labelEl.style.cssText = `
+      position: fixed;
+      color: white;
+      font-size: 11px;
+      font-family: ui-monospace, monospace;
+      padding: 2px 6px;
+      border-radius: 3px;
+      pointer-events: none;
+      z-index: 2147483646;
+      white-space: nowrap;
+      display: none;
+    `;
+  }
 
-  const BASE_LABEL = `
-    position: fixed;
-    color: white;
-    font-size: 11px;
-    font-family: ui-monospace, monospace;
-    padding: 2px 6px;
-    border-radius: 3px;
-    pointer-events: none;
-    z-index: 2147483646;
-    white-space: nowrap;
-  `;
+  initBoxStyles(highlight, label);
+  initBoxStyles(selection, selectionLabel);
+
+  function positionBox(box: HTMLElement, labelEl: HTMLElement, rect: DOMRect, borderStyle: string, bgAlpha: string) {
+    box.style.top = `${rect.top}px`;
+    box.style.left = `${rect.left}px`;
+    box.style.width = `${rect.width}px`;
+    box.style.height = `${rect.height}px`;
+    box.style.border = `2px ${borderStyle} #3b82f6`;
+    box.style.background = `rgba(59, 130, 246, ${bgAlpha})`;
+    box.style.display = "";
+
+    const labelY = rect.top > 24 ? rect.top - 24 : rect.bottom + 4;
+    labelEl.style.top = `${labelY}px`;
+    labelEl.style.left = `${rect.left}px`;
+    labelEl.style.background = "#3b82f6";
+  }
 
   function updateHighlight(el: Element) {
     const rect = el.getBoundingClientRect();
     const dashed = selectedElement !== null && el !== selectedElement;
-    const borderStyle = dashed ? "dashed" : "solid";
-    highlight.style.cssText = `
-      ${BASE_HIGHLIGHT}
-      top: ${rect.top}px;
-      left: ${rect.left}px;
-      width: ${rect.width}px;
-      height: ${rect.height}px;
-      border: 2px ${borderStyle} #3b82f6;
-      background: rgba(59, 130, 246, 0.08);
-    `;
-
-    const labelY = rect.top > 24 ? rect.top - 24 : rect.bottom + 4;
-    label.style.cssText = `
-      ${BASE_LABEL}
-      top: ${labelY}px;
-      left: ${rect.left}px;
-      background: #3b82f6;
-    `;
+    positionBox(highlight, label, rect, dashed ? "dashed" : "solid", "0.08");
+    label.style.display = "";
     label.textContent = formatLabel(el);
   }
 
-  function updateSelection() {
-    if (!selectedElement) {
-      selection.style.display = "none";
-      selectionLabel.style.display = "none";
-      return;
-    }
-
+  function showSelection() {
+    if (!selectedElement) return;
     const rect = selectedElement.getBoundingClientRect();
-    selection.style.cssText = `
-      ${BASE_HIGHLIGHT}
-      top: ${rect.top}px;
-      left: ${rect.left}px;
-      width: ${rect.width}px;
-      height: ${rect.height}px;
-      border: 2px solid #3b82f6;
-      background: rgba(59, 130, 246, 0.04);
-    `;
+    positionBox(selection, selectionLabel, rect, "solid", "0.04");
+    if (!selectionLabelHidden) {
+      selectionLabel.style.display = "";
+    }
+    selectionLabel.textContent = formatLabel(selectedElement);
+    lastSelRect = { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
+  }
+
+  // Lightweight position-only update for scroll/resize tracking
+  function trackSelection() {
+    if (!selectedElement) return;
+    const rect = selectedElement.getBoundingClientRect();
+    // Skip if nothing moved
+    if (
+      rect.top === lastSelRect.top &&
+      rect.left === lastSelRect.left &&
+      rect.width === lastSelRect.width &&
+      rect.height === lastSelRect.height
+    ) return;
+
+    selection.style.top = `${rect.top}px`;
+    selection.style.left = `${rect.left}px`;
+    selection.style.width = `${rect.width}px`;
+    selection.style.height = `${rect.height}px`;
 
     const labelY = rect.top > 24 ? rect.top - 24 : rect.bottom + 4;
-    selectionLabel.style.cssText = `
-      ${BASE_LABEL}
-      top: ${labelY}px;
-      left: ${rect.left}px;
-      background: #3b82f6;
-    `;
+    selectionLabel.style.top = `${labelY}px`;
+    selectionLabel.style.left = `${rect.left}px`;
     selectionLabel.textContent = formatLabel(selectedElement);
+    lastSelRect = { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
   }
 
   function formatLabel(el: Element): string {
@@ -137,7 +152,7 @@ export function createPicker(
   // Keep selection box in sync on scroll/resize
   function startTracking() {
     function tick() {
-      if (selectedElement) updateSelection();
+      trackSelection();
       rafId = requestAnimationFrame(tick);
     }
     rafId = requestAnimationFrame(tick);
@@ -155,25 +170,40 @@ export function createPicker(
     return !!el.closest("[data-composer-host]");
   }
 
+  function applyHover(el: Element) {
+    hoveredElement = el;
+
+    if (el === selectedElement) {
+      hideHighlight();
+      selectionLabelHidden = false;
+      selectionLabel.style.display = "";
+    } else {
+      updateHighlight(el);
+    }
+
+    callbacks.onHover(el, el.getBoundingClientRect());
+  }
+
   function handleMouseMove(e: MouseEvent) {
     if (!active) return;
     const el = document.elementFromPoint(e.clientX, e.clientY);
     if (!el || isOverlayElement(el)) return;
     if (el === hoveredElement) return;
 
-    hoveredElement = el;
+    // If moving to an ancestor of the current hover target, debounce
+    // to avoid flashing parents when crossing gaps between siblings
+    if (hoverTimer) { clearTimeout(hoverTimer); hoverTimer = null; }
 
-    // If hovering the selected element, hide hover highlight (selection box is enough)
-    if (el === selectedElement) {
-      hideHighlight();
-      selectionLabel.style.display = "";
+    if (hoveredElement && el.contains(hoveredElement)) {
+      hoverTimer = setTimeout(() => {
+        hoverTimer = null;
+        // Re-check — cursor may have moved to a sibling by now
+        const current = document.elementFromPoint(e.clientX, e.clientY);
+        if (current === el) applyHover(el);
+      }, 50);
     } else {
-      updateHighlight(el);
-      // Hide selection label to avoid overlap with hover label
-      selectionLabel.style.display = "none";
+      applyHover(el);
     }
-
-    callbacks.onHover(el, el.getBoundingClientRect());
   }
 
   function handleClick(e: MouseEvent) {
@@ -192,8 +222,10 @@ export function createPicker(
     if (!el || isOverlayElement(el)) return;
 
     selectedElement = el;
-    updateSelection();
+    selectionLabelHidden = false;
+    showSelection();
     hideHighlight();
+    hoveredElement = null;
     callbacks.onSelect(el);
   }
 
@@ -219,6 +251,8 @@ export function createPicker(
     document.body.style.cursor = "";
     hoveredElement = null;
     selectedElement = null;
+    selectionLabelHidden = false;
+    if (hoverTimer) { clearTimeout(hoverTimer); hoverTimer = null; }
     hideHighlight();
     hideSelection();
     stopTracking();
@@ -229,6 +263,7 @@ export function createPicker(
 
   function clearSelection() {
     selectedElement = null;
+    selectionLabelHidden = false;
     hideSelection();
   }
 

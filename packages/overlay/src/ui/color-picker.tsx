@@ -53,12 +53,15 @@ export function ColorPicker({ value, alpha = 100, onChange, onAlphaChange, onClo
   const focusedRef = useRef<string | null>(null);
 
   // Sync local inputs from hsva when not focused
-  useEffect(() => {
-    if (focusedRef.current) return;
-    setHexInput(hsvToHex(hsva.h, hsva.s, hsva.v).replace("#", "").toUpperCase());
-    const { r, g, b } = hsvToRgb(hsva.h, hsva.s, hsva.v);
-    setRgbInputs({ r: String(r), g: String(g), b: String(b) });
-  }, [hsva]);
+  const [prevHsva, setPrevHsva] = useState(hsva);
+  if (hsva !== prevHsva) {
+    setPrevHsva(hsva);
+    if (!focusedRef.current) {
+      setHexInput(hsvToHex(hsva.h, hsva.s, hsva.v).replace("#", "").toUpperCase());
+      const { r, g, b } = hsvToRgb(hsva.h, hsva.s, hsva.v);
+      setRgbInputs({ r: String(r), g: String(g), b: String(b) });
+    }
+  }
 
   const emitChange = useCallback((newHsva: HSVA) => {
     setHsva(newHsva);

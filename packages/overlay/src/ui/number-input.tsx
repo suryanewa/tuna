@@ -3,7 +3,7 @@
  * Equivalent to the portfolio editor's NumberInput component.
  */
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 
 export interface NumberInputProps {
   label?: string;
@@ -16,7 +16,11 @@ export function NumberInput({ label, prop, value, onChange }: NumberInputProps) 
   const [localValue, setLocalValue] = useState(value || "");
   const labelRef = useRef<HTMLSpanElement>(null);
 
-  useEffect(() => { setLocalValue(value || ""); }, [value]);
+  const [prevValue, setPrevValue] = useState(value);
+  if (value !== prevValue) {
+    setPrevValue(value);
+    setLocalValue(value || "");
+  }
 
   // Scrub-to-adjust: drag on label to change numeric values
   const scrubRef = useRef({ startX: 0, startVal: 0, active: false });

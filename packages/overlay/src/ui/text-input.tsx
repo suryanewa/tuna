@@ -4,7 +4,7 @@
  * where scrub-to-adjust doesn't make sense.
  */
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 export interface TextInputProps {
   prop: string;
@@ -15,7 +15,11 @@ export interface TextInputProps {
 export function TextInput({ prop, value, onChange }: TextInputProps) {
   const [localValue, setLocalValue] = useState(value || "");
 
-  useEffect(() => { setLocalValue(value || ""); }, [value]);
+  const [prevValue, setPrevValue] = useState(value);
+  if (value !== prevValue) {
+    setPrevValue(value);
+    setLocalValue(value || "");
+  }
 
   return (
     <div className="composer-text-input">

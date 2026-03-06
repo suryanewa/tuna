@@ -3,7 +3,7 @@
  * Equivalent to the portfolio editor's LabelSlider component.
  */
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 
 export interface SliderInputProps {
   label: string;
@@ -19,7 +19,12 @@ export function SliderInput({
   label, prop, value, min, max, step = 0.01, onChange,
 }: SliderInputProps) {
   const [localValue, setLocalValue] = useState(value || "0");
-  useEffect(() => { setLocalValue(value || "0"); }, [value]);
+
+  const [prevValue, setPrevValue] = useState(value);
+  if (value !== prevValue) {
+    setPrevValue(value);
+    setLocalValue(value || "0");
+  }
 
   const numValue = parseFloat(localValue) || 0;
   const range = max - min;

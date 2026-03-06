@@ -32,7 +32,11 @@ export function ComboInput({ label, prop, value, options, onChange }: ComboInput
   const containerRef = useRef<HTMLDivElement>(null);
   const labelRef = useRef<HTMLSpanElement>(null);
 
-  useEffect(() => { setLocalValue(value || ""); }, [value]);
+  const [prevValue, setPrevValue] = useState(value);
+  if (value !== prevValue) {
+    setPrevValue(value);
+    setLocalValue(value || "");
+  }
 
   const openDropdown = useCallback(() => {
     const el = containerRef.current;

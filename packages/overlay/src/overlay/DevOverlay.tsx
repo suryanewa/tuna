@@ -94,7 +94,7 @@ export function DevOverlay(props: ComposerConfig = {}) {
         );
       },
       onCancel: () => {
-        setActive(false);
+        deactivateOverlay();
       },
     });
     pickerRef.current = picker;
@@ -107,27 +107,37 @@ export function DevOverlay(props: ComposerConfig = {}) {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Toggle picker when active state changes
-  useEffect(() => {
-    const picker = pickerRef.current;
-    const preview = previewRef.current;
-    if (!picker || !preview) return;
+  const activateOverlay = useCallback(() => {
+    setActive(true);
+    pickerRef.current?.activate();
+    previewRef.current?.attach();
+  }, []);
 
-    if (active) {
-      picker.activate();
-      preview.attach();
-    } else {
-      picker.deactivate();
-      setSelectedElement(null);
-    }
-  }, [active]);
+  const deactivateOverlay = useCallback(() => {
+    setActive(false);
+    setSelectedElement(null);
+    pickerRef.current?.deactivate();
+  }, []);
+
+  const toggleOverlay = useCallback(() => {
+    setActive((prev) => {
+      if (prev) {
+        setSelectedElement(null);
+        pickerRef.current?.deactivate();
+      } else {
+        pickerRef.current?.activate();
+        previewRef.current?.attach();
+      }
+      return !prev;
+    });
+  }, []);
 
   // Hotkey listener
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (matchesHotkey(e, config.hotkey)) {
         e.preventDefault();
-        setActive((a) => !a);
+        toggleOverlay();
       }
       if (active && (e.metaKey || e.ctrlKey) && e.key === "z" && !e.shiftKey) {
         e.preventDefault();
@@ -197,9 +207,8 @@ export function DevOverlay(props: ComposerConfig = {}) {
   }, [fidelity]);
 
   const handleClose = useCallback(() => {
-    setActive(false);
-    setSelectedElement(null);
-  }, []);
+    deactivateOverlay();
+  }, [deactivateOverlay]);
 
   if (!portalTarget) return null;
 
@@ -210,7 +219,7 @@ export function DevOverlay(props: ComposerConfig = {}) {
         {/* Collapsed: single activate button */}
         <button
           className="composer-toolbar-collapse-btn"
-          onClick={() => setActive(true)}
+          onClick={activateOverlay}
           title={`Toggle edit mode (${config.hotkey})`}
         >
           <IconCursorClick size={20} />
