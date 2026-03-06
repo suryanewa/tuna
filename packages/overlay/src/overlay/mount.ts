@@ -189,6 +189,9 @@ const OVERLAY_STYLES = `
     gap: 8px;
   }
 
+  /* Props directly in a row get flex: 1 */
+  .composer-row > .composer-prop { flex: 1; }
+
   /* Field: flex-1 column with label above input */
   .composer-field {
     flex: 1;
@@ -205,11 +208,14 @@ const OVERLAY_STYLES = `
     line-height: 16px;
   }
 
-  /* 4-column grid for padding/margin values */
-  .composer-grid-4 {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 4px;
+  /* Group label: single label above a set of related inputs */
+  .composer-group-label {
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.045px;
+    color: #999;
+    line-height: 16px;
+    padding: 0 16px;
   }
 
   /* Property cell */
@@ -247,7 +253,7 @@ const OVERLAY_STYLES = `
     border: none;
     background: transparent;
     font-size: 11px;
-    font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+    font-family: inherit;
     color: #1a1a1a;
     outline: none;
     padding: 0;
@@ -308,7 +314,7 @@ const OVERLAY_STYLES = `
     border: none;
     background: transparent;
     font-size: 11px;
-    font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+    font-family: inherit;
     color: #1a1a1a;
     outline: none;
     cursor: pointer;
@@ -383,7 +389,7 @@ const OVERLAY_STYLES = `
 
   .composer-slider-value {
     font-size: 11px;
-    font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+    font-family: inherit;
     color: #1a1a1a;
   }
 `;
