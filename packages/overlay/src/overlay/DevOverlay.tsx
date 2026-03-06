@@ -48,6 +48,8 @@ export function DevOverlay(props: ComposerConfig = {}) {
   const previewRef = useRef<LivePreviewEngine | null>(null);
   const trackerRef = useRef<ChangeTracker | null>(null);
   const bridgeRef = useRef<BridgeClient | null>(null);
+  const selectedElementRef = useRef<InspectedElement | null>(null);
+  selectedElementRef.current = selectedElement;
 
   // Initialize on mount
   useEffect(() => {
@@ -66,8 +68,16 @@ export function DevOverlay(props: ComposerConfig = {}) {
 
     bridge.onRequest(async (method, params) => {
       switch (method) {
-        case "getSelection":
-          return selectedElement;
+        case "getSelection": {
+          const sel = selectedElementRef.current;
+          if (!sel) return null;
+          // Strip non-serializable fields (DOM element, DOMRect, React props with circular refs)
+          const { element, rect, reactProps, ...serializable } = sel;
+          return {
+            ...serializable,
+            rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
+          };
+        }
         case "getPendingChanges":
           return tracker.getPendingChanges();
         case "getFormattedChanges":

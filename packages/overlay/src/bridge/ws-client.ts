@@ -62,7 +62,13 @@ export class BridgeClient {
         if (msg.method && this.handlers) {
           try {
             const result = await this.handlers(msg.method, msg.params);
-            this.ws?.send(JSON.stringify({ id: msg.id, result }));
+            // Use a replacer to skip non-serializable values (DOM nodes, functions)
+            const json = JSON.stringify({ id: msg.id, result }, (_key, value) => {
+              if (value instanceof Element || value instanceof Node) return undefined;
+              if (typeof value === "function") return undefined;
+              return value;
+            });
+            this.ws?.send(json);
           } catch (err: any) {
             this.ws?.send(JSON.stringify({ id: msg.id, error: err.message }));
           }
