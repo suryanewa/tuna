@@ -349,7 +349,7 @@ function PropertyPanel({
           </Row>
           <Row>
             <Field label="Color">
-              <ColorProp label="Color" prop="color" value={s.color} onChange={onPropertyChange} />
+              <ColorProp prop="color" value={s.color} onChange={onPropertyChange} />
             </Field>
             <Field label="Alignment">
               <SelectProp label="Align" prop="textAlign" value={s.textAlign} options={["left", "center", "right", "justify"]} onChange={onPropertyChange} />
@@ -362,7 +362,7 @@ function PropertyPanel({
       <Section label="Fill">
         <Row>
           <Field label="Background">
-            <ColorProp label="BG" prop="backgroundColor" value={s.backgroundColor} onChange={onPropertyChange} />
+            <ColorProp prop="backgroundColor" value={s.backgroundColor} onChange={onPropertyChange} />
           </Field>
         </Row>
         <Row>
@@ -398,19 +398,13 @@ function PropertyPanel({
       {isGrid && (
         <Section label="Grid">
           <Row>
-            <Field label="Columns">
-              <Prop label="Cols" prop="gridTemplateColumns" value={s.gridTemplateColumns} onChange={onPropertyChange} />
-            </Field>
+            <Prop label="Columns" prop="gridTemplateColumns" value={s.gridTemplateColumns} onChange={onPropertyChange} />
           </Row>
           <Row>
-            <Field label="Rows">
-              <Prop label="Rows" prop="gridTemplateRows" value={s.gridTemplateRows} onChange={onPropertyChange} />
-            </Field>
+            <Prop label="Rows" prop="gridTemplateRows" value={s.gridTemplateRows} onChange={onPropertyChange} />
           </Row>
           <Row>
-            <Field label="Gap">
-              <Prop label="Gap" prop="gap" value={s.gap} onChange={onPropertyChange} />
-            </Field>
+            <Prop label="Gap" prop="gap" value={s.gap} onChange={onPropertyChange} />
           </Row>
         </Section>
       )}
@@ -584,9 +578,8 @@ function Prop({
 }
 
 function ColorProp({
-  label, prop, value, onChange,
+  prop, value, onChange,
 }: {
-  label: string;
   prop: string;
   value: string | undefined;
   onChange: (prop: string, value: string) => void;
@@ -598,7 +591,6 @@ function ColorProp({
 
   return (
     <div className="composer-prop color">
-      <span className="composer-prop-label">{label}</span>
       <div className="composer-color-swatch">
         <div className="composer-color-swatch-fill" style={{ background: localValue }} />
         <input
