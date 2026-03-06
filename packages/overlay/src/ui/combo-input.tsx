@@ -189,7 +189,7 @@ export function ComboInput({ label, prop, value, options, onChange }: ComboInput
         onClick={() => { open ? closeDropdown() : openDropdown(); }}
         aria-label="Toggle options"
       >
-        <IconChevronDownSmall size={10} />
+        <IconChevronDownSmall size={20} />
       </button>
       {open && menuPos && (
         <div

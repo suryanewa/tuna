@@ -47,6 +47,8 @@ export class ChangeTracker {
     if (!tracked) return null;
 
     const oldValue = tracked.currentStyles[property] || "";
+    if (oldValue === newValue) return null;
+
     tracked.currentStyles[property] = newValue;
 
     this.undoStack.push({ selector, property, value: oldValue });
@@ -123,6 +125,9 @@ export class ChangeTracker {
   hasPendingChanges(): boolean {
     return this.getPendingChanges().length > 0;
   }
+
+  get canUndo(): boolean { return this.undoStack.length > 0; }
+  get canRedo(): boolean { return this.redoStack.length > 0; }
 
   /** Clear all tracking */
   clear() {

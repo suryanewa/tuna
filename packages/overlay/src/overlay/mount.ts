@@ -12,24 +12,46 @@ const OVERLAY_STYLES = `
     font-size: 13px;
     color: #1a1a1a;
     line-height: 1.4;
+    interpolate-size: allow-keywords;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   /* ── Toolbar ── */
+  @keyframes composer-icon-in {
+    from { filter: blur(12px); transform: scale(0.5); }
+    to   { filter: blur(0);    transform: scale(1); }
+  }
+
   .composer-toolbar {
     position: fixed;
     z-index: 2147483647;
     pointer-events: auto;
     background: #fff;
-    border: 1px solid #e2e2e2;
-    border-radius: 10px;
+    border-radius: 999px;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
+    height: 44px;
     padding: 6px;
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
     user-select: none;
+    overflow: hidden;
+    cursor: default;
+    transition: padding 0.3s cubic-bezier(0.2, 0, 0, 1),
+                gap 0.3s cubic-bezier(0.2, 0, 0, 1),
+                width 0.3s cubic-bezier(0.2, 0, 0, 1),
+                background 0.15s ease;
+  }
+
+  .composer-toolbar.collapsed {
+    padding: 0;
+    gap: 0;
+    width: 44px;
+    cursor: pointer;
+  }
+  .composer-toolbar.collapsed:hover {
+    background: #f5f5f4;
   }
 
   .composer-toolbar.top.right { top: 16px; right: 16px; }
@@ -37,63 +59,128 @@ const OVERLAY_STYLES = `
   .composer-toolbar.bottom.right { bottom: 16px; right: 16px; }
   .composer-toolbar.bottom.left { bottom: 16px; left: 16px; }
 
-  .composer-btn {
+  /* Collapse button (cursor-click) */
+  .composer-toolbar-collapse-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 30px;
-    height: 30px;
     border: none;
-    border-radius: 6px;
+    border-radius: 50%;
+    cursor: pointer;
+    color: #1c1917;
+    padding: 12px;
+    width: 44px;
+    height: 44px;
+    background: transparent;
+    flex-shrink: 0;
+    transition: width 0.3s cubic-bezier(0.2, 0, 0, 1),
+                height 0.3s cubic-bezier(0.2, 0, 0, 1),
+                padding 0.3s cubic-bezier(0.2, 0, 0, 1),
+                opacity 0.2s ease,
+                filter 0.2s ease,
+                transform 0.2s ease;
+  }
+
+  /* When expanded: collapse button shrinks away */
+  .composer-toolbar.expanded .composer-toolbar-collapse-btn {
+    width: 0;
+    height: 0;
+    padding: 0;
+    opacity: 0;
+    filter: blur(12px);
+    transform: scale(0.5);
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  /* Expanded inner container */
+  .composer-toolbar-expanded {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 300px;
+    transition: max-width 0.3s cubic-bezier(0.2, 0, 0, 1),
+                opacity 0.2s ease,
+                gap 0.3s cubic-bezier(0.2, 0, 0, 1);
+    overflow: hidden;
+  }
+
+  /* When collapsed: expanded items hidden */
+  .composer-toolbar.collapsed .composer-toolbar-expanded {
+    max-width: 0;
+    opacity: 0;
+    pointer-events: none;
+    gap: 0;
+  }
+
+  /* Expanded action buttons */
+  .composer-toolbar-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 50%;
     background: transparent;
     cursor: pointer;
-    color: #888;
-    transition: all 0.12s ease;
+    color: #1c1917;
+    padding: 6px;
+    flex-shrink: 0;
+    transition: background 0.12s ease;
   }
 
-  .composer-btn:hover { background: #f0f0f0; color: #333; }
-  .composer-btn.active { background: #3b82f6; color: #fff; }
-  .composer-btn.active:hover { background: #2563eb; }
+  .composer-toolbar-btn:hover { background: #f5f5f4; }
 
-  .composer-divider {
-    width: 1px;
-    height: 18px;
-    background: #e5e5e5;
-    margin: 0 2px;
+  .composer-toolbar-btn.disabled,
+  .composer-toolbar-btn:disabled {
+    opacity: 0.2;
+    cursor: default;
+    pointer-events: none;
   }
 
-  .composer-changes-count {
-    font-size: 10px;
-    font-weight: 600;
-    background: #3b82f6;
+  /* Animate expanded items in */
+  .composer-toolbar.expanded .composer-toolbar-expanded > :nth-child(1) {
+    animation: composer-icon-in 0.25s cubic-bezier(0.2, 0, 0, 1) 0ms backwards;
+  }
+  .composer-toolbar.expanded .composer-toolbar-expanded > :nth-child(2) {
+    animation: composer-icon-in 0.25s cubic-bezier(0.2, 0, 0, 1) 30ms backwards;
+  }
+  .composer-toolbar.expanded .composer-toolbar-expanded > :nth-child(3) {
+    animation: composer-icon-in 0.25s cubic-bezier(0.2, 0, 0, 1) 60ms backwards;
+  }
+  .composer-toolbar.expanded .composer-toolbar-expanded > :nth-child(4) {
+    animation: composer-icon-in 0.25s cubic-bezier(0.2, 0, 0, 1) 90ms backwards;
+  }
+  .composer-toolbar.expanded .composer-toolbar-expanded > :nth-child(5) {
+    animation: composer-icon-in 0.25s cubic-bezier(0.2, 0, 0, 1) 120ms backwards;
+  }
+
+  /* Animate collapse button in */
+  .composer-toolbar.collapsed .composer-toolbar-collapse-btn {
+    animation: composer-icon-in 0.25s cubic-bezier(0.2, 0, 0, 1) backwards;
+  }
+
+  .composer-icon-flip {
+    display: flex;
+    transform: scaleX(-1);
+  }
+
+  .composer-edit-count {
+    font-size: 13px;
+    font-weight: 500;
+    background: #2563eb;
     color: #fff;
-    min-width: 18px;
-    height: 18px;
-    border-radius: 9px;
+    min-width: 32px;
+    height: 32px;
+    border-radius: 999px;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0 5px;
+    padding: 0 10px;
+    flex-shrink: 0;
+    animation: composer-icon-in 0.25s cubic-bezier(0.2, 0, 0, 1) backwards;
   }
-
-  .composer-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 10px;
-    font-weight: 500;
-  }
-  .composer-badge.connected { background: #dcfce7; color: #166534; }
-  .composer-badge.disconnected { background: #f5f5f5; color: #999; }
-  .composer-status-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    margin-right: 4px;
-  }
-  .composer-status-dot.connected { background: #22c55e; }
-  .composer-status-dot.disconnected { background: #ccc; }
 
   /* ── Panel ── */
   .composer-panel {
@@ -171,25 +258,28 @@ const OVERLAY_STYLES = `
 
   .composer-section-title {
     font-size: 13px;
-    font-weight: 550;
+    font-weight: 400;
     line-height: 20px;
     color: #1c1917;
   }
 
   .composer-section-body {
-    padding-bottom: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-bottom: 16px;
   }
 
   .composer-section-row {
-    padding: 6px 16px;
+    padding: 0 16px;
   }
 
   /* Row group: wraps multiple rows with equal vertical + horizontal gaps */
   .composer-row-group {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding: 6px 16px;
+    gap: 4px;
+    padding: 0 16px;
   }
 
   .composer-row-group > .composer-row { /* rows inside group have no extra padding */ }
@@ -278,7 +368,7 @@ const OVERLAY_STYLES = `
     font-size: 11px;
     font-weight: 450;
     letter-spacing: -0.055px;
-    color: #78716c;
+    color: rgba(0, 0, 0, 0.3);
     flex-shrink: 0;
     user-select: none;
     cursor: ew-resize;
@@ -627,7 +717,7 @@ const OVERLAY_STYLES = `
     font-size: 11px;
     font-weight: 450;
     letter-spacing: -0.055px;
-    color: #78716c;
+    color: rgba(0, 0, 0, 0.3);
     flex-shrink: 0;
   }
 
@@ -646,7 +736,7 @@ const OVERLAY_STYLES = `
   }
 
   .composer-select-chevron {
-    width: 24px;
+    width: 32px;
     height: 32px;
     display: flex;
     align-items: center;
@@ -874,7 +964,7 @@ const OVERLAY_STYLES = `
     font-size: 11px;
     font-weight: 450;
     letter-spacing: -0.055px;
-    color: #78716c;
+    color: rgba(0, 0, 0, 0.3);
     flex-shrink: 0;
     user-select: none;
     cursor: ew-resize;
@@ -907,7 +997,7 @@ const OVERLAY_STYLES = `
   .composer-combo-input::selection { background: #bfdbfe; }
 
   .composer-combo-trigger {
-    width: 28px;
+    width: 32px;
     height: 32px;
     display: flex;
     align-items: center;

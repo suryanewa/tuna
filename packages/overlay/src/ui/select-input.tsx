@@ -115,7 +115,7 @@ export function SelectInput({ label, prop, value, options, onChange }: SelectInp
         {label && <span className="composer-select-label">{label}</span>}
         <span className="composer-select-value" style={label ? undefined : { paddingLeft: 8 }}>{sentenceCase(localValue)}</span>
         <span className="composer-select-chevron">
-          <IconChevronDownSmall size={10} />
+          <IconChevronDownSmall size={20} />
         </span>
       </button>
       {open && menuPos && (

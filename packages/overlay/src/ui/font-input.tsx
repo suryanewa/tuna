@@ -176,7 +176,7 @@ export function FontInput({ prop, value, onChange }: FontInputProps) {
         onClick={() => { open ? closeDropdown() : openDropdown(); }}
         aria-label="Toggle fonts"
       >
-        <IconChevronDownSmall size={10} />
+        <IconChevronDownSmall size={20} />
       </button>
       {open && menuPos && (
         <div

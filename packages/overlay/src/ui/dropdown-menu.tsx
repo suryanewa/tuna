@@ -58,8 +58,8 @@ const SCROLL_SPEED = 150; // px/sec
 
 const CheckIcon = () => <IconCheckmark1Small size={16} />;
 
-const ChevronUpIcon = () => <IconChevronTopSmall size={12} />;
-const ChevronDownIcon = () => <IconChevronDownSmall size={12} />;
+const ChevronUpIcon = () => <IconChevronTopSmall size={20} />;
+const ChevronDownIcon = () => <IconChevronDownSmall size={20} />;
 
 export const DropdownMenu = forwardRef<HTMLDivElement, DropdownMenuProps>(
   (

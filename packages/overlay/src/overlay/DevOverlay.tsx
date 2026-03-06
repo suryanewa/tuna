@@ -20,6 +20,10 @@ import { formatChanges, type Fidelity } from "../engine/output";
 import { BridgeClient } from "../bridge/ws-client";
 import { inspectElement, matchesHotkey } from "../ui/helpers";
 import { PropertyPanel } from "./PropertyPanel";
+import { IconCursorClick } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconCursorClick";
+import { IconSquareBehindSquare1 } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconSquareBehindSquare1";
+import { IconStepBack } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconStepBack";
+import { IconCrossMedium } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconCrossMedium";
 
 const DEFAULT_CONFIG: Required<ComposerConfig> = {
   port: 9223,
@@ -34,7 +38,8 @@ export function DevOverlay(props: ComposerConfig = {}) {
   const [active, setActive] = useState(false);
   const [selectedElement, setSelectedElement] = useState<InspectedElement | null>(null);
   const [changeCount, setChangeCount] = useState(0);
-  const [connected, setConnected] = useState(false);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
   const [fidelity] = useState<Fidelity>(config.fidelity);
   const [portalTarget, setPortalTarget] = useState<HTMLDivElement | null>(null);
 
@@ -74,10 +79,6 @@ export function DevOverlay(props: ComposerConfig = {}) {
 
     bridge.connect();
 
-    const statusInterval = setInterval(() => {
-      setConnected(bridge.connected);
-    }, 1000);
-
     const picker = createPicker(mount.root, {
       onHover: () => {},
       onSelect: (element) => {
@@ -99,7 +100,6 @@ export function DevOverlay(props: ComposerConfig = {}) {
     pickerRef.current = picker;
 
     return () => {
-      clearInterval(statusInterval);
       picker.destroy();
       preview.destroy();
       bridge.disconnect();
@@ -142,14 +142,28 @@ export function DevOverlay(props: ComposerConfig = {}) {
     return () => document.removeEventListener("keydown", handleKeyDown, true);
   }, [active, config.hotkey]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const syncTrackerState = useCallback(() => {
+    const tracker = trackerRef.current;
+    if (!tracker) return;
+    setChangeCount(tracker.getPendingChanges().reduce((s, c) => s + c.changes.length, 0));
+    setCanUndo(tracker.canUndo);
+    setCanRedo(tracker.canRedo);
+  }, []);
+
+  const refreshSelectedElement = useCallback(() => {
+    setSelectedElement((prev) => {
+      if (!prev?.element) return prev;
+      return inspectElement(prev.element);
+    });
+  }, []);
+
   const handlePropertyChange = useCallback((property: string, value: string) => {
     if (!selectedElement || !previewRef.current || !trackerRef.current) return;
     previewRef.current.applyChange(selectedElement.selector, property, value);
     trackerRef.current.recordChange(selectedElement.selector, property, value);
-    setChangeCount(trackerRef.current.getPendingChanges().reduce(
-      (sum, c) => sum + c.changes.length, 0
-    ));
-  }, [selectedElement]);
+    syncTrackerState();
+    refreshSelectedElement();
+  }, [selectedElement, syncTrackerState, refreshSelectedElement]);
 
   const handleUndo = useCallback(() => {
     const tracker = trackerRef.current;
@@ -159,9 +173,10 @@ export function DevOverlay(props: ComposerConfig = {}) {
     if (entry) {
       if (entry.value) preview.applyChange(entry.selector, entry.property, entry.value);
       else preview.removeChange(entry.selector, entry.property);
-      setChangeCount(tracker.getPendingChanges().reduce((s, c) => s + c.changes.length, 0));
+      syncTrackerState();
+      refreshSelectedElement();
     }
-  }, []);
+  }, [syncTrackerState, refreshSelectedElement]);
 
   const handleRedo = useCallback(() => {
     const tracker = trackerRef.current;
@@ -170,9 +185,10 @@ export function DevOverlay(props: ComposerConfig = {}) {
     const entry = tracker.popRedo();
     if (entry) {
       preview.applyChange(entry.selector, entry.property, entry.value);
-      setChangeCount(tracker.getPendingChanges().reduce((s, c) => s + c.changes.length, 0));
+      syncTrackerState();
+      refreshSelectedElement();
     }
-  }, []);
+  }, [syncTrackerState, refreshSelectedElement]);
 
   const handleCopy = useCallback(() => {
     const tracker = trackerRef.current;
@@ -180,20 +196,9 @@ export function DevOverlay(props: ComposerConfig = {}) {
     navigator.clipboard.writeText(formatChanges(tracker.getPendingChanges(), fidelity));
   }, [fidelity]);
 
-  const handleSend = useCallback(async () => {
-    const tracker = trackerRef.current;
-    const bridge = bridgeRef.current;
-    if (!tracker || !bridge) return;
-    const changes = tracker.getPendingChanges();
-    if (changes.length === 0) return;
-    try { await bridge.sendChanges(changes); } catch { handleCopy(); }
-  }, [handleCopy]);
-
-  const handleClear = useCallback(() => {
-    previewRef.current?.clearAll();
-    trackerRef.current?.clear();
+  const handleClose = useCallback(() => {
+    setActive(false);
     setSelectedElement(null);
-    setChangeCount(0);
   }, []);
 
   if (!portalTarget) return null;
@@ -201,44 +206,54 @@ export function DevOverlay(props: ComposerConfig = {}) {
   return createPortal(
     <>
       {/* Floating toolbar */}
-      <div className={`composer-toolbar ${config.position.replace("-", " ")}`}>
+      <div className={`composer-toolbar ${config.position.replace("-", " ")} ${active ? "expanded" : "collapsed"}`}>
+        {/* Collapsed: single activate button */}
         <button
-          className={`composer-btn ${active ? "active" : ""}`}
-          onClick={() => setActive(!active)}
+          className="composer-toolbar-collapse-btn"
+          onClick={() => setActive(true)}
           title={`Toggle edit mode (${config.hotkey})`}
         >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M11.5 1.5L14.5 4.5L5 14H2V11L11.5 1.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <IconCursorClick size={20} />
         </button>
 
-        {changeCount > 0 && (
-          <>
-            <div className="composer-divider" />
-            <div className="composer-changes-count">{changeCount}</div>
-            <button className="composer-btn" onClick={handleCopy} title="Copy changes">
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                <rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
-                <path d="M11 5V3.5A1.5 1.5 0 009.5 2h-6A1.5 1.5 0 002 3.5v6A1.5 1.5 0 003.5 11H5" stroke="currentColor" strokeWidth="1.5" />
-              </svg>
-            </button>
-            <button className="composer-btn" onClick={handleSend} title="Send to AI">
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                <path d="M14 2L7 14L5.5 8.5L2 7L14 2Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-              </svg>
-            </button>
-            <button className="composer-btn" onClick={handleClear} title="Clear">
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                <path d="M4 4L12 12M4 12L12 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-            </button>
-          </>
-        )}
-
-        <div className="composer-divider" />
-        <div className={`composer-badge ${connected ? "connected" : "disconnected"}`}>
-          <div className={`composer-status-dot ${connected ? "connected" : "disconnected"}`} />
-          {connected ? "MCP" : "offline"}
+        {/* Expanded: edit count + actions */}
+        <div className="composer-toolbar-expanded">
+          {changeCount > 0 && (
+            <div className="composer-edit-count">{changeCount}</div>
+          )}
+          <button
+            className={`composer-toolbar-btn${changeCount === 0 ? " disabled" : ""}`}
+            onClick={handleCopy}
+            disabled={changeCount === 0}
+            title="Copy changes"
+          >
+            <IconSquareBehindSquare1 size={20} />
+          </button>
+          <button
+            className={`composer-toolbar-btn${!canUndo ? " disabled" : ""}`}
+            onClick={handleUndo}
+            disabled={!canUndo}
+            title="Undo"
+          >
+            <IconStepBack size={20} />
+          </button>
+          <button
+            className={`composer-toolbar-btn${!canRedo ? " disabled" : ""}`}
+            onClick={handleRedo}
+            disabled={!canRedo}
+            title="Redo"
+          >
+            <span className="composer-icon-flip">
+              <IconStepBack size={20} />
+            </span>
+          </button>
+          <button
+            className="composer-toolbar-btn"
+            onClick={handleClose}
+            title="Close"
+          >
+            <IconCrossMedium size={20} />
+          </button>
         </div>
       </div>
 
