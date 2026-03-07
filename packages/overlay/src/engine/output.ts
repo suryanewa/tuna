@@ -38,6 +38,14 @@ export function formatChanges(changes: ElementChange[], fidelity: Fidelity): str
   lines.push(`# Visual Changes (${changes.length} element${changes.length > 1 ? "s" : ""})`);
   lines.push("");
 
+  // Environment context
+  lines.push("**Environment:**");
+  lines.push(`- URL: ${window.location.href}`);
+  lines.push(`- Viewport: ${window.innerWidth}×${window.innerHeight}`);
+  lines.push(`- Device Pixel Ratio: ${window.devicePixelRatio}`);
+  lines.push(`- Timestamp: ${new Date().toISOString()}`);
+  lines.push("");
+
   // Token system summary (if tokens exist)
   if (fidelity !== "minimal") {
     const tokenSummary = summarizeTokenSystem(tokenMap);
@@ -77,20 +85,51 @@ function formatSingleChange(change: ElementChange, fidelity: Fidelity, tokenMap:
     lines.push(`**Styling:** ${formatStylingApproach(change.stylingApproach)}`);
   }
 
-  // Selector
-  if (fidelity !== "minimal") {
-    lines.push(`**Selector:** \`${change.selector}\``);
+  // DOM path (full traversal for precise identification)
+  if (change.domPath) {
+    lines.push(`**DOM Path:** \`${change.domPath}\``);
   }
 
-  // Classes (critical for Tailwind projects)
+  // Selector
+  lines.push(`**Selector:** \`${change.selector}\``);
+
+  // Element ID
+  if (change.elementId) {
+    lines.push(`**ID:** \`${change.elementId}\``);
+  }
+
+  // Accessible name (aria-label, alt, title, etc.)
+  if (change.accessibleName) {
+    lines.push(`**Accessible name:** "${change.accessibleName}"`);
+  }
+
+  // Classes (always include when present — agents need this)
   if (change.classes.length > 0) {
-    if (change.stylingApproach === "tailwind" || fidelity === "full") {
-      lines.push(`**Classes:** \`${change.classes.join(" ")}\``);
-    }
+    lines.push(`**Classes:** \`${change.classes.join(" ")}\``);
+  }
+
+  // Position and dimensions
+  if (change.position) {
+    lines.push(`**Position:** x:${change.position.x}, y:${change.position.y} (${change.position.width}×${change.position.height}px)`);
+  }
+
+  // Nearby siblings for context
+  if (change.nearbySiblings) {
+    lines.push(`**Nearby elements:** ${change.nearbySiblings}`);
+  }
+
+  // Parent context for disambiguation
+  if (change.parentContext) {
+    lines.push(`**Parent:** \`${change.parentContext}\``);
+  }
+
+  // Child summary to help identify container elements
+  if (change.childSummary) {
+    lines.push(`**Children:** ${change.childSummary}`);
   }
 
   // Inline styles (if any authored inline styles exist)
-  if (fidelity === "full" && change.inlineStyles) {
+  if (change.inlineStyles) {
     lines.push(`**Inline styles:** \`${change.inlineStyles}\``);
   }
 

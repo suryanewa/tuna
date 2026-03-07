@@ -156,6 +156,13 @@ export function DevOverlay(props: ComposerConfig = {}) {
           inspected.sourceFile,
           inspected.stylingApproach,
           inspected.inlineStyles,
+          inspected.elementId,
+          inspected.accessibleName,
+          inspected.parentContext,
+          inspected.childSummary,
+          inspected.domPath,
+          inspected.nearbySiblings,
+          inspected.position,
         );
       },
       onCancel: () => {

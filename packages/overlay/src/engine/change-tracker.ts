@@ -15,12 +15,22 @@ interface TrackedElement {
   sourceFile?: { fileName: string; lineNumber: number; columnNumber?: number } | null;
   stylingApproach?: string;
   inlineStyles?: string | null;
+  elementId?: string | null;
+  accessibleName?: string | null;
+  parentContext?: string | null;
+  childSummary?: string | null;
+  domPath?: string;
+  nearbySiblings?: string | null;
+  position?: { x: number; y: number; width: number; height: number };
 }
+
+const COALESCE_MS = 300;
 
 export class ChangeTracker {
   private tracked = new Map<string, TrackedElement>();
   private undoStack: Array<{ selector: string; property: string; value: string }> = [];
   private redoStack: Array<{ selector: string; property: string; value: string }> = [];
+  private lastChange: { selector: string; property: string; time: number } | null = null;
 
   /** Start tracking an element — snapshots its current styles */
   track(
@@ -33,6 +43,13 @@ export class ChangeTracker {
     sourceFile?: { fileName: string; lineNumber: number; columnNumber?: number } | null,
     stylingApproach?: string,
     inlineStyles?: string | null,
+    elementId?: string | null,
+    accessibleName?: string | null,
+    parentContext?: string | null,
+    childSummary?: string | null,
+    domPath?: string,
+    nearbySiblings?: string | null,
+    position?: { x: number; y: number; width: number; height: number },
   ) {
     if (!this.tracked.has(selector)) {
       this.tracked.set(selector, {
@@ -46,11 +63,18 @@ export class ChangeTracker {
         sourceFile,
         stylingApproach,
         inlineStyles,
+        elementId,
+        accessibleName,
+        parentContext,
+        childSummary,
+        domPath,
+        nearbySiblings,
+        position,
       });
     }
   }
 
-  /** Record a style change */
+  /** Record a style change (coalesces rapid changes to the same property) */
   recordChange(selector: string, property: string, newValue: string): { from: string; to: string } | null {
     const tracked = this.tracked.get(selector);
     if (!tracked) return null;
@@ -60,7 +84,26 @@ export class ChangeTracker {
 
     tracked.currentStyles[property] = newValue;
 
-    this.undoStack.push({ selector, property, value: oldValue });
+    const now = Date.now();
+    const last = this.lastChange;
+
+    // Coalesce: if same selector+property within COALESCE_MS, update the
+    // existing undo entry instead of pushing a new one. This keeps the
+    // "before" value from the start of the gesture so undo reverts the
+    // entire scrub in one step.
+    if (
+      last &&
+      last.selector === selector &&
+      last.property === property &&
+      now - last.time < COALESCE_MS
+    ) {
+      // Update timestamp but keep the original undo entry's value
+      last.time = now;
+    } else {
+      this.undoStack.push({ selector, property, value: oldValue });
+      this.lastChange = { selector, property, time: now };
+    }
+
     this.redoStack = []; // clear redo on new change
 
     return { from: oldValue, to: newValue };
@@ -126,6 +169,13 @@ export class ChangeTracker {
           sourceFile: tracked.sourceFile,
           stylingApproach: tracked.stylingApproach,
           inlineStyles: tracked.inlineStyles,
+          elementId: tracked.elementId,
+          accessibleName: tracked.accessibleName,
+          parentContext: tracked.parentContext,
+          childSummary: tracked.childSummary,
+          domPath: tracked.domPath,
+          nearbySiblings: tracked.nearbySiblings,
+          position: tracked.position,
         });
       }
     }

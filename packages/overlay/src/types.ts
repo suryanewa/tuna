@@ -36,6 +36,20 @@ export interface InspectedElement {
   stylingApproach: string;
   /** Inline style attribute (authored, not computed) */
   inlineStyles: string | null;
+  /** Element's id attribute */
+  elementId: string | null;
+  /** Accessible name (aria-label, alt, title, etc.) */
+  accessibleName: string | null;
+  /** Parent element context for disambiguation */
+  parentContext: string | null;
+  /** Child summary (e.g. "3 children: h2, p, button") */
+  childSummary: string | null;
+  /** Full DOM path (e.g. "body > main > section > div") */
+  domPath: string;
+  /** Nearby sibling elements */
+  nearbySiblings: string | null;
+  /** Element position and dimensions */
+  position: { x: number; y: number; width: number; height: number };
 }
 
 export interface PropertyChange {
@@ -61,4 +75,18 @@ export interface ElementChange {
   stylingApproach?: string;
   /** Inline style attribute */
   inlineStyles?: string | null;
+  /** Element's id attribute */
+  elementId?: string | null;
+  /** Accessible name */
+  accessibleName?: string | null;
+  /** Parent element context */
+  parentContext?: string | null;
+  /** Child summary */
+  childSummary?: string | null;
+  /** Full DOM path */
+  domPath?: string;
+  /** Nearby sibling elements */
+  nearbySiblings?: string | null;
+  /** Element position and dimensions */
+  position?: { x: number; y: number; width: number; height: number };
 }
