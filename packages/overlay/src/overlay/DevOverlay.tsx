@@ -27,6 +27,7 @@ import { IconCrossMedium } from "@central-icons-react/round-outlined-radius-2-st
 import { IconBroom } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconBroom";
 import { IconCheckCircle2 } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconCheckCircle2";
 import { Tooltip } from "../ui/tooltip";
+import { BoxModelOverlay, type BoxModelProperty } from "../ui/box-model-overlay";
 
 const DEFAULT_CONFIG: Required<ComposerConfig> = {
   port: 9223,
@@ -80,6 +81,8 @@ export function DevOverlay(props: ComposerConfig = {}) {
   const [canRedo, setCanRedo] = useState(false);
   const [fidelity] = useState<Fidelity>(config.fidelity);
   const [copied, setCopied] = useState(false);
+  const [hoveredBoxModel, setHoveredBoxModel] = useState<BoxModelProperty>(null);
+  const [changeRevision, setChangeRevision] = useState(0);
   const [portalTarget, setPortalTarget] = useState<HTMLDivElement | null>(null);
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -247,6 +250,7 @@ export function DevOverlay(props: ComposerConfig = {}) {
     trackerRef.current.recordChange(selectedElement.selector, property, value);
     syncTrackerState();
     refreshSelectedElement();
+    setChangeRevision((r) => r + 1);
   }, [selectedElement, syncTrackerState, refreshSelectedElement]);
 
   const handleUndo = useCallback(() => {
@@ -382,9 +386,19 @@ export function DevOverlay(props: ComposerConfig = {}) {
             element={selectedElement}
             position={config.position.includes("right") ? "right" : "left"}
             onPropertyChange={handlePropertyChange}
+            onPropertyHover={setHoveredBoxModel}
           />
         )}
       </AnimatedPanel>
+
+      {/* Box model visualization overlay */}
+      {active && selectedElement && hoveredBoxModel && (
+        <BoxModelOverlay
+          element={selectedElement.element}
+          hoveredProperty={hoveredBoxModel}
+          revision={changeRevision}
+        />
+      )}
     </>,
     portalTarget
   );

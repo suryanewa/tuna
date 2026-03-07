@@ -5,6 +5,7 @@
 
 import { useState, useCallback, useRef } from "react";
 import type { InspectedElement } from "../types";
+import type { BoxModelProperty } from "../ui/box-model-overlay";
 import { Section, Row, RowGroup, Field } from "../ui/section";
 import { NumberInput } from "../ui/number-input";
 import { ComboInput, type ComboOption } from "../ui/combo-input";
@@ -121,10 +122,12 @@ export function PropertyPanel({
   element,
   position,
   onPropertyChange,
+  onPropertyHover,
 }: {
   element: InspectedElement;
   position: "left" | "right";
   onPropertyChange: (property: string, value: string) => void;
+  onPropertyHover?: (property: BoxModelProperty) => void;
 }) {
   const s = element.computedStyles;
   const TEXT_TAGS = ["P", "H1", "H2", "H3", "H4", "H5", "H6", "SPAN", "A", "BUTTON", "LABEL", "LI", "TD", "TH", "FIGCAPTION", "BLOCKQUOTE", "CITE", "EM", "STRONG", "SMALL"];
@@ -390,14 +393,16 @@ export function PropertyPanel({
                   onChange={onPropertyChange}
                 />
               </Field>
-              <Field label="Gap">
-                <NumberInput
-                  label={<Tooltip content={(s.flexDirection || "row").startsWith("column") ? "Vertical gap between items" : "Horizontal gap between items"} side="top" sideOffset={14}>{(s.flexDirection || "row").startsWith("column") ? <IconGapVertical /> : <IconGapHorizontal />}</Tooltip>}
-                  prop="gap"
-                  value={s.gap}
-                  onChange={onPropertyChange}
-                />
-              </Field>
+              <div onPointerEnter={() => onPropertyHover?.("gap")} onPointerLeave={() => onPropertyHover?.(null)}>
+                <Field label="Gap">
+                  <NumberInput
+                    label={<Tooltip content={(s.flexDirection || "row").startsWith("column") ? "Vertical gap between items" : "Horizontal gap between items"} side="top" sideOffset={14}>{(s.flexDirection || "row").startsWith("column") ? <IconGapVertical /> : <IconGapHorizontal />}</Tooltip>}
+                    prop="gap"
+                    value={s.gap}
+                    onChange={onPropertyChange}
+                  />
+                </Field>
+              </div>
             </Row>
             <Row>
               <Field label="Direction">
@@ -418,32 +423,50 @@ export function PropertyPanel({
                 onChange={onPropertyChange}
               />
             </Field>
-            <Field label="Gap">
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <NumberInput label={<Tooltip content="Horizontal gap between columns" side="top" sideOffset={14}><IconGapHorizontal /></Tooltip>} prop="columnGap" value={s.columnGap} onChange={onPropertyChange} />
-                <NumberInput label={<Tooltip content="Vertical gap between rows" side="top" sideOffset={14}><IconGapVertical /></Tooltip>} prop="rowGap" value={s.rowGap} onChange={onPropertyChange} />
-              </div>
-            </Field>
+            <div onPointerEnter={() => onPropertyHover?.("gap")} onPointerLeave={() => onPropertyHover?.(null)}>
+              <Field label="Gap">
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <NumberInput label={<Tooltip content="Horizontal gap between columns" side="top" sideOffset={14}><IconGapHorizontal /></Tooltip>} prop="columnGap" value={s.columnGap} onChange={onPropertyChange} />
+                  <NumberInput label={<Tooltip content="Vertical gap between rows" side="top" sideOffset={14}><IconGapVertical /></Tooltip>} prop="rowGap" value={s.rowGap} onChange={onPropertyChange} />
+                </div>
+              </Field>
+            </div>
           </Row>
         )}
         <RowGroup label="Padding">
           <div className="composer-row">
-            <NumberInput label={<Tooltip content="Padding top" side="top" sideOffset={14}><IconSpacingVerticalTop /></Tooltip>} prop="paddingTop" value={s.paddingTop} onChange={onPropertyChange} />
-            <NumberInput label={<Tooltip content="Padding right" side="top" sideOffset={14}><IconSpacingHorizontalRight /></Tooltip>} prop="paddingRight" value={s.paddingRight} onChange={onPropertyChange} />
+            <div onPointerEnter={() => onPropertyHover?.("paddingTop")} onPointerLeave={() => onPropertyHover?.(null)} style={{ flex: 1 }}>
+              <NumberInput label={<Tooltip content="Padding top" side="top" sideOffset={14}><IconSpacingVerticalTop /></Tooltip>} prop="paddingTop" value={s.paddingTop} onChange={onPropertyChange} />
+            </div>
+            <div onPointerEnter={() => onPropertyHover?.("paddingRight")} onPointerLeave={() => onPropertyHover?.(null)} style={{ flex: 1 }}>
+              <NumberInput label={<Tooltip content="Padding right" side="top" sideOffset={14}><IconSpacingHorizontalRight /></Tooltip>} prop="paddingRight" value={s.paddingRight} onChange={onPropertyChange} />
+            </div>
           </div>
           <div className="composer-row">
-            <NumberInput label={<Tooltip content="Padding bottom" side="top" sideOffset={14}><IconSpacingVerticalBottom /></Tooltip>} prop="paddingBottom" value={s.paddingBottom} onChange={onPropertyChange} />
-            <NumberInput label={<Tooltip content="Padding left" side="top" sideOffset={14}><IconSpacingHorizontalLeft /></Tooltip>} prop="paddingLeft" value={s.paddingLeft} onChange={onPropertyChange} />
+            <div onPointerEnter={() => onPropertyHover?.("paddingBottom")} onPointerLeave={() => onPropertyHover?.(null)} style={{ flex: 1 }}>
+              <NumberInput label={<Tooltip content="Padding bottom" side="top" sideOffset={14}><IconSpacingVerticalBottom /></Tooltip>} prop="paddingBottom" value={s.paddingBottom} onChange={onPropertyChange} />
+            </div>
+            <div onPointerEnter={() => onPropertyHover?.("paddingLeft")} onPointerLeave={() => onPropertyHover?.(null)} style={{ flex: 1 }}>
+              <NumberInput label={<Tooltip content="Padding left" side="top" sideOffset={14}><IconSpacingHorizontalLeft /></Tooltip>} prop="paddingLeft" value={s.paddingLeft} onChange={onPropertyChange} />
+            </div>
           </div>
         </RowGroup>
         <RowGroup label="Margin">
           <div className="composer-row">
-            <NumberInput label={<Tooltip content="Margin top" side="top" sideOffset={14}><IconSpacingVerticalTop /></Tooltip>} prop="marginTop" value={s.marginTop} onChange={onPropertyChange} />
-            <NumberInput label={<Tooltip content="Margin right" side="top" sideOffset={14}><IconSpacingHorizontalRight /></Tooltip>} prop="marginRight" value={s.marginRight} onChange={onPropertyChange} />
+            <div onPointerEnter={() => onPropertyHover?.("marginTop")} onPointerLeave={() => onPropertyHover?.(null)} style={{ flex: 1 }}>
+              <NumberInput label={<Tooltip content="Margin top" side="top" sideOffset={14}><IconSpacingVerticalTop /></Tooltip>} prop="marginTop" value={s.marginTop} onChange={onPropertyChange} />
+            </div>
+            <div onPointerEnter={() => onPropertyHover?.("marginRight")} onPointerLeave={() => onPropertyHover?.(null)} style={{ flex: 1 }}>
+              <NumberInput label={<Tooltip content="Margin right" side="top" sideOffset={14}><IconSpacingHorizontalRight /></Tooltip>} prop="marginRight" value={s.marginRight} onChange={onPropertyChange} />
+            </div>
           </div>
           <div className="composer-row">
-            <NumberInput label={<Tooltip content="Margin bottom" side="top" sideOffset={14}><IconSpacingVerticalBottom /></Tooltip>} prop="marginBottom" value={s.marginBottom} onChange={onPropertyChange} />
-            <NumberInput label={<Tooltip content="Margin left" side="top" sideOffset={14}><IconSpacingHorizontalLeft /></Tooltip>} prop="marginLeft" value={s.marginLeft} onChange={onPropertyChange} />
+            <div onPointerEnter={() => onPropertyHover?.("marginBottom")} onPointerLeave={() => onPropertyHover?.(null)} style={{ flex: 1 }}>
+              <NumberInput label={<Tooltip content="Margin bottom" side="top" sideOffset={14}><IconSpacingVerticalBottom /></Tooltip>} prop="marginBottom" value={s.marginBottom} onChange={onPropertyChange} />
+            </div>
+            <div onPointerEnter={() => onPropertyHover?.("marginLeft")} onPointerLeave={() => onPropertyHover?.(null)} style={{ flex: 1 }}>
+              <NumberInput label={<Tooltip content="Margin left" side="top" sideOffset={14}><IconSpacingHorizontalLeft /></Tooltip>} prop="marginLeft" value={s.marginLeft} onChange={onPropertyChange} />
+            </div>
           </div>
         </RowGroup>
       </Section>
