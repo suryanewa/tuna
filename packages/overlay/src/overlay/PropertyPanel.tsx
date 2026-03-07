@@ -133,11 +133,13 @@ export function PropertyPanel({
   position,
   onPropertyChange,
   onPropertyHover,
+  onApplyToElement,
 }: {
   element: InspectedElement;
   position: "left" | "right";
   onPropertyChange: (property: string, value: string) => void;
   onPropertyHover?: (property: BoxModelProperty) => void;
+  onApplyToElement?: (element: Element, property: string, value: string) => void;
 }) {
   const s = element.computedStyles;
   const TEXT_TAGS = ["P", "H1", "H2", "H3", "H4", "H5", "H6", "SPAN", "A", "BUTTON", "LABEL", "LI", "TD", "TH", "FIGCAPTION", "BLOCKQUOTE", "CITE", "EM", "STRONG", "SMALL"];
@@ -712,6 +714,22 @@ export function PropertyPanel({
               }
             };
 
+            // In grid/flex layouts, ancestors with min-width:auto prevent
+            // truncation from working. Walk up and set min-width:0 on any
+            // grid/flex children so they can shrink below content size.
+            const fixAncestorMinWidth = (enabled: boolean) => {
+              if (!onApplyToElement) return;
+              let el = element.element?.parentElement;
+              while (el && el !== document.body) {
+                const parentDisplay = getComputedStyle(el.parentElement || el).display;
+                const isGridOrFlexChild = parentDisplay.includes("grid") || parentDisplay.includes("flex");
+                if (isGridOrFlexChild) {
+                  onApplyToElement(el, "minWidth", enabled ? "0px" : "");
+                }
+                el = el.parentElement;
+              }
+            };
+
             return (
               <>
                 <Row>
@@ -721,11 +739,13 @@ export function PropertyPanel({
                       value={truncation.enabled ? "ellipsis" : "none"}
                       options={["none", "ellipsis"]}
                       onChange={(_p, val) => {
+                        const enabled = val === "ellipsis";
                         const changes = computeTruncationChanges(
-                          { enabled: val === "ellipsis", lines: 1 },
+                          { enabled, lines: 1 },
                           ctx,
                         );
                         applyChanges(changes);
+                        fixAncestorMinWidth(enabled);
                       }}
                     />
                   </Field>

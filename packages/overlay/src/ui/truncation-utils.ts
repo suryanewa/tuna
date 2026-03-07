@@ -63,21 +63,7 @@ export function computeTruncationChanges(
     return changes;
   }
 
-  if (state.lines <= 1) {
-    // Single-line ellipsis
-    changes.textOverflow = "ellipsis";
-    changes.overflow = "hidden";
-    changes.whiteSpace = "nowrap";
-    changes.webkitLineClamp = "unset";
-    changes.webkitBoxOrient = "unset";
-    changes.minWidth = "0px";
-    if (ctx.currentDisplay === "-webkit-box") {
-      changes.display = "block";
-    }
-    return changes;
-  }
-
-  // Multi-line clamp (lines >= 2)
+  // All line clamp (1+) uses the same -webkit-line-clamp approach
   changes.display = "-webkit-box";
   changes.webkitBoxOrient = "vertical";
   changes.webkitLineClamp = String(state.lines);

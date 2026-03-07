@@ -4,6 +4,8 @@
  */
 
 import { useState, useRef, useCallback, useLayoutEffect, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { useTooltipPortal } from "./tooltip-portal-context";
 
 export interface TooltipProps {
   content: ReactNode;
@@ -27,6 +29,7 @@ export function Tooltip({
   const triggerRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const portalTarget = useTooltipPortal();
 
   const show = useCallback(() => {
     timerRef.current = setTimeout(() => {
@@ -83,6 +86,19 @@ export function Tooltip({
     setCoords({ top, left });
   }, [visible, side, sideOffset]);
 
+  const tooltipEl = visible ? (
+    <div
+      ref={tooltipRef}
+      className={`composer-tooltip composer-tooltip-${side}`}
+      style={coords ? { top: coords.top, left: coords.left, opacity: 1 } : { opacity: 0 }}
+    >
+      <span className="composer-tooltip-text">{content}</span>
+      {shortcut && (
+        <span className="composer-tooltip-shortcut">{shortcut}</span>
+      )}
+    </div>
+  ) : null;
+
   return (
     <div
       ref={triggerRef}
@@ -92,18 +108,7 @@ export function Tooltip({
       onPointerDown={hide}
     >
       {children}
-      {visible && (
-        <div
-          ref={tooltipRef}
-          className={`composer-tooltip composer-tooltip-${side}`}
-          style={coords ? { top: coords.top, left: coords.left, opacity: 1 } : { opacity: 0 }}
-        >
-          <span className="composer-tooltip-text">{content}</span>
-          {shortcut && (
-            <span className="composer-tooltip-shortcut">{shortcut}</span>
-          )}
-        </div>
-      )}
+      {portalTarget ? tooltipEl && createPortal(tooltipEl, portalTarget) : tooltipEl}
     </div>
   );
 }

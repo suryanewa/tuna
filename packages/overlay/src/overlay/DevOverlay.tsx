@@ -19,6 +19,7 @@ import { ChangeTracker } from "../engine/change-tracker";
 import { formatChanges, type Fidelity } from "../engine/output";
 import { BridgeClient } from "../bridge/ws-client";
 import { inspectElement, matchesHotkey } from "../ui/helpers";
+import { getSelector } from "../selector/identifier";
 import { PropertyPanel } from "./PropertyPanel";
 import { IconCursorClick } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconCursorClick";
 import { IconSquareBehindSquare1 } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconSquareBehindSquare1";
@@ -27,6 +28,7 @@ import { IconCrossMedium } from "@central-icons-react/round-outlined-radius-2-st
 import { IconBroom } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconBroom";
 import { IconCheckCircle2 } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconCheckCircle2";
 import { Tooltip } from "../ui/tooltip";
+import { TooltipPortalContext } from "../ui/tooltip-portal-context";
 import { BoxModelOverlay, type BoxModelProperty } from "../ui/box-model-overlay";
 
 const DEFAULT_CONFIG: Required<ComposerConfig> = {
@@ -253,6 +255,17 @@ export function DevOverlay(props: ComposerConfig = {}) {
     setChangeRevision((r) => r + 1);
   }, [selectedElement, syncTrackerState, refreshSelectedElement]);
 
+  const handleApplyToElement = useCallback((el: Element, property: string, value: string) => {
+    const preview = previewRef.current;
+    if (!preview) return;
+    const selector = getSelector(el);
+    if (value) {
+      preview.applyChange(selector, property, value);
+    } else {
+      preview.removeChange(selector, property);
+    }
+  }, []);
+
   const handleUndo = useCallback(() => {
     const tracker = trackerRef.current;
     const preview = previewRef.current;
@@ -304,7 +317,7 @@ export function DevOverlay(props: ComposerConfig = {}) {
   if (!portalTarget) return null;
 
   return createPortal(
-    <>
+    <TooltipPortalContext.Provider value={portalTarget}>
       {/* Floating toolbar */}
       <div className={`composer-toolbar ${config.position.replace("-", " ")} ${active ? "expanded" : "collapsed"}`}>
         {/* Collapsed: single activate button */}
@@ -387,6 +400,7 @@ export function DevOverlay(props: ComposerConfig = {}) {
             position={config.position.includes("right") ? "right" : "left"}
             onPropertyChange={handlePropertyChange}
             onPropertyHover={setHoveredBoxModel}
+            onApplyToElement={handleApplyToElement}
           />
         )}
       </AnimatedPanel>
@@ -399,7 +413,7 @@ export function DevOverlay(props: ComposerConfig = {}) {
           revision={changeRevision}
         />
       )}
-    </>,
+    </TooltipPortalContext.Provider>,
     portalTarget
   );
 }
