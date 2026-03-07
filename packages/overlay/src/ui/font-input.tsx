@@ -7,7 +7,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { DropdownMenu, type DropdownMenuOption } from "./dropdown-menu";
 import { calcMenuPosition, type MenuPosition } from "./menu-position";
-import { ChevronDownLarge } from "./icons";
+import { ChevronDown } from "./icons";
 
 const COMMON_FONTS = [
   "Inter",
@@ -177,7 +177,7 @@ export function FontInput({ prop, value, onChange }: FontInputProps) {
         onClick={() => { open ? closeDropdown() : openDropdown(); }}
         aria-label="Toggle fonts"
       >
-        <ChevronDownLarge />
+        <ChevronDown />
       </button>
       {open && menuPos && (
         <div

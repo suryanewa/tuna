@@ -10,7 +10,7 @@ import { useState, useEffect, useRef, useCallback, type ReactNode } from "react"
 import { DropdownMenu, type DropdownMenuOption } from "./dropdown-menu";
 import { calcMenuPosition, type MenuPosition } from "./menu-position";
 import { roundCssValue, inferCssUnit } from "./round-css-value";
-import { ChevronDownLarge } from "./icons";
+import { ChevronDown } from "./icons";
 
 export interface ComboOption {
   value: string;
@@ -203,7 +203,7 @@ export function ComboInput({ label, prop, value, options, onChange }: ComboInput
         onClick={() => { open ? closeDropdown() : openDropdown(); }}
         aria-label="Toggle options"
       >
-        <ChevronDownLarge />
+        <ChevronDown />
       </button>
       {open && menuPos && (
         <div

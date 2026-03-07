@@ -34,7 +34,7 @@ import {
   AlSpacingHorizontal, AlSpacingVertical,
   RadiusTopLeft, RadiusTopRight, RadiusBottomLeft, RadiusBottomRight,
   RectangleSmall, AutolayoutAddHorizontal, AutolayoutAddVertical, GridView,
-  Plus, Minus, ChevronDownLarge, AdjustSmall, ListView, NumberList,
+  Plus, Minus, ChevronDown, AdjustSmall, ListView, NumberList,
 } from "../ui/icons";
 import { Tooltip } from "../ui/tooltip";
 import { ShorthandInput } from "../ui/shorthand-input";
@@ -747,7 +747,6 @@ export function PropertyPanel({
         <Row>
           <Field label="Width">
             <ComboInput
-              label="W"
               prop="width"
               value={s.width}
               options={SIZE_OPTIONS}
@@ -763,7 +762,6 @@ export function PropertyPanel({
           </Field>
           <Field label="Height">
             <ComboInput
-              label="H"
               prop="height"
               value={s.height}
               options={SIZE_OPTIONS}

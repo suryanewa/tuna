@@ -7,7 +7,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { DropdownMenu, type DropdownMenuOption } from "./dropdown-menu";
 import { calcMenuPosition, type MenuPosition } from "./menu-position";
-import { ChevronDownLarge } from "./icons";
+import { ChevronDown } from "./icons";
 
 export interface SelectInputProps {
   label?: string;
@@ -115,7 +115,7 @@ export function SelectInput({ label, prop, value, options, onChange }: SelectInp
         {label && <span className="composer-select-label">{label}</span>}
         <span className="composer-select-value" style={label ? undefined : { paddingLeft: 8 }}>{sentenceCase(localValue)}</span>
         <span className="composer-select-chevron">
-          <ChevronDownLarge />
+          <ChevronDown />
         </span>
       </button>
       {open && menuPos && (

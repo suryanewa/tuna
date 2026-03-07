@@ -20,7 +20,7 @@ const OVERLAY_STYLES = `
 
   /* ── Toolbar ── */
   @keyframes composer-icon-in {
-    from { filter: blur(4px); transform: scale(0.9); }
+    from { filter: blur(2px); transform: scale(0.9); }
     to   { filter: blur(0);   transform: scale(1); }
   }
 
@@ -208,7 +208,7 @@ const OVERLAY_STYLES = `
   .composer-icon-swap-icon.out {
     opacity: 0;
     transform: scale(0.5);
-    filter: blur(4px);
+    filter: blur(2px);
     pointer-events: none;
     transition-delay: 0ms;
   }
@@ -226,7 +226,7 @@ const OVERLAY_STYLES = `
     justify-content: center;
     padding: 0 10px;
     flex-shrink: 0;
-    animation: composer-icon-in 0.25s cubic-bezier(0.2, 0, 0, 1) backwards;
+    animation: composer-icon-in 0.15s cubic-bezier(0.23, 1, 0.32, 1) backwards;
   }
 
   /* ── Panel ── */
@@ -260,12 +260,10 @@ const OVERLAY_STYLES = `
   @keyframes composer-panel-in {
     from {
       opacity: 0;
-      filter: blur(4px);
       transform: translateY(12px);
     }
     to {
       opacity: 1;
-      filter: blur(0px);
       transform: translateY(0);
     }
   }
@@ -273,12 +271,10 @@ const OVERLAY_STYLES = `
   @keyframes composer-panel-out {
     from {
       opacity: 1;
-      filter: blur(0px);
       transform: translateY(0);
     }
     to {
       opacity: 0;
-      filter: blur(4px);
       transform: translateY(12px);
     }
   }
@@ -339,7 +335,7 @@ const OVERLAY_STYLES = `
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 16px;
+    padding: 0 8px 0 16px;
     height: 44px;
   }
 
@@ -376,7 +372,10 @@ const OVERLAY_STYLES = `
   }
 
   .composer-section-row {
-    padding: 0 16px;
+    padding: 0 48px 0 16px;
+  }
+  .composer-section-row:has(.composer-split-btn) {
+    padding-right: 8px;
   }
 
   /* Row group: wraps multiple rows with equal vertical + horizontal gaps */
@@ -384,7 +383,10 @@ const OVERLAY_STYLES = `
     display: flex;
     flex-direction: column;
     gap: 4px;
-    padding: 0 16px;
+    padding: 0 48px 0 16px;
+  }
+  .composer-row-group:has(.composer-split-btn) {
+    padding-right: 8px;
   }
 
   .composer-row-group > .composer-row + .composer-row { margin-top: 4px; }
@@ -418,7 +420,7 @@ const OVERLAY_STYLES = `
     color: rgba(0, 0, 0, 0.5);
     cursor: pointer;
     padding: 0;
-    transition: background 0.15s, color 0.15s;
+    transition: background 0.15s ease, color 0.15s ease;
   }
 
   .composer-align-btn:hover {
@@ -726,37 +728,6 @@ const OVERLAY_STYLES = `
   .composer-split-btn.active {
     color: rgba(0, 0, 0, 0.7);
     background: rgba(0, 0, 0, 0.08);
-  }
-
-  /* "More" expand row for typography */
-  .composer-more-row {
-    padding: 0 16px;
-  }
-  .composer-more-btn {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    width: 100%;
-    height: 28px;
-    border: none;
-    border-radius: 6px;
-    background: transparent;
-    color: rgba(0, 0, 0, 0.45);
-    font-size: 11px;
-    font-weight: 400;
-    cursor: pointer;
-    padding: 0 8px;
-    transition: background 0.15s ease, color 0.15s ease;
-  }
-  .composer-more-btn:hover {
-    background: rgba(0, 0, 0, 0.04);
-    color: rgba(0, 0, 0, 0.65);
-  }
-  .composer-more-btn svg {
-    transition: transform 0.2s cubic-bezier(0.23, 1, 0.32, 1);
-  }
-  .composer-more-btn.expanded svg {
-    transform: rotate(180deg);
   }
 
   /* Dropdown menu (size + button) */
@@ -1927,11 +1898,16 @@ const OVERLAY_STYLES = `
     .composer-segmented-pill,
     .composer-segmented-item,
     .composer-align-btn,
+    .composer-split-btn,
     .composer-section-header-btn,
     .composer-color-hex-input,
     .composer-color-opacity-input,
     .composer-number-input,
     .composer-font-input,
+    .composer-select-button,
+    .composer-combo-input,
+    .composer-combo-trigger,
+    .composer-gradient-action-btn,
     .composer-dropdown-trigger,
     .composer-dropdown-item,
     .composer-menu-item {
@@ -1941,7 +1917,11 @@ const OVERLAY_STYLES = `
     .composer-panel-anim.entering .composer-panel,
     .composer-panel-anim.exiting .composer-panel,
     .composer-color-picker-panel,
-    .composer-tooltip {
+    .composer-dropdown-menu,
+    .composer-tooltip,
+    .composer-edit-count,
+    .composer-toolbar.expanded .composer-toolbar-expanded > *,
+    .composer-toolbar.collapsed .composer-toolbar-collapse-btn {
       animation: none;
     }
   }

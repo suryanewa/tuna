@@ -22,9 +22,7 @@ import {
   type CSSProperties,
   Fragment,
 } from "react";
-import { IconChevronTopSmall } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconChevronTopSmall";
-import { IconChevronDownSmall } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconChevronDownSmall";
-import { IconCheckmark1Small } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconCheckmark1Small";
+import { Check, ChevronUp, ChevronDown } from "./icons";
 
 export interface DropdownMenuOption {
   value: string;
@@ -56,10 +54,10 @@ export interface DropdownMenuProps {
 
 const SCROLL_SPEED = 150; // px/sec
 
-const CheckIcon = () => <IconCheckmark1Small size={16} />;
+const CheckIcon = () => <Check size={16} />;
 
-const ChevronUpIcon = () => <IconChevronTopSmall size={20} />;
-const ChevronDownIcon = () => <IconChevronDownSmall size={20} />;
+const ChevronUpIcon = () => <ChevronUp size={20} />;
+const ChevronDownIcon = () => <ChevronDown size={20} />;
 
 export const DropdownMenu = forwardRef<HTMLDivElement, DropdownMenuProps>(
   (
