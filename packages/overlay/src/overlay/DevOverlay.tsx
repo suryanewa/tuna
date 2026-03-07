@@ -24,6 +24,7 @@ import { IconCursorClick } from "@central-icons-react/round-outlined-radius-2-st
 import { IconSquareBehindSquare1 } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconSquareBehindSquare1";
 import { IconStepBack } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconStepBack";
 import { IconCrossMedium } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconCrossMedium";
+import { IconBroom } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconBroom";
 
 const DEFAULT_CONFIG: Required<ComposerConfig> = {
   port: 9223,
@@ -245,6 +246,16 @@ export function DevOverlay(props: ComposerConfig = {}) {
     }
   }, [syncTrackerState, refreshSelectedElement]);
 
+  const handleReset = useCallback(() => {
+    const tracker = trackerRef.current;
+    const preview = previewRef.current;
+    if (!tracker || !preview) return;
+    preview.clearAll();
+    tracker.clear();
+    syncTrackerState();
+    refreshSelectedElement();
+  }, [syncTrackerState, refreshSelectedElement]);
+
   const handleCopy = useCallback(() => {
     const tracker = trackerRef.current;
     if (!tracker) return;
@@ -268,6 +279,7 @@ export function DevOverlay(props: ComposerConfig = {}) {
           title={`Toggle edit mode (${config.hotkey})`}
         >
           <IconCursorClick size={20} />
+          {!active && changeCount > 0 && <span className="composer-changes-dot" />}
         </button>
 
         {/* Expanded: edit count + actions */}
@@ -300,6 +312,14 @@ export function DevOverlay(props: ComposerConfig = {}) {
             <span className="composer-icon-flip">
               <IconStepBack size={20} />
             </span>
+          </button>
+          <button
+            className={`composer-toolbar-btn${changeCount === 0 ? " disabled" : ""}`}
+            onClick={handleReset}
+            disabled={changeCount === 0}
+            title="Reset all changes"
+          >
+            <IconBroom size={20} />
           </button>
           <button
             className="composer-toolbar-btn"

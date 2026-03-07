@@ -49,6 +49,7 @@ const OVERLAY_STYLES = `
     gap: 0;
     width: 44px;
     cursor: pointer;
+    overflow: visible;
   }
   .composer-toolbar.collapsed:hover {
     background: #f5f5f4;
@@ -61,6 +62,7 @@ const OVERLAY_STYLES = `
 
   /* Collapse button (cursor-click) */
   .composer-toolbar-collapse-btn {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -79,6 +81,17 @@ const OVERLAY_STYLES = `
                 opacity 0.2s cubic-bezier(0.23, 1, 0.32, 1),
                 filter 0.2s cubic-bezier(0.23, 1, 0.32, 1),
                 transform 0.2s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  .composer-changes-dot {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #2563eb;
+    pointer-events: none;
   }
 
   /* When expanded: collapse button shrinks away */
