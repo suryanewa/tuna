@@ -74,6 +74,10 @@ Changes:
 - Next.js, React, TypeScript, Tailwind CSS (inherited from Composer)
 - Will be restructured as an npm package
 
+## Animations
+
+Always use the `web-animation-design` skill when implementing any transition or animation. This ensures correct easing, timing, performance, and accessibility decisions.
+
 ## Notes
 
 - This project was previously "Composer" (a standalone design tool extracted from the portfolio editor). That approach was abandoned in favor of this overlay concept.

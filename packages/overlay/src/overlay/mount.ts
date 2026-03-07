@@ -259,7 +259,7 @@ const OVERLAY_STYLES = `
   @keyframes composer-panel-in {
     from {
       opacity: 0;
-      filter: blur(8px);
+      filter: blur(4px);
       transform: translateY(12px);
     }
     to {
@@ -277,7 +277,7 @@ const OVERLAY_STYLES = `
     }
     to {
       opacity: 0;
-      filter: blur(8px);
+      filter: blur(4px);
       transform: translateY(12px);
     }
   }
@@ -860,6 +860,19 @@ const OVERLAY_STYLES = `
     display: flex;
     flex-direction: column;
     width: 248px;
+    animation: composer-picker-in 150ms cubic-bezier(0.23, 1, 0.32, 1) both;
+    transform-origin: top center;
+  }
+
+  @keyframes composer-picker-in {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
 
   .composer-cp-sv-wrap {
@@ -1375,6 +1388,7 @@ const OVERLAY_STYLES = `
   /* ── SegmentedControl ── */
   .composer-segmented {
     display: flex;
+    position: relative;
     height: 32px;
     background: #f5f5f4;
     border-radius: 8px;
@@ -1382,26 +1396,42 @@ const OVERLAY_STYLES = `
     flex: 1;
   }
 
+  .composer-segmented-pill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    border-radius: 8px;
+    background: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
+    transition: transform 200ms cubic-bezier(0.77, 0, 0.175, 1);
+    will-change: transform;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+
   .composer-segmented-item {
     display: flex;
     align-items: center;
     justify-content: center;
     flex: 1;
     height: 32px;
-    border: 1px solid transparent;
+    border: none;
     border-radius: 8px;
     background: transparent;
     cursor: pointer;
     padding: 0;
     color: rgba(0, 0, 0, 0.4);
-    transition: color 0.1s;
+    transition: color 150ms ease;
+    position: relative;
+    z-index: 1;
   }
 
   .composer-segmented-item:hover:not(.disabled) { color: rgba(0, 0, 0, 0.7); }
 
   .composer-segmented-item.selected {
-    background: #fff;
-    border-color: rgba(0, 0, 0, 0.1);
     color: #1c1917;
   }
 
@@ -1695,6 +1725,34 @@ const OVERLAY_STYLES = `
   .composer-menu-scroll-indicator.bottom {
     bottom: 0;
     border-radius: 0 0 12px 12px;
+  }
+
+  /* ── Reduced Motion ── */
+  @media (prefers-reduced-motion: reduce) {
+    .composer-toolbar,
+    .composer-toolbar-collapse-btn,
+    .composer-toolbar-expanded,
+    .composer-toolbar-btn,
+    .composer-icon-swap-icon,
+    .composer-segmented-pill,
+    .composer-segmented-item,
+    .composer-align-btn,
+    .composer-section-header-btn,
+    .composer-color-hex-input,
+    .composer-color-opacity-input,
+    .composer-number-input,
+    .composer-font-input,
+    .composer-dropdown-trigger,
+    .composer-dropdown-item,
+    .composer-menu-item {
+      transition: none;
+    }
+
+    .composer-panel-anim.entering .composer-panel,
+    .composer-panel-anim.exiting .composer-panel,
+    .composer-color-picker-panel {
+      animation: none;
+    }
   }
 `;
 
