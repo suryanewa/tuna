@@ -25,6 +25,7 @@ import { IconSquareBehindSquare1 } from "@central-icons-react/round-outlined-rad
 import { IconStepBack } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconStepBack";
 import { IconCrossMedium } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconCrossMedium";
 import { IconBroom } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconBroom";
+import { IconCheckCircle2 } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconCheckCircle2";
 
 const DEFAULT_CONFIG: Required<ComposerConfig> = {
   port: 9223,
@@ -77,7 +78,9 @@ export function DevOverlay(props: ComposerConfig = {}) {
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [fidelity] = useState<Fidelity>(config.fidelity);
+  const [copied, setCopied] = useState(false);
   const [portalTarget, setPortalTarget] = useState<HTMLDivElement | null>(null);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const mountRef = useRef<ReturnType<typeof mountOverlay> | null>(null);
   const pickerRef = useRef<ReturnType<typeof createPicker> | null>(null);
@@ -277,6 +280,9 @@ export function DevOverlay(props: ComposerConfig = {}) {
     const tracker = trackerRef.current;
     if (!tracker) return;
     navigator.clipboard.writeText(formatChanges(tracker.getPendingChanges(), fidelity));
+    setCopied(true);
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    copiedTimerRef.current = setTimeout(() => setCopied(false), 3000);
   }, [fidelity]);
 
   const handleClose = useCallback(() => {
@@ -310,7 +316,14 @@ export function DevOverlay(props: ComposerConfig = {}) {
             disabled={changeCount === 0}
             title="Copy changes"
           >
-            <IconSquareBehindSquare1 size={20} />
+            <span className="composer-icon-swap">
+              <span className={`composer-icon-swap-icon ${copied ? "out" : "in"}`}>
+                <IconSquareBehindSquare1 size={20} />
+              </span>
+              <span className={`composer-icon-swap-icon ${copied ? "in" : "out"}`}>
+                <IconCheckCircle2 size={20} />
+              </span>
+            </span>
           </button>
           <button
             className={`composer-toolbar-btn${!canUndo ? " disabled" : ""}`}

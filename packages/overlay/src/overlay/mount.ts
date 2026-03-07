@@ -180,6 +180,38 @@ const OVERLAY_STYLES = `
     transform: scaleX(-1);
   }
 
+  .composer-icon-swap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+  }
+
+  .composer-icon-swap-icon {
+    position: absolute;
+    display: flex;
+    transition: opacity 150ms cubic-bezier(0.23, 1, 0.32, 1),
+                transform 150ms cubic-bezier(0.23, 1, 0.32, 1),
+                filter 150ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  .composer-icon-swap-icon.in {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+    transition-delay: 75ms;
+  }
+
+  .composer-icon-swap-icon.out {
+    opacity: 0;
+    transform: scale(0.5);
+    filter: blur(4px);
+    pointer-events: none;
+    transition-delay: 0ms;
+  }
+
   .composer-edit-count {
     font-size: 13px;
     font-weight: 500;
