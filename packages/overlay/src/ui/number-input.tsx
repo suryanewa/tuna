@@ -37,7 +37,7 @@ export function NumberInput({ label, prop, value, placeholder, onChange }: Numbe
   const handleLabelPointerMove = (e: React.PointerEvent) => {
     if (!scrubRef.current.active) return;
     const delta = Math.round((e.clientX - scrubRef.current.startX));
-    const unit = localValue.replace(/[\d.-]+/, "") || "";
+    const unit = localValue.match(/[a-z%]+$/i)?.[0] || "";
     const newVal = `${scrubRef.current.startVal + delta}${unit}`;
     setLocalValue(newVal);
     onChange(prop, newVal);
@@ -76,7 +76,7 @@ export function NumberInput({ label, prop, value, placeholder, onChange }: Numbe
       const base = isNaN(num) ? 0 : num;
       const step = e.shiftKey ? 10 : 1;
       const delta = e.key === "ArrowUp" ? step : -step;
-      const unit = isNaN(num) ? "" : (localValue.replace(/[\d.-]+/, "") || "");
+      const unit = isNaN(num) ? "" : (localValue.match(/[a-z%]+$/i)?.[0] || "");
       const newVal = `${base + delta}${unit}`;
       setLocalValue(newVal);
       onChange(prop, newVal);

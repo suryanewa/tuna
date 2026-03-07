@@ -91,7 +91,7 @@ export function ComboInput({ label, prop, value, options, onChange }: ComboInput
   const handleLabelPointerMove = (e: React.PointerEvent) => {
     if (!scrubRef.current.active) return;
     const delta = Math.round(e.clientX - scrubRef.current.startX);
-    const unit = localValue.replace(/[\d.-]+/, "") || "";
+    const unit = localValue.match(/[a-z%]+$/i)?.[0] || "";
     const newVal = `${scrubRef.current.startVal + delta}${unit}`;
     setLocalValue(newVal);
     onChange(prop, newVal);
@@ -160,7 +160,7 @@ export function ComboInput({ label, prop, value, options, onChange }: ComboInput
         if (isNaN(num)) return;
         const step = e.shiftKey ? 10 : 1;
         const delta = e.key === "ArrowUp" ? step : -step;
-        const unit = localValue.replace(/[\d.-]+/, "") || "";
+        const unit = localValue.match(/[a-z%]+$/i)?.[0] || "";
         const newVal = `${num + delta}${unit}`;
         setLocalValue(newVal);
         onChange(prop, newVal);

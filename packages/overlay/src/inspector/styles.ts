@@ -50,6 +50,7 @@ const VISUAL_PROPS = [
 
 const TEXT_OVERFLOW_PROPS = [
   "textOverflow", "overflowWrap", "wordBreak",
+  "webkitLineClamp", "webkitBoxOrient",
 ] as const;
 
 const ALL_PROPS = [
@@ -119,5 +120,9 @@ export function getStylesForCategory(
 }
 
 function camelToKebab(str: string): string {
-  return str.replace(/([A-Z])/g, "-$1").toLowerCase();
+  const kebab = str.replace(/([A-Z])/g, "-$1").toLowerCase();
+  if (kebab.startsWith("webkit-")) return `-${kebab}`;
+  if (kebab.startsWith("moz-")) return `-${kebab}`;
+  if (kebab.startsWith("ms-")) return `-${kebab}`;
+  return kebab;
 }

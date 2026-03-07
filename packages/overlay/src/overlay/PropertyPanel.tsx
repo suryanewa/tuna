@@ -19,12 +19,14 @@ import { AlignmentGrid } from "../ui/alignment-grid";
 import { GridPicker, parseGridCount } from "../ui/grid-picker";
 import { GradientEditor } from "../ui/gradient-editor";
 import { type FillMode, type GradientFill, detectFillMode, defaultGradient, parseCssGradient, gradientToCss } from "../ui/gradient-utils";
+import { computeSizingChanges, type SizingMode } from "../ui/sizing-utils";
 import {
   IconSpacingVerticalTop, IconSpacingVerticalBottom,
   IconSpacingHorizontalLeft, IconSpacingHorizontalRight,
   IconGapHorizontal, IconGapVertical,
 } from "../ui/spacing-icons";
 import { SegmentedControl } from "../ui/segmented-control";
+import { detectTruncation, computeTruncationChanges } from "../ui/truncation-utils";
 import type { SegmentedOption } from "../ui/segmented-control";
 import { IconAlignmentLeft } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconAlignmentLeft";
 import { IconAlignmentCenter } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconAlignmentCenter";
@@ -119,7 +121,6 @@ const LETTER_SPACING_OPTIONS: ComboOption[] = [
 
 
 
-type SizingMode = "fixed" | "fill" | "hug";
 
 const DISPLAY_OPTIONS: SegmentedOption[] = [
   { value: "block", icon: <IconFormSquare size={20} />, label: "Block" },
@@ -254,76 +255,16 @@ export function PropertyPanel({
   }, [onPropertyChange]);
 
   const handleSizingModeChange = useCallback((axis: "width" | "height", mode: SizingMode) => {
-    if (!isFlexChild) {
-      // Non-flex (including grid children): Fill = 100%, Hug = fit-content
-      switch (mode) {
-        case "fill":
-          onPropertyChange(axis, "100%");
-          if (isGridChild) onPropertyChange(axis === "width" ? "justifySelf" : "alignSelf", "stretch");
-          break;
-        case "hug":
-          onPropertyChange(axis, "fit-content");
-          break;
-        case "fixed": {
-          const rect = element.element?.getBoundingClientRect();
-          const val = rect ? Math.round(axis === "width" ? rect.width : rect.height) : 200;
-          onPropertyChange(axis, `${val}px`);
-          break;
-        }
-      }
-      return;
-    }
-
-    const isMainAxis =
-      (axis === "width" && !parentFlexDir.startsWith("column")) ||
-      (axis === "height" && parentFlexDir.startsWith("column"));
-
-    if (isMainAxis) {
-      switch (mode) {
-        case "fill":
-          onPropertyChange("flexGrow", "1");
-          onPropertyChange("flexShrink", "1");
-          onPropertyChange("flexBasis", "0px");
-          onPropertyChange(axis, "auto");
-          break;
-        case "hug":
-          onPropertyChange("flexGrow", "0");
-          onPropertyChange("flexShrink", "0");
-          onPropertyChange("flexBasis", "auto");
-          onPropertyChange(axis, "auto");
-          break;
-        case "fixed":
-          onPropertyChange("flexGrow", "0");
-          onPropertyChange("flexShrink", "0");
-          if (!s[axis] || s[axis] === "auto") {
-            const rect = element.element?.getBoundingClientRect();
-            const val = rect ? Math.round(axis === "width" ? rect.width : rect.height) : 200;
-            onPropertyChange(axis, `${val}px`);
-          }
-          break;
-      }
-    } else {
-      // Cross axis
-      switch (mode) {
-        case "fill":
-          onPropertyChange(axis, "100%");
-          onPropertyChange("alignSelf", "stretch");
-          break;
-        case "hug":
-          onPropertyChange(axis, "auto");
-          // Only override alignment if currently stretching, otherwise preserve user's alignment
-          if (!s.alignSelf || s.alignSelf === "auto" || s.alignSelf === "stretch") {
-            onPropertyChange("alignSelf", "flex-start");
-          }
-          break;
-        case "fixed":
-          if (!s[axis] || s[axis] === "auto" || s[axis] === "100%") {
-            const rect = element.element?.getBoundingClientRect();
-            const val = rect ? Math.round(axis === "width" ? rect.width : rect.height) : 200;
-            onPropertyChange(axis, `${val}px`);
-          }
-          break;
-      }
+    const rect = element.element?.getBoundingClientRect();
+    const changes = computeSizingChanges(axis, mode, {
+      isFlexChild,
+      isGridChild,
+      parentFlexDir,
+      currentStyles: s,
+      elementRect: rect ? { width: rect.width, height: rect.height } : undefined,
+    });
+    for (const [prop, value] of Object.entries(changes)) {
+      onPropertyChange(prop, value);
     }
   }, [isFlexChild, isGridChild, parentFlexDir, s, element.element, onPropertyChange]);
 
@@ -761,14 +702,58 @@ export function PropertyPanel({
               <NumberInput prop="textIndent" value={s.textIndent} onChange={onPropertyChange} />
             </Field>
           </Row>
-          <Row>
-            <Field label="Overflow">
-              <SelectInput prop="textOverflow" value={s.textOverflow} options={["clip", "ellipsis"]} onChange={onPropertyChange} />
-            </Field>
-            <Field label="Word break">
-              <SelectInput prop="overflowWrap" value={s.overflowWrap} options={["normal", "break-word", "anywhere"]} onChange={onPropertyChange} />
-            </Field>
-          </Row>
+          {(() => {
+            const truncation = detectTruncation(s);
+            const ctx = { currentDisplay: s.display };
+
+            const applyChanges = (changes: Record<string, string>) => {
+              for (const [prop, value] of Object.entries(changes)) {
+                onPropertyChange(prop, value);
+              }
+            };
+
+            return (
+              <>
+                <Row>
+                  <Field label="Truncate">
+                    <SelectInput
+                      prop="truncate"
+                      value={truncation.enabled ? "ellipsis" : "none"}
+                      options={["none", "ellipsis"]}
+                      onChange={(_p, val) => {
+                        const changes = computeTruncationChanges(
+                          { enabled: val === "ellipsis", lines: 1 },
+                          ctx,
+                        );
+                        applyChanges(changes);
+                      }}
+                    />
+                  </Field>
+                  {truncation.enabled && (
+                    <Field label="Max lines">
+                      <NumberInput
+                        prop="lineClamp"
+                        value={String(truncation.lines)}
+                        onChange={(_p, val) => {
+                          const n = parseInt(val) || 1;
+                          const changes = computeTruncationChanges(
+                            { enabled: true, lines: n },
+                            ctx,
+                          );
+                          applyChanges(changes);
+                        }}
+                      />
+                    </Field>
+                  )}
+                </Row>
+                <Row>
+                  <Field label="Word break">
+                    <SelectInput prop="overflowWrap" value={s.overflowWrap} options={["normal", "break-word", "anywhere"]} onChange={onPropertyChange} />
+                  </Field>
+                </Row>
+              </>
+            );
+          })()}
         </Section>
       )}
 

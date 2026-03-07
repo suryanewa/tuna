@@ -95,5 +95,10 @@ export class LivePreviewEngine {
 }
 
 function camelToKebab(str: string): string {
-  return str.replace(/([A-Z])/g, "-$1").toLowerCase();
+  const kebab = str.replace(/([A-Z])/g, "-$1").toLowerCase();
+  // Vendor prefixes: webkitX → -webkit-x
+  if (kebab.startsWith("webkit-")) return `-${kebab}`;
+  if (kebab.startsWith("moz-")) return `-${kebab}`;
+  if (kebab.startsWith("ms-")) return `-${kebab}`;
+  return kebab;
 }
