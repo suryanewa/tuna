@@ -11,6 +11,7 @@
 
 import type { ElementChange } from "../types";
 import { type TokenMap, scanDesignTokens, findTokensForValue, summarizeTokenSystem } from "../inspector/tokens";
+import { findStyleSources, formatStyleSource } from "../inspector/style-source";
 
 export type Fidelity = "minimal" | "standard" | "full";
 
@@ -133,17 +134,22 @@ function formatSingleChange(change: ElementChange, fidelity: Fidelity, tokenMap:
     lines.push(`**Inline styles:** \`${change.inlineStyles}\``);
   }
 
+  // Resolve style sources from the live DOM
+  const sourceMap = resolveStyleSources(change.selector, change.changes.map(c => c.property));
+
   // Changes table
   lines.push("");
   lines.push("### Changes");
   lines.push("");
-  lines.push("| Property | Before | After | Token |");
-  lines.push("|----------|--------|-------|-------|");
+  lines.push("| Property | Before | After | Source | Token |");
+  lines.push("|----------|--------|-------|--------|-------|");
 
   for (const prop of change.changes) {
     const kebab = camelToKebab(prop.property);
     const tokenHint = getTokenHint(prop.to, tokenMap);
-    lines.push(`| \`${kebab}\` | \`${prop.from}\` | \`${prop.to}\` | ${tokenHint} |`);
+    const source = sourceMap.get(prop.property);
+    const sourceStr = source ? formatStyleSource(source) : "—";
+    lines.push(`| \`${kebab}\` | \`${prop.from}\` | \`${prop.to}\` | ${sourceStr} | ${tokenHint} |`);
   }
 
   // Implementation hint based on styling approach
@@ -157,6 +163,20 @@ function formatSingleChange(change: ElementChange, fidelity: Fidelity, tokenMap:
 
   lines.push("");
   return lines.join("\n");
+}
+
+/** Resolve style sources for each property from the live DOM */
+function resolveStyleSources(
+  selector: string,
+  properties: string[]
+): Map<string, StyleSource[]> {
+  try {
+    const element = document.querySelector(selector);
+    if (!element) return new Map();
+    return findStyleSources(element, properties);
+  } catch {
+    return new Map();
+  }
 }
 
 function formatStylingApproach(approach: string): string {
