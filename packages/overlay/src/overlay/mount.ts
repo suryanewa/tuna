@@ -90,7 +90,7 @@ const OVERLAY_STYLES = `
     width: 12px;
     height: 12px;
     border-radius: 50%;
-    background: #2563eb;
+    background: #3b82f6;
     pointer-events: none;
   }
 
@@ -215,7 +215,7 @@ const OVERLAY_STYLES = `
   .composer-edit-count {
     font-size: 13px;
     font-weight: 500;
-    background: #2563eb;
+    background: #3b82f6;
     color: #fff;
     min-width: 32px;
     height: 32px;

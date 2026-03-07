@@ -116,7 +116,8 @@ export function FontInput({ prop, value, onChange }: FontInputProps) {
     }
   };
 
-  const handleFocus = () => {
+  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    e.target.select();
     if (!open) openDropdown();
   };
 

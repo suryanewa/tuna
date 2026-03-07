@@ -4,6 +4,7 @@
  */
 
 import { useState, useRef, type ReactNode } from "react";
+import { roundCssValue, inferCssUnit } from "./round-css-value";
 
 export interface NumberInputProps {
   label?: ReactNode;
@@ -13,13 +14,13 @@ export interface NumberInputProps {
 }
 
 export function NumberInput({ label, prop, value, onChange }: NumberInputProps) {
-  const [localValue, setLocalValue] = useState(value || "");
+  const [localValue, setLocalValue] = useState(roundCssValue(value || ""));
   const labelRef = useRef<HTMLSpanElement>(null);
 
   const [prevValue, setPrevValue] = useState(value);
   if (value !== prevValue) {
     setPrevValue(value);
-    setLocalValue(value || "");
+    setLocalValue(roundCssValue(value || ""));
   }
 
   // Scrub-to-adjust: drag on label to change numeric values
@@ -45,17 +46,27 @@ export function NumberInput({ label, prop, value, onChange }: NumberInputProps) 
     scrubRef.current.active = false;
   };
 
+  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    e.target.select();
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setLocalValue(e.target.value);
   };
 
+  const commitValue = (val: string) => {
+    const resolved = inferCssUnit(val, value || "", prop);
+    setLocalValue(resolved);
+    onChange(prop, resolved);
+  };
+
   const handleBlur = () => {
-    onChange(prop, localValue);
+    commitValue(localValue);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      onChange(prop, localValue);
+      commitValue(localValue);
       (e.target as HTMLInputElement).blur();
     }
     if (e.key === "ArrowUp" || e.key === "ArrowDown") {
@@ -88,6 +99,7 @@ export function NumberInput({ label, prop, value, onChange }: NumberInputProps) 
         className="composer-prop-input"
         style={label ? undefined : { paddingLeft: 8 }}
         value={localValue}
+        onFocus={handleFocus}
         onChange={handleChange}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}

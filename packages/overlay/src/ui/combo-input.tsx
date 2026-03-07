@@ -9,6 +9,7 @@
 import { useState, useEffect, useRef, useCallback, type ReactNode } from "react";
 import { DropdownMenu, type DropdownMenuOption } from "./dropdown-menu";
 import { calcMenuPosition, type MenuPosition } from "./menu-position";
+import { roundCssValue, inferCssUnit } from "./round-css-value";
 import { IconChevronDownSmall } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconChevronDownSmall";
 
 export interface ComboOption {
@@ -25,7 +26,7 @@ export interface ComboInputProps {
 }
 
 export function ComboInput({ label, prop, value, options, onChange }: ComboInputProps) {
-  const [localValue, setLocalValue] = useState(value || "");
+  const [localValue, setLocalValue] = useState(roundCssValue(value || ""));
   const [open, setOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [menuPos, setMenuPos] = useState<MenuPosition | null>(null);
@@ -35,7 +36,7 @@ export function ComboInput({ label, prop, value, options, onChange }: ComboInput
   const [prevValue, setPrevValue] = useState(value);
   if (value !== prevValue) {
     setPrevValue(value);
-    setLocalValue(value || "");
+    setLocalValue(roundCssValue(value || ""));
   }
 
   const openDropdown = useCallback(() => {
@@ -100,6 +101,10 @@ export function ComboInput({ label, prop, value, options, onChange }: ComboInput
     scrubRef.current.active = false;
   };
 
+  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    e.target.select();
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setLocalValue(newValue);
@@ -115,7 +120,9 @@ export function ComboInput({ label, prop, value, options, onChange }: ComboInput
   };
 
   const handleBlur = () => {
-    onChange(prop, localValue);
+    const resolved = inferCssUnit(localValue, value || "", prop);
+    setLocalValue(resolved);
+    onChange(prop, resolved);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -127,7 +134,9 @@ export function ComboInput({ label, prop, value, options, onChange }: ComboInput
         onChange(prop, opt.value);
         closeDropdown();
       } else {
-        onChange(prop, localValue);
+        const resolved = inferCssUnit(localValue, value || "", prop);
+        setLocalValue(resolved);
+        onChange(prop, resolved);
         (e.target as HTMLInputElement).blur();
       }
       return;
@@ -182,6 +191,7 @@ export function ComboInput({ label, prop, value, options, onChange }: ComboInput
         className="composer-combo-input"
         style={label ? undefined : { paddingLeft: 8 }}
         value={displayValue}
+        onFocus={handleFocus}
         onChange={handleInputChange}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}

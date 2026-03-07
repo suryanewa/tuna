@@ -155,7 +155,7 @@ export function ColorInput({ prop, value, onChange }: ColorInputProps) {
           className="composer-color-hex-input"
           value={hexLocal}
           onChange={(e) => setHexLocal(e.target.value.replace(/[^a-fA-F0-9]/g, "").slice(0, 6))}
-          onFocus={() => { hexFocusedRef.current = true; }}
+          onFocus={(e) => { hexFocusedRef.current = true; e.target.select(); }}
           onBlur={commitHex}
           onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
           spellCheck={false}
@@ -169,7 +169,7 @@ export function ColorInput({ prop, value, onChange }: ColorInputProps) {
           inputMode="numeric"
           value={opacityLocal}
           onChange={(e) => setOpacityLocal(e.target.value)}
-          onFocus={() => { opacityFocusedRef.current = true; }}
+          onFocus={(e) => { opacityFocusedRef.current = true; e.target.select(); }}
           onBlur={commitOpacity}
           onKeyDown={handleOpacityKeyDown}
         />

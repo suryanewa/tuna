@@ -385,7 +385,7 @@ export function ColorPicker({ value, alpha = 100, onChange, onAlphaChange, onClo
             className="composer-cp-input"
             value={hexInput}
             onChange={(e) => setHexInput(e.target.value)}
-            onFocus={() => { focusedRef.current = "hex"; }}
+            onFocus={(e) => { focusedRef.current = "hex"; e.target.select(); }}
             onBlur={commitHex}
             onKeyDown={handleKeyDown(commitHex)}
             spellCheck={false}
@@ -398,7 +398,7 @@ export function ColorPicker({ value, alpha = 100, onChange, onAlphaChange, onClo
             inputMode="numeric"
             value={rgbInputs.r}
             onChange={(e) => setRgbInputs(prev => ({ ...prev, r: e.target.value }))}
-            onFocus={() => { focusedRef.current = "r"; }}
+            onFocus={(e) => { focusedRef.current = "r"; e.target.select(); }}
             onBlur={commitRgb}
             onKeyDown={handleKeyDown(commitRgb)}
           />
@@ -410,7 +410,7 @@ export function ColorPicker({ value, alpha = 100, onChange, onAlphaChange, onClo
             inputMode="numeric"
             value={rgbInputs.g}
             onChange={(e) => setRgbInputs(prev => ({ ...prev, g: e.target.value }))}
-            onFocus={() => { focusedRef.current = "g"; }}
+            onFocus={(e) => { focusedRef.current = "g"; e.target.select(); }}
             onBlur={commitRgb}
             onKeyDown={handleKeyDown(commitRgb)}
           />
@@ -422,7 +422,7 @@ export function ColorPicker({ value, alpha = 100, onChange, onAlphaChange, onClo
             inputMode="numeric"
             value={rgbInputs.b}
             onChange={(e) => setRgbInputs(prev => ({ ...prev, b: e.target.value }))}
-            onFocus={() => { focusedRef.current = "b"; }}
+            onFocus={(e) => { focusedRef.current = "b"; e.target.select(); }}
             onBlur={commitRgb}
             onKeyDown={handleKeyDown(commitRgb)}
           />
