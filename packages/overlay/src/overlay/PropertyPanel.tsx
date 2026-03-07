@@ -154,17 +154,22 @@ export function PropertyPanel({
     }
     return defaultGradient();
   });
+  // Skip gradient sync when we're the source of the change (e.g. during stop drag)
+  const gradientEditingRef = useRef(false);
 
   // Sync fill mode from element changes
   const [prevBgImage, setPrevBgImage] = useState(s.backgroundImage);
   if (s.backgroundImage !== prevBgImage) {
     setPrevBgImage(s.backgroundImage);
-    const newMode = detectFillMode(s.backgroundColor, s.backgroundImage);
-    if (newMode !== "solid") {
-      setFillMode(newMode);
-      const parsed = parseCssGradient(s.backgroundImage || "");
-      if (parsed) setGradient(parsed);
+    if (!gradientEditingRef.current) {
+      const newMode = detectFillMode(s.backgroundColor, s.backgroundImage);
+      if (newMode !== "solid") {
+        setFillMode(newMode);
+        const parsed = parseCssGradient(s.backgroundImage || "");
+        if (parsed) setGradient(parsed);
+      }
     }
+    gradientEditingRef.current = false;
   }
 
   // ── Fill (null-or-active) ──
@@ -214,6 +219,7 @@ export function PropertyPanel({
   }, [gradient, onPropertyChange]);
 
   const handleGradientChange = useCallback((newGradient: GradientFill) => {
+    gradientEditingRef.current = true;
     setGradient(newGradient);
     onPropertyChange("backgroundImage", gradientToCss(newGradient));
   }, [onPropertyChange]);

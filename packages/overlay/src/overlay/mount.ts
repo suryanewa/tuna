@@ -1064,7 +1064,7 @@ const OVERLAY_STYLES = `
 
   .composer-gradient-stop-handle {
     position: absolute;
-    top: 0px;
+    top: 8px;
     transform: translateX(-50%);
     cursor: grab;
     touch-action: none;
@@ -1083,23 +1083,20 @@ const OVERLAY_STYLES = `
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 32px;
     border-radius: 5px;
   }
 
   .composer-gradient-stop-chit-color {
-    width: 14px;
-    height: 14px;
+    width: 12px;
+    height: 24px;
     border-radius: 2px;
     box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);
   }
 
   .composer-gradient-stop-caret {
-    width: 8px;
-    height: 4px;
-    clip-path: polygon(0 0, 100% 0, 50% 100%);
-    margin-top: -1px;
+    display: none;
   }
 
   .composer-gradient-controls {
