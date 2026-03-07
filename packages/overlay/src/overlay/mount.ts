@@ -8,7 +8,8 @@
 const OVERLAY_STYLES = `
   :host {
     all: initial;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-family: InterVariable, Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-feature-settings: 'liga' 1, 'calt' 1, 'zero' 0, 'tnum' 0;
     font-size: 13px;
     color: #1a1a1a;
     line-height: 1.4;
@@ -421,12 +422,11 @@ const OVERLAY_STYLES = `
   }
 
   .composer-align-btn:hover {
-    background: #e7e5e4;
     color: rgba(0, 0, 0, 0.8);
   }
 
   .composer-align-btn:active {
-    background: #d6d3d1;
+    color: rgba(0, 0, 0, 1);
   }
 
   /* ── Alignment grid (layout section) ── */
@@ -458,7 +458,7 @@ const OVERLAY_STYLES = `
   }
 
   .composer-alignment-cell:hover {
-    background: rgba(0, 0, 0, 0.04);
+    color: rgba(0, 0, 0, 0.8);
   }
 
   /* ── Grid picker ── */
@@ -1727,6 +1727,86 @@ const OVERLAY_STYLES = `
     border-radius: 0 0 12px 12px;
   }
 
+  /* ── Tooltip ── */
+  .composer-tooltip-trigger {
+    display: contents;
+  }
+
+  .composer-tooltip {
+    position: fixed;
+    z-index: 2147483647;
+    pointer-events: none;
+    max-width: 200px;
+    border-radius: 5px;
+    background: #1e1e1e;
+    box-shadow: 0 0 0.5px rgba(0, 0, 0, 0.15), 0 5px 12px rgba(0, 0, 0, 0.13), 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 16px;
+    letter-spacing: 0.055px;
+    white-space: nowrap;
+    animation: composer-tooltip-in 150ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  }
+
+  .composer-tooltip::before {
+    content: "";
+    position: absolute;
+    width: 12px;
+    height: 6px;
+    background: #1e1e1e;
+    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+  }
+
+  .composer-tooltip-bottom::before {
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .composer-tooltip-top::before {
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%) rotate(180deg);
+  }
+
+  .composer-tooltip-left::before {
+    right: -9px;
+    top: 50%;
+    transform: translateY(-50%) rotate(90deg);
+  }
+
+  .composer-tooltip-right::before {
+    left: -9px;
+    top: 50%;
+    transform: translateY(-50%) rotate(-90deg);
+  }
+
+  .composer-tooltip-text {
+    color: #fff;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .composer-tooltip-shortcut {
+    color: rgba(255, 255, 255, 0.5);
+    flex-shrink: 0;
+  }
+
+  @keyframes composer-tooltip-in {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
   /* ── Reduced Motion ── */
   @media (prefers-reduced-motion: reduce) {
     .composer-toolbar,
@@ -1750,7 +1830,8 @@ const OVERLAY_STYLES = `
 
     .composer-panel-anim.entering .composer-panel,
     .composer-panel-anim.exiting .composer-panel,
-    .composer-color-picker-panel {
+    .composer-color-picker-panel,
+    .composer-tooltip {
       animation: none;
     }
   }
@@ -1765,6 +1846,20 @@ export interface MountResult {
 }
 
 export function mountOverlay(): MountResult {
+  // Load Inter font if not already present
+  if (!document.querySelector('link[data-composer-font]')) {
+    const preconnect = document.createElement("link");
+    preconnect.rel = "preconnect";
+    preconnect.href = "https://rsms.me/";
+    document.head.appendChild(preconnect);
+
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "https://rsms.me/inter/inter.css";
+    link.setAttribute("data-composer-font", "");
+    document.head.appendChild(link);
+  }
+
   const host = document.createElement("div");
   host.setAttribute("data-composer-host", "");
   host.style.cssText = `

@@ -9,6 +9,7 @@
  */
 
 import { useState, useCallback } from "react";
+import { Tooltip } from "./tooltip";
 
 export type FlowDirection = "vertical" | "horizontal";
 
@@ -199,6 +200,18 @@ function IconSBBarVBottom({ color }: { color: string }) {
 const BLUE = "#2563eb";
 const GRAY = "#a8a29e";
 
+const CELL_TOOLTIPS: Record<string, string> = {
+  "0-0": "Align top left",
+  "0-1": "Align top center",
+  "0-2": "Align top right",
+  "1-0": "Align center left",
+  "1-1": "Align center",
+  "1-2": "Align center right",
+  "2-0": "Align bottom left",
+  "2-1": "Align bottom center",
+  "2-2": "Align bottom right",
+};
+
 function getSelectedIcon(position: AlignmentPosition, flow: FlowDirection) {
   const { row, col } = POSITION_TO_COORDS[position];
   if (flow === "vertical") {
@@ -322,20 +335,21 @@ export function AlignmentGrid({ justifyContent, alignItems, flexDirection, onCha
         [0, 1, 2].map((col) => {
           const pos = COORDS_TO_POSITION[row][col];
           return (
-            <button
-              key={`${row}-${col}`}
-              type="button"
-              className="composer-alignment-cell"
-              onClick={() => handleClick(row, col)}
-              onMouseEnter={() => handleMouseEnter(row, col)}
-              onMouseLeave={handleMouseLeave}
-              tabIndex={-1}
-              aria-label={pos.replace("-", " ")}
-            >
-              {isSpaceBetween
-                ? renderSpaceBetweenCell(row, col, activeGroup, hoveredGroup, flow)
-                : renderNormalCell(row, col, selectedCoords, hoveredPosition, pos, flow)}
-            </button>
+            <Tooltip key={`${row}-${col}`} content={CELL_TOOLTIPS[`${row}-${col}`]} side="bottom" delay={600}>
+              <button
+                type="button"
+                className="composer-alignment-cell"
+                onClick={() => handleClick(row, col)}
+                onMouseEnter={() => handleMouseEnter(row, col)}
+                onMouseLeave={handleMouseLeave}
+                tabIndex={-1}
+                aria-label={pos.replace("-", " ")}
+              >
+                {isSpaceBetween
+                  ? renderSpaceBetweenCell(row, col, activeGroup, hoveredGroup, flow)
+                  : renderNormalCell(row, col, selectedCoords, hoveredPosition, pos, flow)}
+              </button>
+            </Tooltip>
           );
         })
       )}

@@ -16,6 +16,7 @@ import { IconArrowLeftRight } from "@central-icons-react/round-outlined-radius-2
 import { IconArrowRotateClockwise } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconArrowRotateClockwise";
 import { IconPlusLarge } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconPlusLarge";
 import { IconMinusLarge } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconMinusLarge";
+import { Tooltip } from "./tooltip";
 
 export interface GradientEditorProps {
   gradient: GradientFill;
@@ -184,36 +185,39 @@ export function GradientEditor({ gradient, onChange }: GradientEditorProps) {
           />
         )}
         <div className="composer-gradient-actions">
-          <button
-            type="button"
-            className="composer-gradient-action-btn"
-            onClick={handleReverse}
-            title="Reverse"
-          >
-            <IconArrowLeftRight size={20} />
-          </button>
-          <button
-            type="button"
-            className="composer-gradient-action-btn"
-            onClick={handleRotate}
-            title="Rotate +45°"
-          >
-            <IconArrowRotateClockwise size={20} />
-          </button>
+          <Tooltip content="Reverse gradient direction">
+            <button
+              type="button"
+              className="composer-gradient-action-btn"
+              onClick={handleReverse}
+            >
+              <IconArrowLeftRight size={20} />
+            </button>
+          </Tooltip>
+          <Tooltip content="Rotate gradient 45°">
+            <button
+              type="button"
+              className="composer-gradient-action-btn"
+              onClick={handleRotate}
+            >
+              <IconArrowRotateClockwise size={20} />
+            </button>
+          </Tooltip>
         </div>
       </div>
 
       {/* Stops header */}
       <div className="composer-gradient-stops-header">
         <span className="composer-gradient-stops-label">Stops</span>
-        <button
-          type="button"
-          className="composer-gradient-action-btn"
-          onClick={handleAddStop}
-          title="Add stop"
-        >
-          <IconPlusLarge size={20} />
-        </button>
+        <Tooltip content="Add color stop">
+          <button
+            type="button"
+            className="composer-gradient-action-btn"
+            onClick={handleAddStop}
+          >
+            <IconPlusLarge size={20} />
+          </button>
+        </Tooltip>
       </div>
 
       {/* Stop rows */}
@@ -244,15 +248,16 @@ export function GradientEditor({ gradient, onChange }: GradientEditorProps) {
             </div>
 
             {/* Remove */}
-            <button
-              type="button"
-              className="composer-gradient-action-btn remove"
-              disabled={gradient.stops.length <= 2}
-              onClick={() => handleRemoveStop(index)}
-              title="Remove stop"
-            >
-              <IconMinusLarge size={20} />
-            </button>
+            <Tooltip content="Remove color stop">
+              <button
+                type="button"
+                className="composer-gradient-action-btn remove"
+                disabled={gradient.stops.length <= 2}
+                onClick={() => handleRemoveStop(index)}
+              >
+                <IconMinusLarge size={20} />
+              </button>
+            </Tooltip>
           </div>
         ))}
       </div>

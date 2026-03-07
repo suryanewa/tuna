@@ -5,6 +5,7 @@
  */
 
 import { useState, useRef, useLayoutEffect, useCallback, type ReactNode } from "react";
+import { Tooltip } from "./tooltip";
 
 export interface SegmentedOption<T extends string = string> {
   value: T;
@@ -91,20 +92,24 @@ export function SegmentedControl<T extends string = string>({
       <div ref={pillRef} className="composer-segmented-pill" />
       {options.map((opt) => {
         const isSelected = localValue === opt.value;
-        return (
+        const button = (
           <button
             key={opt.value}
             type="button"
             className={`composer-segmented-item${isSelected ? " selected" : ""}${opt.disabled ? " disabled" : ""}`}
             onClick={() => handleClick(opt.value)}
             disabled={opt.disabled || disabled}
-            title={opt.label}
             aria-label={opt.label}
             aria-pressed={isSelected}
           >
             {opt.icon}
           </button>
         );
+        return opt.label ? (
+          <Tooltip key={opt.value} content={opt.label}>
+            {button}
+          </Tooltip>
+        ) : button;
       })}
     </div>
   );

@@ -40,6 +40,7 @@ import { IconBento } from "@central-icons-react/round-outlined-radius-2-stroke-1
 import { IconLayoutGrid2 } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconLayoutGrid2";
 import { IconPlusLarge } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconPlusLarge";
 import { IconMinusLarge } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconMinusLarge";
+import { Tooltip } from "../ui/tooltip";
 
 const TEXT_ALIGN_OPTIONS: SegmentedOption[] = [
   { value: "left", icon: <IconAlignmentLeft size={16} />, label: "Left" },
@@ -312,26 +313,14 @@ export function PropertyPanel({
               <span className="composer-field-label">Alignment</span>
               <div className="composer-align-row">
                 <div className="composer-btn-group">
-                  <button type="button" className="composer-align-btn" title="Align left" onClick={alignLeft}>
-                    <IconVerticalAlignmentLeft size={16} />
-                  </button>
-                  <button type="button" className="composer-align-btn" title="Align center H" onClick={alignCenterH}>
-                    <IconVerticalAlignmentCenter size={16} />
-                  </button>
-                  <button type="button" className="composer-align-btn" title="Align right" onClick={alignRight}>
-                    <IconVerticalAlignmentRight size={16} />
-                  </button>
+                  <Tooltip content="Align left" side="top"><button type="button" className="composer-align-btn" onClick={alignLeft}><IconVerticalAlignmentLeft size={16} /></button></Tooltip>
+                  <Tooltip content="Align center horizontally" side="top"><button type="button" className="composer-align-btn" onClick={alignCenterH}><IconVerticalAlignmentCenter size={16} /></button></Tooltip>
+                  <Tooltip content="Align right" side="top"><button type="button" className="composer-align-btn" onClick={alignRight}><IconVerticalAlignmentRight size={16} /></button></Tooltip>
                 </div>
                 <div className="composer-btn-group">
-                  <button type="button" className="composer-align-btn" title="Align top" onClick={alignTop}>
-                    <IconHorizontalAlignmentTop size={16} />
-                  </button>
-                  <button type="button" className="composer-align-btn" title="Align center V" onClick={alignCenterV}>
-                    <IconHorizontalAlignmentCenter size={16} />
-                  </button>
-                  <button type="button" className="composer-align-btn" title="Align bottom" onClick={alignBottom}>
-                    <IconHorizontalAlignmentBottom size={16} />
-                  </button>
+                  <Tooltip content="Align top" side="top"><button type="button" className="composer-align-btn" onClick={alignTop}><IconHorizontalAlignmentTop size={16} /></button></Tooltip>
+                  <Tooltip content="Align center vertically" side="top"><button type="button" className="composer-align-btn" onClick={alignCenterV}><IconHorizontalAlignmentCenter size={16} /></button></Tooltip>
+                  <Tooltip content="Align bottom" side="top"><button type="button" className="composer-align-btn" onClick={alignBottom}><IconHorizontalAlignmentBottom size={16} /></button></Tooltip>
                 </div>
               </div>
             </div>
@@ -403,7 +392,7 @@ export function PropertyPanel({
               </Field>
               <Field label="Gap">
                 <NumberInput
-                  label={(s.flexDirection || "row").startsWith("column") ? <IconGapVertical /> : <IconGapHorizontal />}
+                  label={<Tooltip content={(s.flexDirection || "row").startsWith("column") ? "Vertical gap between items" : "Horizontal gap between items"} side="top" sideOffset={14}>{(s.flexDirection || "row").startsWith("column") ? <IconGapVertical /> : <IconGapHorizontal />}</Tooltip>}
                   prop="gap"
                   value={s.gap}
                   onChange={onPropertyChange}
@@ -431,30 +420,30 @@ export function PropertyPanel({
             </Field>
             <Field label="Gap">
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <NumberInput label={<IconGapHorizontal />} prop="columnGap" value={s.columnGap} onChange={onPropertyChange} />
-                <NumberInput label={<IconGapVertical />} prop="rowGap" value={s.rowGap} onChange={onPropertyChange} />
+                <NumberInput label={<Tooltip content="Horizontal gap between columns" side="top" sideOffset={14}><IconGapHorizontal /></Tooltip>} prop="columnGap" value={s.columnGap} onChange={onPropertyChange} />
+                <NumberInput label={<Tooltip content="Vertical gap between rows" side="top" sideOffset={14}><IconGapVertical /></Tooltip>} prop="rowGap" value={s.rowGap} onChange={onPropertyChange} />
               </div>
             </Field>
           </Row>
         )}
         <RowGroup label="Padding">
           <div className="composer-row">
-            <NumberInput label={<IconSpacingVerticalTop />} prop="paddingTop" value={s.paddingTop} onChange={onPropertyChange} />
-            <NumberInput label={<IconSpacingHorizontalRight />} prop="paddingRight" value={s.paddingRight} onChange={onPropertyChange} />
+            <NumberInput label={<Tooltip content="Padding top" side="top" sideOffset={14}><IconSpacingVerticalTop /></Tooltip>} prop="paddingTop" value={s.paddingTop} onChange={onPropertyChange} />
+            <NumberInput label={<Tooltip content="Padding right" side="top" sideOffset={14}><IconSpacingHorizontalRight /></Tooltip>} prop="paddingRight" value={s.paddingRight} onChange={onPropertyChange} />
           </div>
           <div className="composer-row">
-            <NumberInput label={<IconSpacingVerticalBottom />} prop="paddingBottom" value={s.paddingBottom} onChange={onPropertyChange} />
-            <NumberInput label={<IconSpacingHorizontalLeft />} prop="paddingLeft" value={s.paddingLeft} onChange={onPropertyChange} />
+            <NumberInput label={<Tooltip content="Padding bottom" side="top" sideOffset={14}><IconSpacingVerticalBottom /></Tooltip>} prop="paddingBottom" value={s.paddingBottom} onChange={onPropertyChange} />
+            <NumberInput label={<Tooltip content="Padding left" side="top" sideOffset={14}><IconSpacingHorizontalLeft /></Tooltip>} prop="paddingLeft" value={s.paddingLeft} onChange={onPropertyChange} />
           </div>
         </RowGroup>
         <RowGroup label="Margin">
           <div className="composer-row">
-            <NumberInput label={<IconSpacingVerticalTop />} prop="marginTop" value={s.marginTop} onChange={onPropertyChange} />
-            <NumberInput label={<IconSpacingHorizontalRight />} prop="marginRight" value={s.marginRight} onChange={onPropertyChange} />
+            <NumberInput label={<Tooltip content="Margin top" side="top" sideOffset={14}><IconSpacingVerticalTop /></Tooltip>} prop="marginTop" value={s.marginTop} onChange={onPropertyChange} />
+            <NumberInput label={<Tooltip content="Margin right" side="top" sideOffset={14}><IconSpacingHorizontalRight /></Tooltip>} prop="marginRight" value={s.marginRight} onChange={onPropertyChange} />
           </div>
           <div className="composer-row">
-            <NumberInput label={<IconSpacingVerticalBottom />} prop="marginBottom" value={s.marginBottom} onChange={onPropertyChange} />
-            <NumberInput label={<IconSpacingHorizontalLeft />} prop="marginLeft" value={s.marginLeft} onChange={onPropertyChange} />
+            <NumberInput label={<Tooltip content="Margin bottom" side="top" sideOffset={14}><IconSpacingVerticalBottom /></Tooltip>} prop="marginBottom" value={s.marginBottom} onChange={onPropertyChange} />
+            <NumberInput label={<Tooltip content="Margin left" side="top" sideOffset={14}><IconSpacingHorizontalLeft /></Tooltip>} prop="marginLeft" value={s.marginLeft} onChange={onPropertyChange} />
           </div>
         </RowGroup>
       </Section>
@@ -556,12 +545,12 @@ export function PropertyPanel({
         </Row>
         <RowGroup label="Corner Radius">
           <div className="composer-row">
-            <NumberInput label={<IconCornerRadius size={14} />} prop="borderTopLeftRadius" value={s.borderTopLeftRadius} onChange={onPropertyChange} />
-            <NumberInput label={<span style={{ display: "inline-flex", transform: "rotate(90deg)" }}><IconCornerRadius size={14} /></span>} prop="borderTopRightRadius" value={s.borderTopRightRadius} onChange={onPropertyChange} />
+            <NumberInput label={<Tooltip content="Top left corner radius" side="top" sideOffset={14}><IconCornerRadius size={14} /></Tooltip>} prop="borderTopLeftRadius" value={s.borderTopLeftRadius} onChange={onPropertyChange} />
+            <NumberInput label={<Tooltip content="Top right corner radius" side="top" sideOffset={14}><span style={{ display: "inline-flex", transform: "rotate(90deg)" }}><IconCornerRadius size={14} /></span></Tooltip>} prop="borderTopRightRadius" value={s.borderTopRightRadius} onChange={onPropertyChange} />
           </div>
           <div className="composer-row">
-            <NumberInput label={<span style={{ display: "inline-flex", transform: "rotate(270deg)" }}><IconCornerRadius size={14} /></span>} prop="borderBottomLeftRadius" value={s.borderBottomLeftRadius} onChange={onPropertyChange} />
-            <NumberInput label={<span style={{ display: "inline-flex", transform: "rotate(180deg)" }}><IconCornerRadius size={14} /></span>} prop="borderBottomRightRadius" value={s.borderBottomRightRadius} onChange={onPropertyChange} />
+            <NumberInput label={<Tooltip content="Bottom left corner radius" side="top" sideOffset={14}><span style={{ display: "inline-flex", transform: "rotate(270deg)" }}><IconCornerRadius size={14} /></span></Tooltip>} prop="borderBottomLeftRadius" value={s.borderBottomLeftRadius} onChange={onPropertyChange} />
+            <NumberInput label={<Tooltip content="Bottom right corner radius" side="top" sideOffset={14}><span style={{ display: "inline-flex", transform: "rotate(180deg)" }}><IconCornerRadius size={14} /></span></Tooltip>} prop="borderBottomRightRadius" value={s.borderBottomRightRadius} onChange={onPropertyChange} />
           </div>
         </RowGroup>
         <Row>
@@ -577,13 +566,9 @@ export function PropertyPanel({
         gap={8}
         action={
           hasFill ? (
-            <button className="composer-section-action" onClick={handleRemoveFill} title="Remove fill">
-              <IconMinusLarge size={20} />
-            </button>
+            <Tooltip content="Remove fill" side="top"><button className="composer-section-action" onClick={handleRemoveFill}><IconMinusLarge size={20} /></button></Tooltip>
           ) : (
-            <button className="composer-section-action" onClick={handleAddFill} title="Add fill">
-              <IconPlusLarge size={20} />
-            </button>
+            <Tooltip content="Add fill" side="top"><button className="composer-section-action" onClick={handleAddFill}><IconPlusLarge size={20} /></button></Tooltip>
           )
         }
       >
@@ -613,13 +598,9 @@ export function PropertyPanel({
         label="Border"
         action={
           hasBorder ? (
-            <button className="composer-section-action" onClick={handleRemoveBorder} title="Remove border">
-              <IconMinusLarge size={20} />
-            </button>
+            <Tooltip content="Remove border" side="top"><button className="composer-section-action" onClick={handleRemoveBorder}><IconMinusLarge size={20} /></button></Tooltip>
           ) : (
-            <button className="composer-section-action" onClick={handleAddBorder} title="Add border">
-              <IconPlusLarge size={20} />
-            </button>
+            <Tooltip content="Add border" side="top"><button className="composer-section-action" onClick={handleAddBorder}><IconPlusLarge size={20} /></button></Tooltip>
           )
         }
       >

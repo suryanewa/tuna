@@ -58,7 +58,8 @@ export function createPicker(
       position: fixed;
       color: white;
       font-size: 11px;
-      font-family: ui-monospace, monospace;
+      font-family: InterVariable, Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-feature-settings: 'liga' 1, 'calt' 1, 'zero' 0, 'tnum' 0;
       padding: 2px 6px;
       border-radius: 3px;
       pointer-events: none;

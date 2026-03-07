@@ -26,6 +26,7 @@ import { IconStepBack } from "@central-icons-react/round-outlined-radius-2-strok
 import { IconCrossMedium } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconCrossMedium";
 import { IconBroom } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconBroom";
 import { IconCheckCircle2 } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconCheckCircle2";
+import { Tooltip } from "../ui/tooltip";
 
 const DEFAULT_CONFIG: Required<ComposerConfig> = {
   port: 9223,
@@ -303,68 +304,74 @@ export function DevOverlay(props: ComposerConfig = {}) {
       {/* Floating toolbar */}
       <div className={`composer-toolbar ${config.position.replace("-", " ")} ${active ? "expanded" : "collapsed"}`}>
         {/* Collapsed: single activate button */}
-        <button
-          className="composer-toolbar-collapse-btn"
-          onClick={activateOverlay}
-          title={`Toggle edit mode (${config.hotkey})`}
-        >
-          <IconCursorClick size={20} />
-          {!active && changeCount > 0 && <span className="composer-changes-dot" />}
-        </button>
+        <Tooltip content="Toggle edit mode" shortcut={config.hotkey} side="top">
+          <button
+            className="composer-toolbar-collapse-btn"
+            onClick={activateOverlay}
+          >
+            <IconCursorClick size={20} />
+            {!active && changeCount > 0 && <span className="composer-changes-dot" />}
+          </button>
+        </Tooltip>
 
         {/* Expanded: edit count + actions */}
         <div className="composer-toolbar-expanded">
           {changeCount > 0 && (
             <div className="composer-edit-count">{changeCount}</div>
           )}
-          <button
-            className={`composer-toolbar-btn${changeCount === 0 ? " disabled" : ""}`}
-            onClick={handleCopy}
-            disabled={changeCount === 0}
-            title="Copy changes"
-          >
-            <span className="composer-icon-swap">
-              <span className={`composer-icon-swap-icon ${copied ? "out" : "in"}`}>
-                <IconSquareBehindSquare1 size={20} />
+          <Tooltip content="Copy changes" shortcut="⌘C" side="top">
+            <button
+              className={`composer-toolbar-btn${changeCount === 0 ? " disabled" : ""}`}
+              onClick={handleCopy}
+              disabled={changeCount === 0}
+            >
+              <span className="composer-icon-swap">
+                <span className={`composer-icon-swap-icon ${copied ? "out" : "in"}`}>
+                  <IconSquareBehindSquare1 size={20} />
+                </span>
+                <span className={`composer-icon-swap-icon ${copied ? "in" : "out"}`}>
+                  <IconCheckCircle2 size={20} />
+                </span>
               </span>
-              <span className={`composer-icon-swap-icon ${copied ? "in" : "out"}`}>
-                <IconCheckCircle2 size={20} />
-              </span>
-            </span>
-          </button>
-          <button
-            className={`composer-toolbar-btn${!canUndo ? " disabled" : ""}`}
-            onClick={handleUndo}
-            disabled={!canUndo}
-            title="Undo"
-          >
-            <IconStepBack size={20} />
-          </button>
-          <button
-            className={`composer-toolbar-btn${!canRedo ? " disabled" : ""}`}
-            onClick={handleRedo}
-            disabled={!canRedo}
-            title="Redo"
-          >
-            <span className="composer-icon-flip">
+            </button>
+          </Tooltip>
+          <Tooltip content="Undo" shortcut="⌘Z" side="top">
+            <button
+              className={`composer-toolbar-btn${!canUndo ? " disabled" : ""}`}
+              onClick={handleUndo}
+              disabled={!canUndo}
+            >
               <IconStepBack size={20} />
-            </span>
-          </button>
-          <button
-            className={`composer-toolbar-btn${changeCount === 0 ? " disabled" : ""}`}
-            onClick={handleReset}
-            disabled={changeCount === 0}
-            title="Reset all changes"
-          >
-            <IconBroom size={20} />
-          </button>
-          <button
-            className="composer-toolbar-btn"
-            onClick={handleClose}
-            title="Close"
-          >
-            <IconCrossMedium size={20} />
-          </button>
+            </button>
+          </Tooltip>
+          <Tooltip content="Redo" shortcut="⌘⇧Z" side="top">
+            <button
+              className={`composer-toolbar-btn${!canRedo ? " disabled" : ""}`}
+              onClick={handleRedo}
+              disabled={!canRedo}
+            >
+              <span className="composer-icon-flip">
+                <IconStepBack size={20} />
+              </span>
+            </button>
+          </Tooltip>
+          <Tooltip content="Reset all" side="top">
+            <button
+              className={`composer-toolbar-btn${changeCount === 0 ? " disabled" : ""}`}
+              onClick={handleReset}
+              disabled={changeCount === 0}
+            >
+              <IconBroom size={20} />
+            </button>
+          </Tooltip>
+          <Tooltip content="Close" shortcut="Esc" side="top">
+            <button
+              className="composer-toolbar-btn"
+              onClick={handleClose}
+            >
+              <IconCrossMedium size={20} />
+            </button>
+          </Tooltip>
         </div>
       </div>
 
