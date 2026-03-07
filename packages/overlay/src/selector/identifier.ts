@@ -101,6 +101,35 @@ function isFrameworkInternal(name: string): boolean {
   return false;
 }
 
+/** Get source file location from React fiber _debugSource */
+export function getReactSource(element: Element): { fileName: string; lineNumber: number; columnNumber?: number } | null {
+  const fiber = getFiber(element);
+  if (!fiber) return null;
+
+  // Check the fiber itself first, then walk up
+  let current = fiber;
+  while (current) {
+    if (current._debugSource) {
+      return {
+        fileName: current._debugSource.fileName,
+        lineNumber: current._debugSource.lineNumber,
+        columnNumber: current._debugSource.columnNumber,
+      };
+    }
+    // Also check _debugOwner for source info
+    if (current._debugOwner?._debugSource) {
+      return {
+        fileName: current._debugOwner._debugSource.fileName,
+        lineNumber: current._debugOwner._debugSource.lineNumber,
+        columnNumber: current._debugOwner._debugSource.columnNumber,
+      };
+    }
+    current = current.return;
+  }
+
+  return null;
+}
+
 /** Get props from the nearest React component */
 export function getReactProps(element: Element): Record<string, unknown> | null {
   const fiber = getFiber(element);

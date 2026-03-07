@@ -149,7 +149,10 @@ export function DevOverlay(props: ComposerConfig = {}) {
           inspected.textContent,
           inspected.classes,
           inspected.reactComponents,
-          inspected.computedStyles
+          inspected.computedStyles,
+          inspected.sourceFile,
+          inspected.stylingApproach,
+          inspected.inlineStyles,
         );
       },
       onCancel: () => {

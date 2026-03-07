@@ -30,6 +30,12 @@ export interface InspectedElement {
   reactComponents: string[];
   /** React component props (from nearest component) */
   reactProps: Record<string, unknown> | null;
+  /** Source file location from React fiber */
+  sourceFile: { fileName: string; lineNumber: number; columnNumber?: number } | null;
+  /** Detected styling approach */
+  stylingApproach: string;
+  /** Inline style attribute (authored, not computed) */
+  inlineStyles: string | null;
 }
 
 export interface PropertyChange {
@@ -49,4 +55,10 @@ export interface ElementChange {
   changes: PropertyChange[];
   /** Timestamp */
   timestamp: number;
+  /** Source file location */
+  sourceFile?: { fileName: string; lineNumber: number; columnNumber?: number } | null;
+  /** Detected styling approach */
+  stylingApproach?: string;
+  /** Inline style attribute */
+  inlineStyles?: string | null;
 }

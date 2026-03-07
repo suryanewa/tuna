@@ -12,6 +12,9 @@ interface TrackedElement {
   reactComponents: string[];
   originalStyles: Record<string, string>;
   currentStyles: Record<string, string>;
+  sourceFile?: { fileName: string; lineNumber: number; columnNumber?: number } | null;
+  stylingApproach?: string;
+  inlineStyles?: string | null;
 }
 
 export class ChangeTracker {
@@ -26,7 +29,10 @@ export class ChangeTracker {
     textContent: string | null,
     classes: string[],
     reactComponents: string[],
-    currentStyles: Record<string, string>
+    currentStyles: Record<string, string>,
+    sourceFile?: { fileName: string; lineNumber: number; columnNumber?: number } | null,
+    stylingApproach?: string,
+    inlineStyles?: string | null,
   ) {
     if (!this.tracked.has(selector)) {
       this.tracked.set(selector, {
@@ -37,6 +43,9 @@ export class ChangeTracker {
         reactComponents,
         originalStyles: { ...currentStyles },
         currentStyles: { ...currentStyles },
+        sourceFile,
+        stylingApproach,
+        inlineStyles,
       });
     }
   }
@@ -114,6 +123,9 @@ export class ChangeTracker {
           reactComponents: tracked.reactComponents,
           changes: propertyChanges,
           timestamp: Date.now(),
+          sourceFile: tracked.sourceFile,
+          stylingApproach: tracked.stylingApproach,
+          inlineStyles: tracked.inlineStyles,
         });
       }
     }

@@ -3,8 +3,9 @@
  */
 
 import type { InspectedElement } from "../types";
-import { getSelector, getReactComponentHierarchy, getReactProps } from "../selector/identifier";
+import { getSelector, getReactComponentHierarchy, getReactProps, getReactSource } from "../selector/identifier";
 import { getRelevantStyles, detectLayoutMode } from "../inspector/styles";
+import { detectStylingApproach } from "../inspector/tokens";
 
 /** Inspect a DOM element and return all relevant metadata */
 export function inspectElement(element: Element): InspectedElement {
@@ -21,6 +22,9 @@ export function inspectElement(element: Element): InspectedElement {
     layoutMode: detectLayoutMode(element),
     reactComponents: getReactComponentHierarchy(element),
     reactProps: getReactProps(element),
+    sourceFile: getReactSource(element),
+    stylingApproach: detectStylingApproach(element),
+    inlineStyles: (element as HTMLElement).style?.cssText || null,
   };
 }
 
