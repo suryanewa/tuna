@@ -1,5 +1,5 @@
 {
-  "name": "composer",
+  "name": "retune",
   "private": true,
   "workspaces": [
     "packages/*"
