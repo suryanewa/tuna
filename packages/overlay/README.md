@@ -52,17 +52,14 @@ Controls appear based on the selected element:
 
 ## AI Integration (MCP Server)
 
-Retune includes an MCP server that connects to AI coding tools. Add it to your `.mcp.json`:
+Retune includes a built-in MCP server. Configure your AI tool to use it:
 
 ```json
 {
   "mcpServers": {
     "retune": {
-      "command": "node",
-      "args": ["./packages/mcp-server/dist/index.js"],
-      "env": {
-        "RETUNE_WS_PORT": "9223"
-      }
+      "command": "npx",
+      "args": ["-y", "retune"]
     }
   }
 }
@@ -100,10 +97,10 @@ Retune uses layered identification to help AI agents find elements in your code:
 
 ## Tech Stack
 
-React, TypeScript, npm workspaces. Packages:
+React, TypeScript. Single package with two entry points:
 
-- `retune` — Browser overlay (the main package)
-- `@retune/mcp-server` — MCP server for AI tool integration
+- `import { Retune } from "retune"` — React overlay component
+- `npx retune` — MCP server for AI tool integration
 
 ## Development
 

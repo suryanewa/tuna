@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "retune": {
-      "command": "node",
-      "args": ["./packages/mcp-server/dist/index.js"],
+      "command": "npx",
+      "args": ["-y", "retune"],
       "env": {
         "RETUNE_WS_PORT": "9223"
       }

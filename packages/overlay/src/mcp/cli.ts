@@ -1,8 +1,12 @@
 /**
- * Retune MCP Server entry point.
+ * Retune MCP Server CLI.
  *
  * Starts a WebSocket bridge for the browser overlay and
  * connects to the AI tool via stdio transport.
+ *
+ * Usage:
+ *   npx retune          — start the MCP server
+ *   npx retune setup    — auto-configure MCP for Claude Code
  */
 
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";

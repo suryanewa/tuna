@@ -1,6 +1,6 @@
 {
   "name": "retune",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -9,6 +9,9 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     }
+  },
+  "bin": {
+    "retune": "./dist/cli.js"
   },
   "files": [
     "dist"
@@ -23,12 +26,16 @@
     "react-dom": ">=18"
   },
   "dependencies": {
-    "@medv/finder": "^3.2.0"
+    "@medv/finder": "^3.2.0",
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "ws": "^8.18.0",
+    "zod": "^3.24.0"
   },
   "devDependencies": {
     "@central-icons-react/round-outlined-radius-2-stroke-1.5": "^1.1.153",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@types/ws": "^8.5.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tsup": "^8.0.0",
