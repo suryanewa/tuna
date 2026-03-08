@@ -317,6 +317,11 @@ export function PropertyPanel({
   const borderIsUniform = hasBorder &&
     new Set(borderSides.map((b) => `${b.width}|${b.style}`)).size === 1 &&
     new Set([s.borderTopColor, s.borderRightColor, s.borderBottomColor, s.borderLeftColor]).size === 1;
+  const borderColors = [s.borderTopColor, s.borderRightColor, s.borderBottomColor, s.borderLeftColor];
+  const activeBorderColor = borderSides.reduce<string | null>((found, side, i) => {
+    if (found) return found;
+    return (side.style !== "none" && parseFloat(side.width) > 0) ? borderColors[i] : null;
+  }, null) || s.borderTopColor;
   const [borderExpanded, setBorderExpanded] = useState(false);
 
   const handleAddBorder = useCallback(() => {
@@ -893,36 +898,58 @@ export function PropertyPanel({
           </Field>
         </Row>
         {visibleSizeExtras.has("min") && (
-          <Row>
-            <Field label="Min W">
-              <NumberInput prop="minWidth" value={s.minWidth === "0px" || s.minWidth === "auto" ? "" : s.minWidth} placeholder="–" onChange={(p, v) => {
-                if (!v) onPropertyChange(p, "0px");
-                else onPropertyChange(p, v);
-              }} />
-            </Field>
-            <Field label="Min H">
-              <NumberInput prop="minHeight" value={s.minHeight === "0px" || s.minHeight === "auto" ? "" : s.minHeight} placeholder="–" onChange={(p, v) => {
-                if (!v) onPropertyChange(p, "0px");
-                else onPropertyChange(p, v);
-              }} />
-            </Field>
-          </Row>
+          <div className="retune-section-row">
+            <div className="retune-row">
+              <Field label="Min W">
+                <NumberInput prop="minWidth" value={s.minWidth === "0px" || s.minWidth === "auto" ? "" : s.minWidth} placeholder="–" onChange={(p, v) => {
+                  if (!v) onPropertyChange(p, "0px");
+                  else onPropertyChange(p, v);
+                }} />
+              </Field>
+              <Field label="Min H">
+                <NumberInput prop="minHeight" value={s.minHeight === "0px" || s.minHeight === "auto" ? "" : s.minHeight} placeholder="–" onChange={(p, v) => {
+                  if (!v) onPropertyChange(p, "0px");
+                  else onPropertyChange(p, v);
+                }} />
+              </Field>
+              <Tooltip content="Remove min size" side="top">
+                <button className="retune-split-btn" onClick={() => {
+                  onPropertyChange("minWidth", "0px");
+                  onPropertyChange("minHeight", "0px");
+                  setSizeExtras((prev) => { const next = new Set(prev); next.delete("min"); return next; });
+                }}>
+                  <Minus />
+                </button>
+              </Tooltip>
+            </div>
+          </div>
         )}
         {visibleSizeExtras.has("max") && (
-          <Row>
-            <Field label="Max W">
-              <NumberInput prop="maxWidth" value={s.maxWidth === "none" ? "" : s.maxWidth} placeholder="–" onChange={(p, v) => {
-                if (!v) onPropertyChange(p, "none");
-                else onPropertyChange(p, v);
-              }} />
-            </Field>
-            <Field label="Max H">
-              <NumberInput prop="maxHeight" value={s.maxHeight === "none" ? "" : s.maxHeight} placeholder="–" onChange={(p, v) => {
-                if (!v) onPropertyChange(p, "none");
-                else onPropertyChange(p, v);
-              }} />
-            </Field>
-          </Row>
+          <div className="retune-section-row">
+            <div className="retune-row">
+              <Field label="Max W">
+                <NumberInput prop="maxWidth" value={s.maxWidth === "none" ? "" : s.maxWidth} placeholder="–" onChange={(p, v) => {
+                  if (!v) onPropertyChange(p, "none");
+                  else onPropertyChange(p, v);
+                }} />
+              </Field>
+              <Field label="Max H">
+                <NumberInput prop="maxHeight" value={s.maxHeight === "none" ? "" : s.maxHeight} placeholder="–" onChange={(p, v) => {
+                  if (!v) onPropertyChange(p, "none");
+                  else onPropertyChange(p, v);
+                }} />
+              </Field>
+              <Tooltip content="Remove max size" side="top">
+                <button className="retune-split-btn" onClick={() => {
+                  onPropertyChange("maxWidth", "none");
+                  onPropertyChange("maxHeight", "none");
+                  setSizeExtras((prev) => { const next = new Set(prev); next.delete("max"); return next; });
+                }}>
+                  <Minus />
+                </button>
+              </Tooltip>
+            </div>
+          </div>
         )}
       </Section>
 
@@ -1178,48 +1205,68 @@ export function PropertyPanel({
           <>
             <Row>
               <Field label="Color">
-                <ColorInput prop="borderColor" value={s.borderTopColor || s.borderRightColor || s.borderBottomColor || s.borderLeftColor} onChange={onPropertyChange} />
+                <ColorInput prop="borderColor" value={activeBorderColor} onChange={onPropertyChange} />
               </Field>
             </Row>
-            {borderExpanded ? (
-              <>
-                <Row>
-                  <Field label="Top">
-                    <NumberInput prop="borderTopWidth" value={s.borderTopWidth} onChange={onPropertyChange} min={0} />
-                  </Field>
-                  <Field label="Right">
-                    <NumberInput prop="borderRightWidth" value={s.borderRightWidth} onChange={onPropertyChange} min={0} />
-                  </Field>
-                </Row>
-                <Row>
-                  <Field label="Bottom">
-                    <NumberInput prop="borderBottomWidth" value={s.borderBottomWidth} onChange={onPropertyChange} min={0} />
-                  </Field>
-                  <Field label="Left">
-                    <NumberInput prop="borderLeftWidth" value={s.borderLeftWidth} onChange={onPropertyChange} min={0} />
-                  </Field>
-                </Row>
-              </>
-            ) : (
-              <Row>
-                <Field label="Width">
+            <RowGroup label={borderExpanded ? undefined : "Width"}>
+              {borderExpanded ? (
+                <>
+                  <div className="retune-row">
+                    <Field label="Top">
+                      <NumberInput prop="borderTopWidth" value={s.borderTopWidth} onChange={(p, v) => {
+                        onPropertyChange(p, v);
+                        if (parseFloat(v) > 0 && s.borderTopStyle === "none") onPropertyChange("borderTopStyle", "solid");
+                      }} min={0} />
+                    </Field>
+                    <Field label="Right">
+                      <NumberInput prop="borderRightWidth" value={s.borderRightWidth} onChange={(p, v) => {
+                        onPropertyChange(p, v);
+                        if (parseFloat(v) > 0 && s.borderRightStyle === "none") onPropertyChange("borderRightStyle", "solid");
+                      }} min={0} />
+                    </Field>
+                    <Tooltip content="Collapse to shorthand" side="top">
+                      <button className="retune-split-btn active" onClick={() => setBorderExpanded(false)}>
+                        <AlPaddingSides />
+                      </button>
+                    </Tooltip>
+                  </div>
+                  <div className="retune-row">
+                    <Field label="Bottom">
+                      <NumberInput prop="borderBottomWidth" value={s.borderBottomWidth} onChange={(p, v) => {
+                        onPropertyChange(p, v);
+                        if (parseFloat(v) > 0 && s.borderBottomStyle === "none") onPropertyChange("borderBottomStyle", "solid");
+                      }} min={0} />
+                    </Field>
+                    <Field label="Left">
+                      <NumberInput prop="borderLeftWidth" value={s.borderLeftWidth} onChange={(p, v) => {
+                        onPropertyChange(p, v);
+                        if (parseFloat(v) > 0 && s.borderLeftStyle === "none") onPropertyChange("borderLeftStyle", "solid");
+                      }} min={0} />
+                    </Field>
+                    <div style={{ width: 32 }} />
+                  </div>
+                </>
+              ) : (
+                <div className="retune-row">
                   <ShorthandInput
                     props={["borderTopWidth", "borderRightWidth", "borderBottomWidth", "borderLeftWidth"]}
                     values={[s.borderTopWidth, s.borderRightWidth, s.borderBottomWidth, s.borderLeftWidth]}
                     onChange={onPropertyChange}
                     min={0}
                   />
-                </Field>
-                <Field label="Style">
-                  <SelectInput prop="borderStyle" value={s.borderTopStyle !== "none" ? s.borderTopStyle : s.borderRightStyle !== "none" ? s.borderRightStyle : s.borderBottomStyle !== "none" ? s.borderBottomStyle : s.borderLeftStyle} options={["solid", "dashed", "dotted", "double", "groove", "ridge"]} onChange={onPropertyChange} />
-                </Field>
-                <Tooltip content="Edit individual sides" side="top">
-                  <button className="retune-split-btn" onClick={() => setBorderExpanded(true)}>
-                    <AlPaddingSides />
-                  </button>
-                </Tooltip>
-              </Row>
-            )}
+                  <Tooltip content="Edit individual sides" side="top">
+                    <button className="retune-split-btn" onClick={() => setBorderExpanded(true)}>
+                      <AlPaddingSides />
+                    </button>
+                  </Tooltip>
+                </div>
+              )}
+            </RowGroup>
+            <Row>
+              <Field label="Style">
+                <SelectInput prop="borderStyle" value={s.borderTopStyle !== "none" ? s.borderTopStyle : s.borderRightStyle !== "none" ? s.borderRightStyle : s.borderBottomStyle !== "none" ? s.borderBottomStyle : s.borderLeftStyle} options={["solid", "dashed", "dotted", "double", "groove", "ridge"]} onChange={onPropertyChange} />
+              </Field>
+            </Row>
           </>
         )}
       </Section>

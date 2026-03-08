@@ -821,7 +821,7 @@
 /* Row layout: flex with gap for side-by-side fields */
 .retune-row {
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   gap: 8px;
 }
 
@@ -1005,6 +1005,7 @@
   padding: 0 0 0 32px;
 }
 
+.retune-prop-input:first-child { padding-left: 12px; }
 .retune-prop-input::selection { background: #bfdbfe; }
 .retune-prop-input:focus { outline: none; }
 
