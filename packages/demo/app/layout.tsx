@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Retune } from "retune";
 
 export const metadata: Metadata = {
-  title: "Retune Demo",
+  title: "Retune — Visual devtools for AI-assisted development",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
