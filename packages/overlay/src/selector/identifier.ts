@@ -54,6 +54,58 @@ function buildFallbackSelector(el: Element): string {
   return parts.join(" > ");
 }
 
+/**
+ * Find the best shared (class-based) selector for an element.
+ * Returns the most specific class selector that matches >1 element,
+ * or null if no good shared selector exists.
+ */
+export function getSharedSelector(element: Element): { selector: string; count: number } | null {
+  const el = element as HTMLElement;
+  if (!el.classList || el.classList.length === 0) return null;
+
+  // Build candidate selectors from element's classes, most specific first
+  const tag = el.tagName.toLowerCase();
+  const classes = Array.from(el.classList).filter((name) => {
+    // Skip dynamic/hashed class names
+    if (name.startsWith("_") || name.startsWith("css-")) return false;
+    if (/^[a-z]{1,3}[A-Za-z0-9_-]{8,}$/.test(name)) return false;
+    return true;
+  });
+
+  if (classes.length === 0) return null;
+
+  // Try combinations: all classes together, then individual classes
+  const candidates: string[] = [];
+
+  // All classes combined (most specific)
+  if (classes.length > 1) {
+    candidates.push(classes.map((c) => `.${c}`).join(""));
+  }
+
+  // Individual classes
+  for (const c of classes) {
+    candidates.push(`.${c}`);
+  }
+
+  // Pick the first candidate that matches multiple elements
+  for (const selector of candidates) {
+    try {
+      const matches = document.querySelectorAll(selector);
+      if (matches.length > 1) {
+        return { selector, count: matches.length };
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  // If all classes only match this one element, return the most specific with count=1
+  const bestSelector = classes.length > 1
+    ? classes.map((c) => `.${c}`).join("")
+    : `.${classes[0]}`;
+  return { selector: bestSelector, count: 1 };
+}
+
 /** Get React fiber from a DOM element */
 function getFiber(element: Element): any | null {
   const key = Object.keys(element).find((k) => k.startsWith("__reactFiber$"));

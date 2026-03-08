@@ -19,7 +19,7 @@ import { ChangeTracker } from "../engine/change-tracker";
 import { formatChanges, collapseShorthands, type Fidelity } from "../engine/output";
 import { BridgeClient } from "../bridge/ws-client";
 import { inspectElement, matchesHotkey } from "../ui/helpers";
-import { getSelector } from "../selector/identifier";
+import { getSelector, getSharedSelector } from "../selector/identifier";
 import { PropertyPanel } from "./PropertyPanel";
 import { IconCursorClick } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconCursorClick";
 import { IconSquareBehindSquare1 } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconSquareBehindSquare1";
@@ -87,6 +87,11 @@ export function DevOverlay(props: ComposerConfig = {}) {
   const [changeRevision, setChangeRevision] = useState(0);
   const [portalTarget, setPortalTarget] = useState<HTMLDivElement | null>(null);
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Scope: "element" = this element only, "class" = all matching elements
+  type ChangeScope = "element" | "class";
+  const [scope, setScope] = useState<ChangeScope>("element");
+  const [sharedSelector, setSharedSelector] = useState<{ selector: string; count: number } | null>(null);
 
   const mountRef = useRef<ReturnType<typeof mountOverlay> | null>(null);
   const pickerRef = useRef<ReturnType<typeof createPicker> | null>(null);
@@ -170,6 +175,33 @@ export function DevOverlay(props: ComposerConfig = {}) {
           inspected.nearbySiblings,
           inspected.position,
         );
+
+        // Compute shared selector and set smart default scope
+        const shared = getSharedSelector(element);
+        setSharedSelector(shared);
+        setScope(shared && shared.count > 1 ? "class" : "element");
+
+        // Also track the shared selector so changes are recorded correctly
+        if (shared) {
+          tracker.track(
+            shared.selector,
+            inspected.tagName,
+            inspected.textContent,
+            inspected.classes,
+            inspected.reactComponents,
+            inspected.computedStyles,
+            inspected.sourceFile,
+            inspected.stylingApproach,
+            inspected.inlineStyles,
+            inspected.elementId,
+            inspected.accessibleName,
+            inspected.parentContext,
+            inspected.childSummary,
+            inspected.domPath,
+            inspected.nearbySiblings,
+            inspected.position,
+          );
+        }
       },
       onCancel: () => {
         deactivateOverlay();
@@ -248,12 +280,15 @@ export function DevOverlay(props: ComposerConfig = {}) {
 
   const handlePropertyChange = useCallback((property: string, value: string) => {
     if (!selectedElement || !previewRef.current || !trackerRef.current) return;
-    previewRef.current.applyChange(selectedElement.selector, property, value);
-    trackerRef.current.recordChange(selectedElement.selector, property, value);
+    const selector = scope === "class" && sharedSelector
+      ? sharedSelector.selector
+      : selectedElement.selector;
+    previewRef.current.applyChange(selector, property, value);
+    trackerRef.current.recordChange(selector, property, value);
     syncTrackerState();
     refreshSelectedElement();
     setChangeRevision((r) => r + 1);
-  }, [selectedElement, syncTrackerState, refreshSelectedElement]);
+  }, [selectedElement, scope, sharedSelector, syncTrackerState, refreshSelectedElement]);
 
   const handleApplyToElement = useCallback((el: Element, property: string, value: string) => {
     const preview = previewRef.current;
@@ -421,6 +456,9 @@ export function DevOverlay(props: ComposerConfig = {}) {
             onPropertyChange={handlePropertyChange}
             onPropertyHover={setHoveredBoxModel}
             onApplyToElement={handleApplyToElement}
+            scope={scope}
+            onScopeChange={setScope}
+            sharedSelector={sharedSelector}
           />
         )}
       </AnimatedPanel>

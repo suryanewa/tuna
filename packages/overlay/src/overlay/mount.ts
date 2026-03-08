@@ -323,6 +323,59 @@ const OVERLAY_STYLES = `
     white-space: nowrap;
   }
 
+  /* ── Scope toggle ── */
+  .composer-scope-toggle {
+    display: flex;
+    gap: 1px;
+    padding: 0 8px 8px;
+    background: #fff;
+    position: sticky;
+    top: 41px;
+    z-index: 10;
+  }
+
+  .composer-scope-btn {
+    flex: 1;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    border: none;
+    background: #f5f5f4;
+    font-size: 11px;
+    font-weight: 450;
+    letter-spacing: -0.055px;
+    font-family: inherit;
+    color: #78716c;
+    cursor: pointer;
+    padding: 0 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: background-color 0.15s ease, color 0.12s ease;
+  }
+
+  .composer-scope-btn:first-child { border-radius: 6px 0 0 6px; }
+  .composer-scope-btn:last-child { border-radius: 0 6px 6px 0; }
+
+  .composer-scope-btn:hover { background: #e7e5e4; }
+
+  .composer-scope-btn.active {
+    background: #1c1917;
+    color: #fff;
+  }
+
+  .composer-scope-count {
+    font-size: 10px;
+    font-weight: 500;
+    background: rgba(255, 255, 255, 0.2);
+    color: inherit;
+    padding: 0 5px;
+    border-radius: 10px;
+    line-height: 16px;
+  }
+
   /* ── Section structure (matches portfolio editor) ── */
   .composer-section {
     border-bottom: 1px solid #e7e5e4;

@@ -136,18 +136,26 @@ const LIST_STYLE_OPTIONS: SegmentedOption[] = [
   { value: "decimal", icon: <NumberList />, label: "Numbered" },
 ];
 
+type ChangeScope = "element" | "class";
+
 export function PropertyPanel({
   element,
   position,
   onPropertyChange,
   onPropertyHover,
   onApplyToElement,
+  scope = "element",
+  onScopeChange,
+  sharedSelector,
 }: {
   element: InspectedElement;
   position: "left" | "right";
   onPropertyChange: (property: string, value: string) => void;
   onPropertyHover?: (property: BoxModelProperty) => void;
   onApplyToElement?: (element: Element, property: string, value: string) => void;
+  scope?: ChangeScope;
+  onScopeChange?: (scope: ChangeScope) => void;
+  sharedSelector?: { selector: string; count: number } | null;
 }) {
   const s = element.computedStyles;
   const TEXT_TAGS = ["P", "H1", "H2", "H3", "H4", "H5", "H6", "SPAN", "A", "BUTTON", "LABEL", "LI", "TD", "TH", "FIGCAPTION", "BLOCKQUOTE", "CITE", "EM", "STRONG", "SMALL"];
@@ -462,6 +470,28 @@ export function PropertyPanel({
           <div className="composer-el-component">{element.reactComponents.join(" \u203A ")}</div>
         )}
       </div>
+
+      {/* Scope toggle */}
+      {sharedSelector && onScopeChange && (
+        <div className="composer-scope-toggle">
+          <button
+            className={`composer-scope-btn${scope === "element" ? " active" : ""}`}
+            onClick={() => onScopeChange("element")}
+          >
+            This element
+          </button>
+          <button
+            className={`composer-scope-btn${scope === "class" ? " active" : ""}`}
+            onClick={() => onScopeChange("class")}
+            title={`${sharedSelector.selector} — ${sharedSelector.count} element${sharedSelector.count !== 1 ? "s" : ""}`}
+          >
+            All {sharedSelector.selector}
+            {sharedSelector.count > 1 && (
+              <span className="composer-scope-count">{sharedSelector.count}</span>
+            )}
+          </button>
+        </div>
+      )}
 
       {/* Position */}
       <Section label="Position">
