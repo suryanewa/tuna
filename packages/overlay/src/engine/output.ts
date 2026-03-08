@@ -134,8 +134,11 @@ function formatSingleChange(change: ElementChange, fidelity: Fidelity, tokenMap:
     lines.push(`**Inline styles:** \`${change.inlineStyles}\``);
   }
 
+  // Collapse longhand groups into shorthands where possible
+  const collapsed = collapseShorthands(change.changes);
+
   // Resolve style sources from the live DOM
-  const sourceMap = resolveStyleSources(change.selector, change.changes.map(c => c.property));
+  const sourceMap = resolveStyleSources(change.selector, collapsed.map(c => c.property));
 
   // Changes table
   lines.push("");
@@ -144,7 +147,7 @@ function formatSingleChange(change: ElementChange, fidelity: Fidelity, tokenMap:
   lines.push("| Property | Before | After | Source | Token |");
   lines.push("|----------|--------|-------|--------|-------|");
 
-  for (const prop of change.changes) {
+  for (const prop of collapsed) {
     const kebab = camelToKebab(prop.property);
     const tokenHint = getTokenHint(prop.to, tokenMap);
     const source = sourceMap.get(prop.property);
@@ -273,6 +276,54 @@ function suggestTailwindClass(property: string, value: string): string | null {
     default:
       return null;
   }
+}
+
+/** Shorthand groups: when all longhands share the same "to" value, collapse into one shorthand */
+const SHORTHAND_GROUPS: Array<{ shorthand: string; longhands: string[] }> = [
+  {
+    shorthand: "borderRadius",
+    longhands: ["borderTopLeftRadius", "borderTopRightRadius", "borderBottomLeftRadius", "borderBottomRightRadius"],
+  },
+  {
+    shorthand: "padding",
+    longhands: ["paddingTop", "paddingRight", "paddingBottom", "paddingLeft"],
+  },
+  {
+    shorthand: "margin",
+    longhands: ["marginTop", "marginRight", "marginBottom", "marginLeft"],
+  },
+  {
+    shorthand: "borderWidth",
+    longhands: ["borderTopWidth", "borderRightWidth", "borderBottomWidth", "borderLeftWidth"],
+  },
+  {
+    shorthand: "borderColor",
+    longhands: ["borderTopColor", "borderRightColor", "borderBottomColor", "borderLeftColor"],
+  },
+  {
+    shorthand: "borderStyle",
+    longhands: ["borderTopStyle", "borderRightStyle", "borderBottomStyle", "borderLeftStyle"],
+  },
+];
+
+export function collapseShorthands(changes: import("../types").PropertyChange[]): import("../types").PropertyChange[] {
+  const result = [...changes];
+  for (const group of SHORTHAND_GROUPS) {
+    const matches = group.longhands.map((lh) => result.find((c) => c.property === lh));
+    if (matches.every((m) => m != null)) {
+      const allSameTo = new Set(matches.map((m) => m!.to)).size === 1;
+      const allSameFrom = new Set(matches.map((m) => m!.from)).size === 1;
+      if (allSameTo && allSameFrom) {
+        // Remove longhands, add shorthand
+        for (const lh of group.longhands) {
+          const idx = result.findIndex((c) => c.property === lh);
+          if (idx !== -1) result.splice(idx, 1);
+        }
+        result.push({ property: group.shorthand, from: matches[0]!.from, to: matches[0]!.to });
+      }
+    }
+  }
+  return result;
 }
 
 function truncate(str: string, len: number): string {

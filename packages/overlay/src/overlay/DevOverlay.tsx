@@ -16,7 +16,7 @@ import { mountOverlay, unmountOverlay } from "./mount";
 import { createPicker } from "../selector/picker";
 import { LivePreviewEngine } from "../engine/live-preview";
 import { ChangeTracker } from "../engine/change-tracker";
-import { formatChanges, type Fidelity } from "../engine/output";
+import { formatChanges, collapseShorthands, type Fidelity } from "../engine/output";
 import { BridgeClient } from "../bridge/ws-client";
 import { inspectElement, matchesHotkey } from "../ui/helpers";
 import { getSelector } from "../selector/identifier";
@@ -142,7 +142,7 @@ export function DevOverlay(props: ComposerConfig = {}) {
           preview.applyChange(change.selector, c.property, c.to);
         }
       }
-      setChangeCount(tracker.getPendingChanges().reduce((s, c) => s + c.changes.length, 0));
+      setChangeCount(tracker.getPendingChanges().reduce((s, c) => s + collapseShorthands(c.changes).length, 0));
       setCanUndo(tracker.canUndo);
       setCanRedo(tracker.canRedo);
     }
@@ -233,7 +233,7 @@ export function DevOverlay(props: ComposerConfig = {}) {
   const syncTrackerState = useCallback(() => {
     const tracker = trackerRef.current;
     if (!tracker) return;
-    setChangeCount(tracker.getPendingChanges().reduce((s, c) => s + c.changes.length, 0));
+    setChangeCount(tracker.getPendingChanges().reduce((s, c) => s + collapseShorthands(c.changes).length, 0));
     setCanUndo(tracker.canUndo);
     setCanRedo(tracker.canRedo);
     tracker.persist();
@@ -313,6 +313,26 @@ export function DevOverlay(props: ComposerConfig = {}) {
   const handleClose = useCallback(() => {
     deactivateOverlay();
   }, [deactivateOverlay]);
+
+  // Expose global API for external agents (MCP, Claude Code, Cursor, etc.)
+  useEffect(() => {
+    const api = {
+      getChanges: () => trackerRef.current?.getPendingChanges() ?? [],
+      getFormattedChanges: (f?: Fidelity) =>
+        formatChanges(trackerRef.current?.getPendingChanges() ?? [], f ?? fidelity),
+      clearChanges: () => {
+        const tracker = trackerRef.current;
+        const preview = previewRef.current;
+        if (!tracker || !preview) return;
+        preview.clearAll();
+        tracker.clear();
+        syncTrackerState();
+        refreshSelectedElement();
+      },
+    };
+    (window as any).__composer = api;
+    return () => { delete (window as any).__composer; };
+  }, [fidelity, syncTrackerState, refreshSelectedElement]);
 
   if (!portalTarget) return null;
 
