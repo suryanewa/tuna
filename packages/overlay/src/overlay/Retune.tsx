@@ -21,6 +21,7 @@ import { BridgeClient } from "../bridge/ws-client";
 import { inspectElement, matchesHotkey } from "../ui/helpers";
 import { getSelector, getSharedSelector } from "../selector/identifier";
 import { PropertyPanel } from "./PropertyPanel";
+import { ElementTree } from "./ElementTree";
 import { IconCursorClick } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconCursorClick";
 import { IconSquareBehindSquare1 } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconSquareBehindSquare1";
 import { IconStepBack } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconStepBack";
@@ -97,6 +98,11 @@ function RetuneInner(props: RetuneConfig) {
   const [changeRevision, setChangeRevision] = useState(0);
   const [portalTarget, setPortalTarget] = useState<HTMLDivElement | null>(null);
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [panelTab, setPanelTab] = useState<"elements" | "design">("design");
+  const [side, setSide] = useState<"right" | "left">(config.position.includes("right") ? "right" : "left");
+  const tabBarRef = useRef<HTMLDivElement>(null);
+  const tabPillRef = useRef<HTMLDivElement>(null);
+  const tabPillFirstRender = useRef(true);
 
   // Scope: "element" = this element only, "class" = all matching elements
   type ChangeScope = "element" | "class";
@@ -301,6 +307,56 @@ function RetuneInner(props: RetuneConfig) {
     }
   }, []);
 
+  // Tree: select element programmatically via picker
+  const handleTreeSelect = useCallback((el: Element) => {
+    const picker = pickerRef.current;
+    if (picker) {
+      picker.selectElement(el);
+    }
+    // Switch to design tab after selecting
+    setPanelTab("design");
+  }, []);
+
+  // Tree: hover highlight via picker
+  const handleTreeHover = useCallback((el: Element | null) => {
+    const picker = pickerRef.current;
+    if (picker) {
+      picker.highlightElement(el);
+    }
+  }, []);
+
+  // Tab pill animation
+  useEffect(() => {
+    const bar = tabBarRef.current;
+    const pill = tabPillRef.current;
+    if (!bar || !pill) return;
+
+    const buttons = bar.querySelectorAll<HTMLButtonElement>(".retune-tab");
+    const idx = panelTab === "elements" ? 0 : 1;
+    const btn = buttons[idx];
+    if (!btn) return;
+
+    const barRect = bar.getBoundingClientRect();
+    const btnRect = btn.getBoundingClientRect();
+    const offsetX = btnRect.left - barRect.left;
+
+    pill.style.width = `${btnRect.width}px`;
+    if (tabPillFirstRender.current) {
+      pill.style.transition = "none";
+      pill.style.transform = `translateX(${offsetX}px)`;
+      pill.offsetHeight; // force reflow
+      pill.style.transition = "";
+      tabPillFirstRender.current = false;
+    } else {
+      pill.style.transform = `translateX(${offsetX}px)`;
+    }
+  }, [panelTab, selectedElement]);
+
+  // Toggle toolbar + panel side
+  const handleToggleSide = useCallback(() => {
+    setSide((s) => s === "right" ? "left" : "right");
+  }, []);
+
   const handleUndo = useCallback(() => {
     const tracker = trackerRef.current;
     const preview = previewRef.current;
@@ -418,7 +474,7 @@ function RetuneInner(props: RetuneConfig) {
   return createPortal(
     <TooltipPortalContext.Provider value={portalTarget}>
       {/* Floating toolbar */}
-      <div className={`retune-toolbar ${config.position.replace("-", " ")} ${active ? "expanded" : "collapsed"}`}>
+      <div className={`retune-toolbar bottom ${side} ${active ? "expanded" : "collapsed"}`}>
         {/* Collapsed: single activate button */}
         <Tooltip content="Toggle edit mode" shortcut={config.hotkey} side="top">
           <button
@@ -480,6 +536,17 @@ function RetuneInner(props: RetuneConfig) {
               <IconBroom size={20} />
             </button>
           </Tooltip>
+          <Tooltip content={`Move to ${side === "right" ? "left" : "right"}`} side="top">
+            <button
+              className="retune-toolbar-btn"
+              onClick={handleToggleSide}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="3" />
+                <line x1={side === "right" ? "9" : "15"} y1="3" x2={side === "right" ? "9" : "15"} y2="21" />
+              </svg>
+            </button>
+          </Tooltip>
           <Tooltip content="Close" shortcut="Esc" side="top">
             <button
               className="retune-toolbar-btn"
@@ -491,20 +558,36 @@ function RetuneInner(props: RetuneConfig) {
         </div>
       </div>
 
-      {/* Property panel */}
+      {/* Panel with tabs */}
       <AnimatedPanel visible={!!(active && selectedElement)}>
-        {selectedElement && (
-          <PropertyPanel
-            element={selectedElement}
-            position={config.position.includes("right") ? "right" : "left"}
-            onPropertyChange={handlePropertyChange}
-            onPropertyHover={setHoveredBoxModel}
-            onApplyToElement={handleApplyToElement}
-            scope={scope}
-            onScopeChange={handleScopeChange}
-            sharedSelector={sharedSelector}
-          />
-        )}
+        <div className={`retune-panel ${side}`}>
+          <div className="retune-tab-bar" ref={tabBarRef}>
+            <div className="retune-tab-pill" ref={tabPillRef} />
+            <button className={`retune-tab${panelTab === "elements" ? " active" : ""}`} onClick={() => setPanelTab("elements")}>Elements</button>
+            <button className={`retune-tab${panelTab === "design" ? " active" : ""}`} onClick={() => setPanelTab("design")}>Design</button>
+          </div>
+          <div className="retune-panel-body">
+            {panelTab === "elements" && (
+              <ElementTree
+                selectedElement={selectedElement?.element ?? null}
+                onSelect={handleTreeSelect}
+                onHover={handleTreeHover}
+              />
+            )}
+            {panelTab === "design" && selectedElement && (
+              <PropertyPanel
+                element={selectedElement}
+                position={side}
+                onPropertyChange={handlePropertyChange}
+                onPropertyHover={setHoveredBoxModel}
+                onApplyToElement={handleApplyToElement}
+                scope={scope}
+                onScopeChange={handleScopeChange}
+                sharedSelector={sharedSelector}
+              />
+            )}
+          </div>
+        </div>
       </AnimatedPanel>
 
       {/* Box model visualization overlay */}

@@ -307,7 +307,17 @@ export function PropertyPanel({
   }, [onPropertyChange]);
 
   // ── Border (null-or-active) ──
-  const hasBorder = s.borderTopStyle !== "none" && parseFloat(s.borderTopWidth) > 0;
+  const borderSides = [
+    { width: s.borderTopWidth, style: s.borderTopStyle },
+    { width: s.borderRightWidth, style: s.borderRightStyle },
+    { width: s.borderBottomWidth, style: s.borderBottomStyle },
+    { width: s.borderLeftWidth, style: s.borderLeftStyle },
+  ];
+  const hasBorder = borderSides.some((side) => side.style !== "none" && parseFloat(side.width) > 0);
+  const borderIsUniform = hasBorder &&
+    new Set(borderSides.map((b) => `${b.width}|${b.style}`)).size === 1 &&
+    new Set([s.borderTopColor, s.borderRightColor, s.borderBottomColor, s.borderLeftColor]).size === 1;
+  const [borderExpanded, setBorderExpanded] = useState(false);
 
   const handleAddBorder = useCallback(() => {
     onPropertyChange("borderWidth", "1px");
@@ -316,8 +326,14 @@ export function PropertyPanel({
   }, [onPropertyChange]);
 
   const handleRemoveBorder = useCallback(() => {
-    onPropertyChange("borderWidth", "0px");
-    onPropertyChange("borderStyle", "none");
+    onPropertyChange("borderTopWidth", "0px");
+    onPropertyChange("borderRightWidth", "0px");
+    onPropertyChange("borderBottomWidth", "0px");
+    onPropertyChange("borderLeftWidth", "0px");
+    onPropertyChange("borderTopStyle", "none");
+    onPropertyChange("borderRightStyle", "none");
+    onPropertyChange("borderBottomStyle", "none");
+    onPropertyChange("borderLeftStyle", "none");
   }, [onPropertyChange]);
 
   const handleFillModeChange = useCallback((prop: string, value: string) => {
@@ -462,7 +478,7 @@ export function PropertyPanel({
   }, [onPropertyChange, applyTransform]);
 
   return (
-    <div className={`retune-panel ${position}`}>
+    <>
       {/* Header */}
       <div className="retune-panel-header">
         <div className="retune-el-tag">{element.tagName.toLowerCase()}</div>
@@ -808,19 +824,34 @@ export function PropertyPanel({
               >
                 <DropdownMenu
                   options={[
-                    { value: "min", label: "Min size" },
-                    { value: "max", label: "Max size" },
+                    { value: "min", label: visibleSizeExtras.has("min") ? "Remove min size" : "Add min size" },
+                    { value: "max", label: visibleSizeExtras.has("max") ? "Remove max size" : "Add max size" },
                   ]}
                   value={undefined}
                   showCheckmark={false}
                   onSelect={(option) => {
                     const key = option.value as SizeExtra;
-                    setSizeExtras((prev) => {
-                      const next = new Set(prev);
-                      if (next.has(key)) next.delete(key);
-                      else next.add(key);
-                      return next;
-                    });
+                    if (visibleSizeExtras.has(key)) {
+                      // Remove: reset values to defaults and hide
+                      if (key === "min") {
+                        onPropertyChange("minWidth", "0px");
+                        onPropertyChange("minHeight", "0px");
+                      } else {
+                        onPropertyChange("maxWidth", "none");
+                        onPropertyChange("maxHeight", "none");
+                      }
+                      setSizeExtras((prev) => {
+                        const next = new Set(prev);
+                        next.delete(key);
+                        return next;
+                      });
+                    } else {
+                      setSizeExtras((prev) => {
+                        const next = new Set(prev);
+                        next.add(key);
+                        return next;
+                      });
+                    }
                     setSizeMenuOpen(false);
                   }}
                 />
@@ -1147,17 +1178,48 @@ export function PropertyPanel({
           <>
             <Row>
               <Field label="Color">
-                <ColorInput prop="borderColor" value={s.borderTopColor} onChange={onPropertyChange} />
+                <ColorInput prop="borderColor" value={s.borderTopColor || s.borderRightColor || s.borderBottomColor || s.borderLeftColor} onChange={onPropertyChange} />
               </Field>
             </Row>
-            <Row>
-              <Field label="Width">
-                <NumberInput prop="borderWidth" value={s.borderTopWidth} onChange={onPropertyChange} min={0} />
-              </Field>
-              <Field label="Style">
-                <SelectInput prop="borderStyle" value={s.borderTopStyle} options={["solid", "dashed", "dotted", "double", "groove", "ridge"]} onChange={onPropertyChange} />
-              </Field>
-            </Row>
+            {borderExpanded ? (
+              <>
+                <Row>
+                  <Field label="Top">
+                    <NumberInput prop="borderTopWidth" value={s.borderTopWidth} onChange={onPropertyChange} min={0} />
+                  </Field>
+                  <Field label="Right">
+                    <NumberInput prop="borderRightWidth" value={s.borderRightWidth} onChange={onPropertyChange} min={0} />
+                  </Field>
+                </Row>
+                <Row>
+                  <Field label="Bottom">
+                    <NumberInput prop="borderBottomWidth" value={s.borderBottomWidth} onChange={onPropertyChange} min={0} />
+                  </Field>
+                  <Field label="Left">
+                    <NumberInput prop="borderLeftWidth" value={s.borderLeftWidth} onChange={onPropertyChange} min={0} />
+                  </Field>
+                </Row>
+              </>
+            ) : (
+              <Row>
+                <Field label="Width">
+                  <ShorthandInput
+                    props={["borderTopWidth", "borderRightWidth", "borderBottomWidth", "borderLeftWidth"]}
+                    values={[s.borderTopWidth, s.borderRightWidth, s.borderBottomWidth, s.borderLeftWidth]}
+                    onChange={onPropertyChange}
+                    min={0}
+                  />
+                </Field>
+                <Field label="Style">
+                  <SelectInput prop="borderStyle" value={s.borderTopStyle !== "none" ? s.borderTopStyle : s.borderRightStyle !== "none" ? s.borderRightStyle : s.borderBottomStyle !== "none" ? s.borderBottomStyle : s.borderLeftStyle} options={["solid", "dashed", "dotted", "double", "groove", "ridge"]} onChange={onPropertyChange} />
+                </Field>
+                <Tooltip content="Edit individual sides" side="top">
+                  <button className="retune-split-btn" onClick={() => setBorderExpanded(true)}>
+                    <AlPaddingSides />
+                  </button>
+                </Tooltip>
+              </Row>
+            )}
           </>
         )}
       </Section>
@@ -1354,6 +1416,6 @@ export function PropertyPanel({
         })()}
       </Section>
       <div ref={filterSectionRef} />
-    </div>
+    </>
   );
 }

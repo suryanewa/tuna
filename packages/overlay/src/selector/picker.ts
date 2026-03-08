@@ -314,5 +314,28 @@ export function createPicker(
     selectionLabel.remove();
   }
 
-  return { activate, deactivate, destroy, hideHighlight, clearSelection };
+  /** Programmatically select an element (e.g. from the element tree) */
+  function selectElement(el: Element) {
+    selectedElement = el;
+    selectionLabelHidden = false;
+    if (resizeObserver) {
+      resizeObserver.disconnect();
+      resizeObserver.observe(el);
+    }
+    showSelection();
+    hideHighlight();
+    hoveredElement = null;
+    callbacks.onSelect(el);
+  }
+
+  /** Programmatically show hover highlight on an element */
+  function highlightElement(el: Element | null) {
+    if (el) {
+      updateHighlight(el);
+    } else {
+      hideHighlight();
+    }
+  }
+
+  return { activate, deactivate, destroy, hideHighlight, clearSelection, selectElement, highlightElement };
 }

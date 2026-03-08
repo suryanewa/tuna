@@ -231,11 +231,21 @@
   border-radius: 16px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
   width: 280px;
-  max-height: calc(100vh - 84px);
-  overflow-y: auto;
-  overflow-x: hidden;
+  height: calc(100vh - 84px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   overscroll-behavior: none;
 }
+
+.retune-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+
+.retune-panel-body::-webkit-scrollbar { display: none; }
 
 .retune-panel-anim {
   display: contents;
@@ -274,18 +284,12 @@
 .retune-panel.right { right: 16px; top: 16px; }
 .retune-panel.left { left: 16px; top: 16px; }
 
-/* Hide scrollbar */
-.retune-panel { scrollbar-width: none; }
-.retune-panel::-webkit-scrollbar { display: none; }
+/* Hide scrollbar (now on .retune-panel-body) */
 
 /* Panel header */
 .retune-panel-header {
-  position: sticky;
-  top: 0;
-  background: #fff;
   padding: 12px 16px;
   border-bottom: 1px solid #e7e5e4;
-  z-index: 10;
 }
 
 .retune-el-tag {
@@ -365,6 +369,125 @@
   line-height: 14px;
 }
 
+
+/* ── Tab bar ── */
+
+.retune-tab-bar {
+  display: flex;
+  position: relative;
+  padding: 8px;
+  gap: 4px;
+  flex-shrink: 0;
+  border-bottom: 1px solid #e7e5e4;
+}
+
+.retune-tab-pill {
+  position: absolute;
+  top: 8px;
+  left: 0;
+  height: calc(100% - 16px);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s cubic-bezier(0.23, 1, 0.32, 1), width 0.2s cubic-bezier(0.23, 1, 0.32, 1);
+  pointer-events: none;
+}
+
+.retune-tab {
+  width: auto;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: #a8a29e;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+  transition: color 0.15s;
+  text-align: center;
+}
+
+.retune-tab:hover {
+  color: #78716c;
+}
+
+.retune-tab.active {
+  color: #1c1917;
+}
+
+/* ── Element tree ── */
+
+.retune-tree {
+  padding: 4px 0;
+}
+
+.retune-tree-node {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-right: 12px;
+  cursor: pointer;
+  transition: background 0.1s;
+  user-select: none;
+}
+
+.retune-tree-node:hover {
+  background: #f5f5f4;
+}
+
+.retune-tree-node.selected {
+  background: #eff6ff;
+}
+
+.retune-tree-arrow {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #a8a29e;
+  transform: rotate(-90deg);
+  transition: transform 0.12s ease;
+}
+
+.retune-tree-arrow.expanded {
+  transform: rotate(0deg);
+}
+
+.retune-tree-arrow.empty {
+  visibility: hidden;
+}
+
+.retune-tree-tag {
+  font-size: 12px;
+  font-weight: 500;
+  color: #1c1917;
+  white-space: nowrap;
+}
+
+.retune-tree-qualifier {
+  font-size: 11px;
+  font-weight: 400;
+  color: #78716c;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100px;
+}
+
+.retune-tree-component {
+  font-size: 10px;
+  font-weight: 500;
+  color: #3b82f6;
+  white-space: nowrap;
+  margin-left: auto;
+  flex-shrink: 0;
+}
 
 /* ── Section structure (matches portfolio editor) ── */
 .retune-section {
