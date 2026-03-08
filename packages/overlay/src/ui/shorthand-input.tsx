@@ -9,12 +9,32 @@
 import { useState, useRef, type ReactNode } from "react";
 import { roundCssValue, inferCssUnit } from "./round-css-value";
 
+function clampNum(val: number, min?: number, max?: number): number {
+  if (min !== undefined && val < min) return min;
+  if (max !== undefined && val > max) return max;
+  return val;
+}
+
+function clampCssValue(val: string, min?: number, max?: number): string {
+  if (min === undefined && max === undefined) return val;
+  const num = parseFloat(val);
+  if (isNaN(num)) return val;
+  const clamped = clampNum(num, min, max);
+  if (clamped === num) return val;
+  const unit = val.match(/[a-z%]+$/i)?.[0] || "";
+  return `${clamped}${unit}`;
+}
+
 export interface ShorthandInputProps {
   label?: ReactNode;
   props: string[];
   values: string[];
   onChange: (prop: string, value: string) => void;
   placeholder?: string;
+  /** Minimum numeric value (clamps scrub, arrow keys, and committed input) */
+  min?: number;
+  /** Maximum numeric value */
+  max?: number;
 }
 
 function computeDisplay(values: string[]): string {
@@ -23,7 +43,7 @@ function computeDisplay(values: string[]): string {
   return rounded.join(", ");
 }
 
-export function ShorthandInput({ label, props, values, onChange, placeholder }: ShorthandInputProps) {
+export function ShorthandInput({ label, props, values, onChange, placeholder, min, max }: ShorthandInputProps) {
   const [localValue, setLocalValue] = useState(() => computeDisplay(values));
   const [prevValues, setPrevValues] = useState(values);
 
@@ -47,7 +67,7 @@ export function ShorthandInput({ label, props, values, onChange, placeholder }: 
     if (!scrubRef.current.active) return;
     const delta = Math.round(e.clientX - scrubRef.current.startX);
     const unit = values[0]?.match(/[a-z%]+$/i)?.[0] || "px";
-    const newVals = scrubRef.current.startVals.map((v) => `${v + delta}${unit}`);
+    const newVals = scrubRef.current.startVals.map((v) => `${clampNum(v + delta, min, max)}${unit}`);
     setLocalValue(computeDisplay(newVals));
     props.forEach((prop, i) => onChange(prop, newVals[i]));
   };
@@ -66,13 +86,13 @@ export function ShorthandInput({ label, props, values, onChange, placeholder }: 
       : trimmed.split(/\s+/);
 
     if (parts.length === 1) {
-      const resolved = inferCssUnit(parts[0], values[0] || "", props[0]);
+      const resolved = clampCssValue(inferCssUnit(parts[0], values[0] || "", props[0]), min, max);
       props.forEach((prop) => onChange(prop, resolved));
       setLocalValue(roundCssValue(resolved));
     } else {
       // Map parts to props (cycle if fewer parts than props)
       const resolved = props.map((prop, i) =>
-        inferCssUnit(parts[i % parts.length], values[i] || "", prop)
+        clampCssValue(inferCssUnit(parts[i % parts.length], values[i] || "", prop), min, max)
       );
       props.forEach((prop, i) => onChange(prop, resolved[i]));
       setLocalValue(computeDisplay(resolved));
@@ -92,7 +112,7 @@ export function ShorthandInput({ label, props, values, onChange, placeholder }: 
         const num = parseFloat(v);
         const base = isNaN(num) ? 0 : num;
         const unit = isNaN(num) ? "px" : (v.match(/[a-z%]+$/i)?.[0] || "px");
-        return `${base + delta}${unit}`;
+        return `${clampNum(base + delta, min, max)}${unit}`;
       });
       setLocalValue(computeDisplay(newVals));
       props.forEach((prop, i) => onChange(prop, newVals[i]));

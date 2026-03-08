@@ -14,7 +14,9 @@ import { useMemo } from "react";
 
 export type BoxModelProperty =
   | "paddingTop" | "paddingRight" | "paddingBottom" | "paddingLeft"
+  | "paddingBlock" | "paddingInline"
   | "marginTop" | "marginRight" | "marginBottom" | "marginLeft"
+  | "marginBlock" | "marginInline"
   | "gap" | "columnGap" | "rowGap"
   | null;
 
@@ -102,10 +104,15 @@ function computeGapRects(element: Element, computed: CSSStyleDeclaration): Rect[
     for (let i = 0; i < children.length - 1; i++) {
       const curr = children[i].getBoundingClientRect();
       const next = children[i + 1].getBoundingClientRect();
+      const currCS = getComputedStyle(children[i]);
+      const nextCS = getComputedStyle(children[i + 1]);
 
       if (isVertical) {
-        const gapTop = curr.bottom;
-        const gapBottom = next.top;
+        // Subtract margins to isolate the actual gap
+        const currMarginBottom = parseFloat(currCS.marginBottom) || 0;
+        const nextMarginTop = parseFloat(nextCS.marginTop) || 0;
+        const gapTop = curr.bottom + currMarginBottom;
+        const gapBottom = next.top - nextMarginTop;
         if (gapBottom > gapTop + 0.5) {
           newRects.push({
             top: gapTop,
@@ -115,8 +122,10 @@ function computeGapRects(element: Element, computed: CSSStyleDeclaration): Rect[
           });
         }
       } else {
-        const gapLeft = curr.right;
-        const gapRight = next.left;
+        const currMarginRight = parseFloat(currCS.marginRight) || 0;
+        const nextMarginLeft = parseFloat(nextCS.marginLeft) || 0;
+        const gapLeft = curr.right + currMarginRight;
+        const gapRight = next.left - nextMarginLeft;
         if (gapRight > gapLeft + 0.5) {
           newRects.push({
             top: parentRect.top,
@@ -153,13 +162,15 @@ function computeGapRects(element: Element, computed: CSSStyleDeclaration): Rect[
   }
   if (currentRow.length > 0) rows.push(currentRow);
 
-  // Column gaps within each row
+  // Column gaps within each row (subtract horizontal margins)
   for (const row of rows) {
     for (let i = 0; i < row.length - 1; i++) {
       const curr = row[i].getBoundingClientRect();
       const next = row[i + 1].getBoundingClientRect();
-      const gapLeft = curr.right;
-      const gapRight = next.left;
+      const currMR = parseFloat(getComputedStyle(row[i]).marginRight) || 0;
+      const nextML = parseFloat(getComputedStyle(row[i + 1]).marginLeft) || 0;
+      const gapLeft = curr.right + currMR;
+      const gapRight = next.left - nextML;
       if (gapRight > gapLeft + 0.5) {
         newRects.push({
           top: parentRect.top,
@@ -171,12 +182,18 @@ function computeGapRects(element: Element, computed: CSSStyleDeclaration): Rect[
     }
   }
 
-  // Row gaps between rows
+  // Row gaps between rows (subtract vertical margins)
   for (let i = 0; i < rows.length - 1; i++) {
     const currRow = rows[i];
     const nextRow = rows[i + 1];
-    const currBottom = Math.max(...currRow.map((c) => c.getBoundingClientRect().bottom));
-    const nextTop = Math.min(...nextRow.map((c) => c.getBoundingClientRect().top));
+    const currBottom = Math.max(...currRow.map((c) => {
+      const r = c.getBoundingClientRect();
+      return r.bottom + (parseFloat(getComputedStyle(c).marginBottom) || 0);
+    }));
+    const nextTop = Math.min(...nextRow.map((c) => {
+      const r = c.getBoundingClientRect();
+      return r.top - (parseFloat(getComputedStyle(c).marginTop) || 0);
+    }));
     if (nextTop > currBottom + 0.5) {
       newRects.push({
         top: currBottom,
@@ -211,7 +228,17 @@ export function BoxModelOverlay({ element, hoveredProperty, revision }: BoxModel
     const computed = getComputedStyle(element);
     const elRect = element.getBoundingClientRect();
 
-    if (hoveredProperty.startsWith("padding")) {
+    if (hoveredProperty === "paddingBlock" || hoveredProperty === "paddingInline") {
+      const sides: ("Top" | "Right" | "Bottom" | "Left")[] =
+        hoveredProperty === "paddingBlock" ? ["Top", "Bottom"] : ["Left", "Right"];
+      const rects = sides.map(s => computePaddingRect(s, computed, elRect)).filter(Boolean) as Rect[];
+      return { rects, color: PADDING_COLOR };
+    } else if (hoveredProperty === "marginBlock" || hoveredProperty === "marginInline") {
+      const sides: ("Top" | "Right" | "Bottom" | "Left")[] =
+        hoveredProperty === "marginBlock" ? ["Top", "Bottom"] : ["Left", "Right"];
+      const rects = sides.map(s => computeMarginRect(s, computed, elRect)).filter(Boolean) as Rect[];
+      return { rects, color: MARGIN_COLOR };
+    } else if (hoveredProperty.startsWith("padding")) {
       const side = hoveredProperty.replace("padding", "") as "Top" | "Right" | "Bottom" | "Left";
       const rect = computePaddingRect(side, computed, elRect);
       return { rects: rect ? [rect] : [], color: PADDING_COLOR };

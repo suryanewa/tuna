@@ -625,6 +625,7 @@ export function PropertyPanel({
                     prop="gap"
                     value={s.gap}
                     onChange={onPropertyChange}
+                    min={0}
                   />
                 </Field>
               </div>
@@ -661,8 +662,8 @@ export function PropertyPanel({
             <div style={{ flex: 1 }} onPointerEnter={() => onPropertyHover?.("gap")} onPointerLeave={() => onPropertyHover?.(null)}>
               <Field label="Gap">
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <NumberInput label={<Tooltip content="Horizontal gap between columns" side="top" sideOffset={14}><AlSpacingHorizontal /></Tooltip>} prop="columnGap" value={s.columnGap} onChange={onPropertyChange} />
-                  <NumberInput label={<Tooltip content="Vertical gap between rows" side="top" sideOffset={14}><AlSpacingVertical /></Tooltip>} prop="rowGap" value={s.rowGap} onChange={onPropertyChange} />
+                  <NumberInput label={<Tooltip content="Horizontal gap between columns" side="top" sideOffset={14}><AlSpacingHorizontal /></Tooltip>} prop="columnGap" value={s.columnGap} onChange={onPropertyChange} min={0} />
+                  <NumberInput label={<Tooltip content="Vertical gap between rows" side="top" sideOffset={14}><AlSpacingVertical /></Tooltip>} prop="rowGap" value={s.rowGap} onChange={onPropertyChange} min={0} />
                 </div>
               </Field>
             </div>
@@ -673,10 +674,10 @@ export function PropertyPanel({
             <>
               <div className="composer-row">
                 <div onPointerEnter={() => onPropertyHover?.("paddingTop")} onPointerLeave={() => onPropertyHover?.(null)} style={{ flex: 1 }}>
-                  <NumberInput label={<Tooltip content="Padding top" side="top" sideOffset={14}><AlPaddingTop /></Tooltip>} prop="paddingTop" value={s.paddingTop} onChange={onPropertyChange} />
+                  <NumberInput label={<Tooltip content="Padding top" side="top" sideOffset={14}><AlPaddingTop /></Tooltip>} prop="paddingTop" value={s.paddingTop} onChange={onPropertyChange} min={0} />
                 </div>
                 <div onPointerEnter={() => onPropertyHover?.("paddingRight")} onPointerLeave={() => onPropertyHover?.(null)} style={{ flex: 1 }}>
-                  <NumberInput label={<Tooltip content="Padding right" side="top" sideOffset={14}><AlPaddingRight /></Tooltip>} prop="paddingRight" value={s.paddingRight} onChange={onPropertyChange} />
+                  <NumberInput label={<Tooltip content="Padding right" side="top" sideOffset={14}><AlPaddingRight /></Tooltip>} prop="paddingRight" value={s.paddingRight} onChange={onPropertyChange} min={0} />
                 </div>
                 <Tooltip content="Collapse to axes" side="top">
                   <button className="composer-split-btn active" onClick={() => setPaddingExpanded(false)}>
@@ -686,30 +687,32 @@ export function PropertyPanel({
               </div>
               <div className="composer-row">
                 <div onPointerEnter={() => onPropertyHover?.("paddingBottom")} onPointerLeave={() => onPropertyHover?.(null)} style={{ flex: 1 }}>
-                  <NumberInput label={<Tooltip content="Padding bottom" side="top" sideOffset={14}><AlPaddingBottom /></Tooltip>} prop="paddingBottom" value={s.paddingBottom} onChange={onPropertyChange} />
+                  <NumberInput label={<Tooltip content="Padding bottom" side="top" sideOffset={14}><AlPaddingBottom /></Tooltip>} prop="paddingBottom" value={s.paddingBottom} onChange={onPropertyChange} min={0} />
                 </div>
                 <div onPointerEnter={() => onPropertyHover?.("paddingLeft")} onPointerLeave={() => onPropertyHover?.(null)} style={{ flex: 1 }}>
-                  <NumberInput label={<Tooltip content="Padding left" side="top" sideOffset={14}><AlPaddingLeft /></Tooltip>} prop="paddingLeft" value={s.paddingLeft} onChange={onPropertyChange} />
+                  <NumberInput label={<Tooltip content="Padding left" side="top" sideOffset={14}><AlPaddingLeft /></Tooltip>} prop="paddingLeft" value={s.paddingLeft} onChange={onPropertyChange} min={0} />
                 </div>
                 <div style={{ width: 32 }} />
               </div>
             </>
           ) : (
             <div className="composer-row">
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1 }} onPointerEnter={() => onPropertyHover?.("paddingBlock")} onPointerLeave={() => onPropertyHover?.(null)}>
                 <ShorthandInput
                   label={<Tooltip content="Vertical padding (top, bottom)" side="top" sideOffset={14}><AlPaddingVertical /></Tooltip>}
                   props={["paddingTop", "paddingBottom"]}
                   values={[s.paddingTop, s.paddingBottom]}
                   onChange={onPropertyChange}
+                  min={0}
                 />
               </div>
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1 }} onPointerEnter={() => onPropertyHover?.("paddingInline")} onPointerLeave={() => onPropertyHover?.(null)}>
                 <ShorthandInput
                   label={<Tooltip content="Horizontal padding (left, right)" side="top" sideOffset={14}><AlPaddingHorizontal /></Tooltip>}
                   props={["paddingLeft", "paddingRight"]}
                   values={[s.paddingLeft, s.paddingRight]}
                   onChange={onPropertyChange}
+                  min={0}
                 />
               </div>
               <Tooltip content="Edit individual sides" side="top">
@@ -748,7 +751,7 @@ export function PropertyPanel({
             </>
           ) : (
             <div className="composer-row">
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1 }} onPointerEnter={() => onPropertyHover?.("marginBlock")} onPointerLeave={() => onPropertyHover?.(null)}>
                 <ShorthandInput
                   label={<Tooltip content="Vertical margin (top, bottom)" side="top" sideOffset={14}><AlPaddingVertical /></Tooltip>}
                   props={["marginTop", "marginBottom"]}
@@ -756,7 +759,7 @@ export function PropertyPanel({
                   onChange={onPropertyChange}
                 />
               </div>
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1 }} onPointerEnter={() => onPropertyHover?.("marginInline")} onPointerLeave={() => onPropertyHover?.(null)}>
                 <ShorthandInput
                   label={<Tooltip content="Horizontal margin (left, right)" side="top" sideOffset={14}><AlPaddingHorizontal /></Tooltip>}
                   props={["marginLeft", "marginRight"]}
@@ -902,7 +905,7 @@ export function PropertyPanel({
           </Row>
           <Row>
             <Field label="Size">
-              <NumberInput prop="fontSize" value={s.fontSize} onChange={onPropertyChange} />
+              <NumberInput prop="fontSize" value={s.fontSize} onChange={onPropertyChange} min={1} />
             </Field>
             <Field label="Weight">
               <ComboInput prop="fontWeight" value={s.fontWeight} options={FONT_WEIGHT_OPTIONS} onChange={onPropertyChange} />
@@ -1048,7 +1051,7 @@ export function PropertyPanel({
       <Section label="Appearance">
         <Row>
           <Field label="Opacity">
-            <NumberInput prop="opacity" value={s.opacity} onChange={onPropertyChange} />
+            <NumberInput prop="opacity" value={s.opacity} onChange={onPropertyChange} min={0} max={1} step={0.01} />
           </Field>
           <Field label="Z index">
             <NumberInput prop="zIndex" value={s.zIndex} onChange={onPropertyChange} />
@@ -1058,8 +1061,8 @@ export function PropertyPanel({
           {radiusExpanded ? (
             <>
               <div className="composer-row">
-                <NumberInput label={<Tooltip content="Top left corner radius" side="top" sideOffset={14}><RadiusTopLeft /></Tooltip>} prop="borderTopLeftRadius" value={s.borderTopLeftRadius} onChange={onPropertyChange} />
-                <NumberInput label={<Tooltip content="Top right corner radius" side="top" sideOffset={14}><RadiusTopRight /></Tooltip>} prop="borderTopRightRadius" value={s.borderTopRightRadius} onChange={onPropertyChange} />
+                <NumberInput label={<Tooltip content="Top left corner radius" side="top" sideOffset={14}><RadiusTopLeft /></Tooltip>} prop="borderTopLeftRadius" value={s.borderTopLeftRadius} onChange={onPropertyChange} min={0} />
+                <NumberInput label={<Tooltip content="Top right corner radius" side="top" sideOffset={14}><RadiusTopRight /></Tooltip>} prop="borderTopRightRadius" value={s.borderTopRightRadius} onChange={onPropertyChange} min={0} />
                 <Tooltip content="Collapse to single" side="top">
                   <button className="composer-split-btn active" onClick={() => setRadiusExpanded(false)}>
                     <AlPaddingSides />
@@ -1067,8 +1070,8 @@ export function PropertyPanel({
                 </Tooltip>
               </div>
               <div className="composer-row">
-                <NumberInput label={<Tooltip content="Bottom left corner radius" side="top" sideOffset={14}><RadiusBottomLeft /></Tooltip>} prop="borderBottomLeftRadius" value={s.borderBottomLeftRadius} onChange={onPropertyChange} />
-                <NumberInput label={<Tooltip content="Bottom right corner radius" side="top" sideOffset={14}><RadiusBottomRight /></Tooltip>} prop="borderBottomRightRadius" value={s.borderBottomRightRadius} onChange={onPropertyChange} />
+                <NumberInput label={<Tooltip content="Bottom left corner radius" side="top" sideOffset={14}><RadiusBottomLeft /></Tooltip>} prop="borderBottomLeftRadius" value={s.borderBottomLeftRadius} onChange={onPropertyChange} min={0} />
+                <NumberInput label={<Tooltip content="Bottom right corner radius" side="top" sideOffset={14}><RadiusBottomRight /></Tooltip>} prop="borderBottomRightRadius" value={s.borderBottomRightRadius} onChange={onPropertyChange} min={0} />
                 <div style={{ width: 32 }} />
               </div>
             </>
@@ -1079,6 +1082,7 @@ export function PropertyPanel({
                 props={["borderTopLeftRadius", "borderTopRightRadius", "borderBottomRightRadius", "borderBottomLeftRadius"]}
                 values={[s.borderTopLeftRadius, s.borderTopRightRadius, s.borderBottomRightRadius, s.borderBottomLeftRadius]}
                 onChange={onPropertyChange}
+                min={0}
               />
               <Tooltip content="Edit individual corners" side="top">
                 <button className="composer-split-btn" onClick={() => setRadiusExpanded(true)}>
@@ -1148,7 +1152,7 @@ export function PropertyPanel({
             </Row>
             <Row>
               <Field label="Width">
-                <NumberInput prop="borderWidth" value={s.borderTopWidth} onChange={onPropertyChange} />
+                <NumberInput prop="borderWidth" value={s.borderTopWidth} onChange={onPropertyChange} min={0} />
               </Field>
               <Field label="Style">
                 <SelectInput prop="borderStyle" value={s.borderTopStyle} options={["solid", "dashed", "dotted", "double", "groove", "ridge"]} onChange={onPropertyChange} />
@@ -1205,6 +1209,7 @@ export function PropertyPanel({
                     prop="shadowBlur"
                     value={`${shadow.blur}px`}
                     onChange={(_p, val) => handleShadowFieldChange("blur", Math.max(0, parseFloat(val) || 0))}
+                    min={0}
                   />
                 </Field>
                 <Field label="Spread">

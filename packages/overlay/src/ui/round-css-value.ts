@@ -1,8 +1,17 @@
 /**
- * Round numeric portions of a CSS value to whole numbers.
- * e.g. "203.328125px" → "203px", "auto" → "auto", "16px" → "16px"
+ * Round numeric portions of a CSS value for display.
+ * Values with units or >= 1 round to integers (203.328px → 203px).
+ * Pure decimal values < 1 keep up to 2 decimal places (0.856 → 0.86).
  */
 export function roundCssValue(val: string): string {
+  // Pure decimal number without unit (e.g. opacity "0.85")
+  if (/^-?\d+\.\d+$/.test(val.trim())) {
+    const num = parseFloat(val);
+    if (Math.abs(num) < 1) {
+      const rounded = parseFloat(num.toFixed(2));
+      return String(rounded);
+    }
+  }
   return val.replace(/-?\d+\.\d+/g, (match) => {
     return String(Math.round(parseFloat(match)));
   });
