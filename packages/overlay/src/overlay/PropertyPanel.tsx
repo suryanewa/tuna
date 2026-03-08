@@ -628,29 +628,31 @@ export function PropertyPanel({
         </Row>
         {isFlex && (
           <>
-            <Row>
-              <div style={{ flex: 1 }}>
-                <Field label="Alignment">
-                  <AlignmentGrid
-                    justifyContent={s.justifyContent || "flex-start"}
-                    alignItems={s.alignItems || "stretch"}
-                    flexDirection={s.flexDirection || "row"}
-                    onChange={onPropertyChange}
-                  />
-                </Field>
+            <div className="retune-section-row">
+              <div className="retune-row" style={{ alignItems: "flex-start" }}>
+                <div style={{ flex: 1 }}>
+                  <Field label="Alignment">
+                    <AlignmentGrid
+                      justifyContent={s.justifyContent || "flex-start"}
+                      alignItems={s.alignItems || "stretch"}
+                      flexDirection={s.flexDirection || "row"}
+                      onChange={onPropertyChange}
+                    />
+                  </Field>
+                </div>
+                <div style={{ flex: 1 }} onPointerEnter={() => onPropertyHover?.("gap")} onPointerLeave={() => onPropertyHover?.(null)}>
+                  <Field label="Gap">
+                    <NumberInput
+                      label={<Tooltip content={(s.flexDirection || "row").startsWith("column") ? "Vertical gap between items" : "Horizontal gap between items"} side="top" sideOffset={14}>{(s.flexDirection || "row").startsWith("column") ? <AlSpacingVertical /> : <AlSpacingHorizontal />}</Tooltip>}
+                      prop="gap"
+                      value={s.gap}
+                      onChange={onPropertyChange}
+                      min={0}
+                    />
+                  </Field>
+                </div>
               </div>
-              <div style={{ flex: 1 }} onPointerEnter={() => onPropertyHover?.("gap")} onPointerLeave={() => onPropertyHover?.(null)}>
-                <Field label="Gap">
-                  <NumberInput
-                    label={<Tooltip content={(s.flexDirection || "row").startsWith("column") ? "Vertical gap between items" : "Horizontal gap between items"} side="top" sideOffset={14}>{(s.flexDirection || "row").startsWith("column") ? <AlSpacingVertical /> : <AlSpacingHorizontal />}</Tooltip>}
-                    prop="gap"
-                    value={s.gap}
-                    onChange={onPropertyChange}
-                    min={0}
-                  />
-                </Field>
-              </div>
-            </Row>
+            </div>
             <Row>
               <Field label="Reverse">
                 <SelectInput

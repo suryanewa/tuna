@@ -148,6 +148,11 @@ function RetuneInner(props: RetuneConfig) {
         }
         case "getPendingChanges":
           return tracker.getPendingChanges();
+        case "getCollapsedChanges":
+          return tracker.getPendingChanges().map((c) => ({
+            ...c,
+            changes: collapseShorthands(c.changes),
+          }));
         case "getFormattedChanges":
           return formatChanges(tracker.getPendingChanges(), params?.fidelity || fidelityRef.current);
         case "clearChanges":

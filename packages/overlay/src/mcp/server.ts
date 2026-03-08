@@ -36,11 +36,11 @@ export function createServer(bridge: Bridge): McpServer {
 
   server.tool(
     "retune_get_pending_changes",
-    "Get all pending visual changes made in the Retune overlay. Returns a list of elements with their before/after style diffs.",
+    "Get all pending visual changes made in the Retune overlay. Returns a list of elements with their before/after style diffs. Shorthand properties (padding, margin, border-radius, etc.) are collapsed when all sides share the same value.",
     {},
     async () => {
       try {
-        const changes = await bridge.request("getPendingChanges");
+        const changes = await bridge.request("getCollapsedChanges");
         if (!changes || changes.length === 0) {
           return { content: [{ type: "text", text: "No pending changes." }] };
         }
@@ -53,14 +53,19 @@ export function createServer(bridge: Bridge): McpServer {
 
   server.tool(
     "retune_get_formatted_changes",
-    "Get pending visual changes formatted as structured markdown, ready to apply to source code. Includes element identification (CSS selector, React component, text content) and exact before/after values for each changed property.",
+    "Get pending visual changes formatted as structured markdown, ready to apply to source code. Includes element identification (CSS selector, React component, text content) and exact before/after values for each changed property. Changes are automatically cleared after retrieval unless clear is set to false.",
     {
       fidelity: z.enum(["minimal", "standard", "full"]).optional()
         .describe("Level of context detail. 'minimal' = selector + diffs only. 'standard' = adds component tree and classes. 'full' = adds computed styles, parent layout, siblings. Default: standard."),
+      clear: z.boolean().optional()
+        .describe("Whether to clear changes after retrieval. Default: true."),
     },
-    async ({ fidelity }) => {
+    async ({ fidelity, clear }) => {
       try {
         const output = await bridge.request("getFormattedChanges", { fidelity: fidelity || "standard" });
+        if (clear !== false) {
+          await bridge.request("clearChanges");
+        }
         return { content: [{ type: "text", text: output }] };
       } catch (err: any) {
         return { content: [{ type: "text", text: `Error: ${err.message}` }] };
