@@ -171,6 +171,17 @@ export function createPicker(
     return !!el.closest("[data-composer-host]");
   }
 
+  // Void/empty elements that aren't useful to select — bubble to parent
+  const SKIP_TAGS = new Set(["BR", "WBR", "COL", "COLGROUP", "SOURCE", "TRACK", "AREA", "PARAM"]);
+
+  function resolveElement(el: Element): Element | null {
+    let current: Element | null = el;
+    while (current && SKIP_TAGS.has(current.tagName)) {
+      current = current.parentElement;
+    }
+    return current;
+  }
+
   function applyHover(el: Element) {
     hoveredElement = el;
 
@@ -187,7 +198,9 @@ export function createPicker(
 
   function handleMouseMove(e: MouseEvent) {
     if (!active) return;
-    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const raw = document.elementFromPoint(e.clientX, e.clientY);
+    if (!raw || isOverlayElement(raw)) return;
+    const el = resolveElement(raw);
     if (!el || isOverlayElement(el)) return;
     if (el === hoveredElement) return;
 
@@ -219,7 +232,9 @@ export function createPicker(
     e.stopPropagation();
     e.stopImmediatePropagation();
 
-    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const raw = document.elementFromPoint(e.clientX, e.clientY);
+    if (!raw || isOverlayElement(raw)) return;
+    const el = resolveElement(raw);
     if (!el || isOverlayElement(el)) return;
 
     selectedElement = el;

@@ -148,6 +148,8 @@ function isFrameworkInternal(name: string): boolean {
   if (/(?:Provider|Consumer|Context|Boundary|Handler|Root|Wrapper)$/.test(name)) return true;
   // Next.js specific patterns
   if (/(?:Router|Layout|Template|Loading|Segment|Fallback|Reload|Manager|Metadata|Viewport)/.test(name)) return true;
+  // Generic page-level components that don't help identify specific elements
+  if (/^(Home|App|Page|Main|Index|Default|View|Screen|Dashboard|Root)$/.test(name)) return true;
   // Very short single-letter or likely minified names
   if (name.length <= 2) return true;
   return false;
