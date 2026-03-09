@@ -37,7 +37,9 @@ Press **Alt+D** to toggle edit mode, then click any element to start tweaking.
 
 Changes preview instantly in the browser (like devtools), then get written to your actual files.
 
-## Dynamic Controls
+## Features
+
+### Dynamic Controls
 
 Controls appear based on the selected element:
 
@@ -49,6 +51,22 @@ Controls appear based on the selected element:
 | Grid container | columns, rows, gap |
 | Image | object-fit, aspect-ratio, border-radius |
 | Positioned | position offsets, z-index |
+
+### Pseudo-State Editing
+
+Toggle between `:hover`, `:focus`, and `:active` states to inspect and edit styles that only apply in those states — without needing to hold the mouse in place.
+
+### Class Selector Picker
+
+When you select an element, Retune shows its CSS classes as clickable tags. Pick "This element" to scope changes to just that element, or pick a class to apply changes everywhere that class is used. Each tag shows how many elements share the class.
+
+### Styling Approach Detection
+
+Retune analyzes your stylesheets at runtime to detect whether you're using utility CSS (Tailwind, UnoCSS, etc.) or semantic CSS (CSS Modules, plain CSS). This context helps your AI agent write changes in the right format. No hardcoded framework patterns — it works by analyzing rule complexity in `document.styleSheets`.
+
+### Scrub-to-Adjust
+
+Click and drag on any numeric value to scrub it up or down. Hold Shift for 10x increments, Alt for 0.1x precision.
 
 ## AI Integration (MCP Server)
 
@@ -96,6 +114,13 @@ Retune uses layered identification to help AI agents find elements in your code:
 2. **React-specific** — Component name, props, component ancestry (via fiber tree)
 3. **Source-level** — File path + line number (optional, via `__source` metadata)
 
+## Compatibility
+
+- **Frameworks:** Next.js, Vite, Remix
+- **Styling:** Tailwind CSS, CSS Modules, plain CSS, any utility-first framework
+- **AI tools:** Claude Code and Cursor via MCP, plus clipboard fallback for others
+- **Viewport:** Desktop only (hidden below 768px)
+
 ## Tech Stack
 
 React, TypeScript. Single package with two entry points:
@@ -110,6 +135,7 @@ npm install
 npm run build
 npm run dev    # Watch mode
 ```
+
 ## License
 
 MIT
