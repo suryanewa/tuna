@@ -176,7 +176,7 @@ function RetuneInner(props: RetuneConfig) {
           preview.applyChange(change.selector, c.property, c.to);
         }
       }
-      setChangeCount(tracker.getPendingChanges().reduce((s, c) => s + collapseShorthands(c.changes).length, 0));
+      setChangeCount(tracker.getPendingChanges().length);
       setCanUndo(tracker.canUndo);
       setCanRedo(tracker.canRedo);
     }
@@ -274,7 +274,7 @@ function RetuneInner(props: RetuneConfig) {
   const syncTrackerState = useCallback(() => {
     const tracker = trackerRef.current;
     if (!tracker) return;
-    setChangeCount(tracker.getPendingChanges().reduce((s, c) => s + collapseShorthands(c.changes).length, 0));
+    setChangeCount(tracker.getPendingChanges().length);
     setCanUndo(tracker.canUndo);
     setCanRedo(tracker.canRedo);
     tracker.persist();
