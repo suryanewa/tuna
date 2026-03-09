@@ -105,6 +105,38 @@ export function ComboInput({ label, prop, value, options, onChange }: ComboInput
     scrubRef.current.active = false;
   };
 
+  // Scrub from input's left padding when there's no label
+  const SCRUB_ZONE = 16; // px from left edge of input
+
+  const handleInputPointerDown = (e: React.PointerEvent<HTMLInputElement>) => {
+    if (label) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (e.clientX - rect.left > SCRUB_ZONE) return;
+    const num = parseFloat(localValue);
+    if (isNaN(num)) return;
+    e.preventDefault();
+    scrubRef.current = { startX: e.clientX, startVal: num, active: true };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const handleInputPointerMove = (e: React.PointerEvent<HTMLInputElement>) => {
+    if (scrubRef.current.active) {
+      const delta = Math.round(e.clientX - scrubRef.current.startX);
+      const unit = localValue.match(/[a-z%]+$/i)?.[0] || "";
+      const newVal = `${scrubRef.current.startVal + delta}${unit}`;
+      setLocalValue(newVal);
+      onChange(prop, newVal);
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const inZone = e.clientX - rect.left <= SCRUB_ZONE;
+    e.currentTarget.style.cursor = inZone ? "ew-resize" : "";
+  };
+
+  const handleInputPointerUp = () => {
+    scrubRef.current.active = false;
+  };
+
   const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
     editingRef.current = true;
     e.target.select();
@@ -197,6 +229,9 @@ export function ComboInput({ label, prop, value, options, onChange }: ComboInput
         className="retune-combo-input"
         style={label ? undefined : { paddingLeft: 8 }}
         value={displayValue}
+        onPointerDown={!label ? handleInputPointerDown : undefined}
+        onPointerMove={!label ? handleInputPointerMove : undefined}
+        onPointerUp={!label ? handleInputPointerUp : undefined}
         onFocus={handleFocus}
         onChange={handleInputChange}
         onBlur={handleBlur}

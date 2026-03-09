@@ -76,6 +76,38 @@ export function ShorthandInput({ label, props, values, onChange, placeholder, mi
     scrubRef.current.active = false;
   };
 
+  // Scrub from input's left padding when there's no label
+  const SCRUB_ZONE = 16;
+
+  const handleInputPointerDown = (e: React.PointerEvent<HTMLInputElement>) => {
+    if (label) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (e.clientX - rect.left > SCRUB_ZONE) return;
+    const nums = values.map((v) => parseFloat(v));
+    if (nums.some(isNaN)) return;
+    e.preventDefault();
+    scrubRef.current = { startX: e.clientX, startVals: nums, active: true };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const handleInputPointerMove = (e: React.PointerEvent<HTMLInputElement>) => {
+    if (scrubRef.current.active) {
+      const delta = Math.round(e.clientX - scrubRef.current.startX);
+      const unit = values[0]?.match(/[a-z%]+$/i)?.[0] || "px";
+      const newVals = scrubRef.current.startVals.map((v) => `${clampNum(v + delta, min, max)}${unit}`);
+      setLocalValue(computeDisplay(newVals));
+      props.forEach((prop, i) => onChange(prop, newVals[i]));
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const inZone = e.clientX - rect.left <= SCRUB_ZONE;
+    e.currentTarget.style.cursor = inZone ? "ew-resize" : "";
+  };
+
+  const handleInputPointerUp = () => {
+    scrubRef.current.active = false;
+  };
+
   const commitValue = (val: string) => {
     const trimmed = val.trim();
     if (!trimmed) return;
@@ -135,6 +167,9 @@ export function ShorthandInput({ label, props, values, onChange, placeholder, mi
         className="retune-prop-input"
         value={localValue}
         placeholder={placeholder}
+        onPointerDown={!label ? handleInputPointerDown : undefined}
+        onPointerMove={!label ? handleInputPointerMove : undefined}
+        onPointerUp={!label ? handleInputPointerUp : undefined}
         onFocus={(e) => e.target.select()}
         onChange={(e) => setLocalValue(e.target.value)}
         onBlur={() => commitValue(localValue)}

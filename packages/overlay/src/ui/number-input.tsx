@@ -75,6 +75,45 @@ export function NumberInput({ label, prop, value, placeholder, onChange, min, ma
     scrubRef.current.active = false;
   };
 
+  // Scrub from input's left padding when there's no label
+  const inputRef = useRef<HTMLInputElement>(null);
+  const SCRUB_ZONE = 16; // px from left edge of input
+
+  const handleInputPointerDown = (e: React.PointerEvent<HTMLInputElement>) => {
+    if (label) return; // label handles scrub
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (e.clientX - rect.left > SCRUB_ZONE) return; // click is on text, let input handle it
+    const num = parseFloat(localValue);
+    if (isNaN(num)) return;
+    e.preventDefault(); // prevent focus/selection
+    scrubRef.current = { startX: e.clientX, startVal: num, active: true };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const handleInputPointerMove = (e: React.PointerEvent<HTMLInputElement>) => {
+    if (scrubRef.current.active) {
+      const pixelDelta = e.clientX - scrubRef.current.startX;
+      const baseStep = stepProp ?? 1;
+      const raw = scrubRef.current.startVal + Math.round(pixelDelta) * baseStep;
+      const precision = baseStep < 1 ? Math.ceil(-Math.log10(baseStep)) : 0;
+      const rounded = precision > 0 ? parseFloat(raw.toFixed(precision)) : raw;
+      const clamped = clampNum(rounded, min, max);
+      const unit = localValue.match(/[a-z%]+$/i)?.[0] || "";
+      const newVal = `${clamped}${unit}`;
+      setLocalValue(newVal);
+      onChange(prop, newVal);
+      return;
+    }
+    // Update cursor based on whether pointer is in scrub zone
+    const rect = e.currentTarget.getBoundingClientRect();
+    const inZone = e.clientX - rect.left <= SCRUB_ZONE;
+    e.currentTarget.style.cursor = inZone ? "ew-resize" : "";
+  };
+
+  const handleInputPointerUp = () => {
+    scrubRef.current.active = false;
+  };
+
   const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
     e.target.select();
   };
@@ -131,10 +170,14 @@ export function NumberInput({ label, prop, value, placeholder, onChange, min, ma
         </span>
       )}
       <input
+        ref={inputRef}
         className="retune-prop-input"
         style={label ? undefined : { paddingLeft: 8 }}
         value={localValue}
         placeholder={placeholder}
+        onPointerDown={!label ? handleInputPointerDown : undefined}
+        onPointerMove={!label ? handleInputPointerMove : undefined}
+        onPointerUp={!label ? handleInputPointerUp : undefined}
         onFocus={handleFocus}
         onChange={handleChange}
         onBlur={handleBlur}
