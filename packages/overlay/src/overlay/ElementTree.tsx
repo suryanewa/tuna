@@ -5,7 +5,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect, memo } from "react";
-import { getReactComponentHierarchy } from "../selector/identifier";
+import { getDirectReactComponent } from "../selector/identifier";
 
 export interface ElementTreeProps {
   /** Currently selected DOM element (if any) */
@@ -55,8 +55,7 @@ function formatNodeLabel(el: Element): { tag: string; qualifier: string; compone
     if (first) qualifier = `.${first}`;
   }
 
-  const components = getReactComponentHierarchy(el);
-  const component = components.length > 0 ? components[0] : null;
+  const component = getDirectReactComponent(el);
 
   return { tag, qualifier, component };
 }
@@ -204,18 +203,20 @@ export function ElementTree({ selectedElement, onSelect, onHover }: ElementTreeP
 
   return (
     <div className="retune-tree" ref={scrollRef}>
-      {bodyChildren.map((child, i) => (
-        <TreeNode
-          key={i}
-          element={child}
-          depth={0}
-          selectedElement={selectedElement}
-          expandedSet={expandedSet}
-          onToggle={handleToggle}
-          onSelect={onSelect}
-          onHover={onHover}
-        />
-      ))}
+      <div className="retune-tree-inner">
+        {bodyChildren.map((child, i) => (
+          <TreeNode
+            key={i}
+            element={child}
+            depth={0}
+            selectedElement={selectedElement}
+            expandedSet={expandedSet}
+            onToggle={handleToggle}
+            onSelect={onSelect}
+            onHover={onHover}
+          />
+        ))}
+      </div>
     </div>
   );
 }

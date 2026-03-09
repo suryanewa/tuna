@@ -138,6 +138,43 @@ export function getReactComponentHierarchy(element: Element): string[] {
   return components;
 }
 
+/** Get the React component name only if this element is the component's root DOM node.
+ *  Prevents showing "CopyButton" on every child of the CopyButton component. */
+export function getDirectReactComponent(element: Element): string | null {
+  const fiber = getFiber(element);
+  if (!fiber) return null;
+
+  let current = fiber.return;
+  while (current) {
+    if (typeof current.type === "function" || typeof current.type === "object") {
+      const name =
+        current.type?.displayName ||
+        current.type?.name ||
+        current.elementType?.displayName ||
+        current.elementType?.name;
+      if (name && !isFrameworkInternal(name)) {
+        // Walk down from this component fiber to find its first DOM node
+        const rootDom = findFirstDomFiber(current);
+        return rootDom === element ? name : null;
+      }
+    }
+    current = current.return;
+  }
+  return null;
+}
+
+/** Find the first DOM element rendered by a component fiber */
+function findFirstDomFiber(fiber: any): Element | null {
+  if (fiber.stateNode instanceof Element) return fiber.stateNode;
+  let child = fiber.child;
+  while (child) {
+    const found = findFirstDomFiber(child);
+    if (found) return found;
+    child = child.sibling;
+  }
+  return null;
+}
+
 /** Filter framework/library internals from component hierarchy */
 function isFrameworkInternal(name: string): boolean {
   // Starts with underscore
@@ -147,7 +184,7 @@ function isFrameworkInternal(name: string): boolean {
   // Ends with common framework suffixes
   if (/(?:Provider|Consumer|Context|Boundary|Handler|Root|Wrapper)$/.test(name)) return true;
   // Next.js specific patterns
-  if (/(?:Router|Layout|Template|Loading|Segment|Fallback|Reload|Manager|Metadata|Viewport)/.test(name)) return true;
+  if (/(?:Router|Layout|Template|Loading|Segment|Fallback|Reload|Manager|Metadata|Viewport|Head|Script|Link)/.test(name)) return true;
   // Generic page-level components that don't help identify specific elements
   if (/^(Home|App|Page|Main|Index|Default|View|Screen|Dashboard|Root)$/.test(name)) return true;
   // Very short single-letter or likely minified names
