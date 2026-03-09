@@ -393,26 +393,34 @@ function RetuneInner(props: RetuneConfig) {
     const tracker = trackerRef.current;
     const preview = previewRef.current;
     if (!tracker || !preview) return;
-    const entry = tracker.popUndo();
-    if (entry) {
-      if (entry.value) preview.applyChange(entry.selector, entry.property, entry.value);
-      else preview.removeChange(entry.selector, entry.property);
-      syncTrackerState();
-      refreshSelectedElement();
+    const entries = tracker.popUndo();
+    if (entries) {
+      for (const entry of entries) {
+        if (entry.value) preview.applyChange(entry.selector, entry.property, entry.value);
+        else preview.removeChange(entry.selector, entry.property);
+      }
+      syncTrackerStateRef.current();
+      refreshSelectedElementRef.current();
+      pickerRef.current?.refreshSelection();
+      setChangeRevision((r) => r + 1);
     }
-  }, [syncTrackerState, refreshSelectedElement]);
+  }, []);
 
   const handleRedo = useCallback(() => {
     const tracker = trackerRef.current;
     const preview = previewRef.current;
     if (!tracker || !preview) return;
-    const entry = tracker.popRedo();
-    if (entry) {
-      preview.applyChange(entry.selector, entry.property, entry.value);
-      syncTrackerState();
-      refreshSelectedElement();
+    const entries = tracker.popRedo();
+    if (entries) {
+      for (const entry of entries) {
+        preview.applyChange(entry.selector, entry.property, entry.value);
+      }
+      syncTrackerStateRef.current();
+      refreshSelectedElementRef.current();
+      pickerRef.current?.refreshSelection();
+      setChangeRevision((r) => r + 1);
     }
-  }, [syncTrackerState, refreshSelectedElement]);
+  }, []);
 
   // Hotkey listener
   useEffect(() => {

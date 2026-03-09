@@ -24,13 +24,21 @@ interface TrackedElement {
   position?: { x: number; y: number; width: number; height: number };
 }
 
+interface UndoEntry {
+  selector: string;
+  property: string;
+  value: string;
+  group: number;
+}
+
 const COALESCE_MS = 300;
 
 export class ChangeTracker {
   private tracked = new Map<string, TrackedElement>();
-  private undoStack: Array<{ selector: string; property: string; value: string }> = [];
-  private redoStack: Array<{ selector: string; property: string; value: string }> = [];
-  private lastChange: { selector: string; property: string; time: number } | null = null;
+  private undoStack: UndoEntry[] = [];
+  private redoStack: UndoEntry[] = [];
+  private lastChange: { selector: string; time: number; group: number } | null = null;
+  private groupCounter = 0;
 
   /** Start tracking an element — snapshots its current styles */
   track(
@@ -74,7 +82,8 @@ export class ChangeTracker {
     }
   }
 
-  /** Record a style change (coalesces rapid changes to the same property) */
+  /** Record a style change. Groups paired properties (e.g. paddingTop+paddingBottom
+   *  from a single scrub gesture) into one undo step. */
   recordChange(selector: string, property: string, newValue: string): { from: string; to: string } | null {
     const tracked = this.tracked.get(selector);
     if (!tracked) return null;
@@ -87,21 +96,24 @@ export class ChangeTracker {
     const now = Date.now();
     const last = this.lastChange;
 
-    // Coalesce: if same selector+property within COALESCE_MS, update the
-    // existing undo entry instead of pushing a new one. This keeps the
-    // "before" value from the start of the gesture so undo reverts the
-    // entire scrub in one step.
-    if (
-      last &&
-      last.selector === selector &&
-      last.property === property &&
-      now - last.time < COALESCE_MS
-    ) {
-      // Update timestamp but keep the original undo entry's value
+    // Coalesce by selector within COALESCE_MS. This groups paired properties
+    // (e.g. paddingTop + paddingBottom from ShorthandInput) into the same
+    // undo group so they revert together.
+    if (last && last.selector === selector && now - last.time < COALESCE_MS) {
+      // Same gesture — check if this property already has an entry in the group
+      const existingIdx = this.findInGroup(last.group, property);
+      if (existingIdx !== -1) {
+        // Already tracked in this group — keep the original "from" value (coalesce)
+      } else {
+        // New property in this gesture — add to the same group
+        this.undoStack.push({ selector, property, value: oldValue, group: last.group });
+      }
       last.time = now;
     } else {
-      this.undoStack.push({ selector, property, value: oldValue });
-      this.lastChange = { selector, property, time: now };
+      // New gesture — new group
+      this.groupCounter++;
+      this.undoStack.push({ selector, property, value: oldValue, group: this.groupCounter });
+      this.lastChange = { selector, time: now, group: this.groupCounter };
     }
 
     this.redoStack = []; // clear redo on new change
@@ -109,34 +121,70 @@ export class ChangeTracker {
     return { from: oldValue, to: newValue };
   }
 
-  /** Get the last change for undo */
-  popUndo(): { selector: string; property: string; value: string } | null {
-    const entry = this.undoStack.pop();
-    if (!entry) return null;
-
-    const tracked = this.tracked.get(entry.selector);
-    if (tracked) {
-      const currentValue = tracked.currentStyles[entry.property] || "";
-      this.redoStack.push({ selector: entry.selector, property: entry.property, value: currentValue });
-      tracked.currentStyles[entry.property] = entry.value;
+  /** Find an undo entry for a property within a specific group */
+  private findInGroup(group: number, property: string): number {
+    for (let i = this.undoStack.length - 1; i >= 0; i--) {
+      if (this.undoStack[i].group === group) {
+        if (this.undoStack[i].property === property) return i;
+      } else {
+        break; // Groups are contiguous, so stop when we leave the group
+      }
     }
-
-    return entry;
+    return -1;
   }
 
-  /** Get the last undone change for redo */
-  popRedo(): { selector: string; property: string; value: string } | null {
-    const entry = this.redoStack.pop();
-    if (!entry) return null;
+  /** Pop an entire undo group and return all entries */
+  popUndo(): Array<{ selector: string; property: string; value: string }> | null {
+    if (this.undoStack.length === 0) return null;
 
-    const tracked = this.tracked.get(entry.selector);
-    if (tracked) {
-      const currentValue = tracked.currentStyles[entry.property] || "";
-      this.undoStack.push({ selector: entry.selector, property: entry.property, value: currentValue });
-      tracked.currentStyles[entry.property] = entry.value;
+    const top = this.undoStack[this.undoStack.length - 1];
+    const group = top.group;
+    const entries: UndoEntry[] = [];
+
+    // Pop all entries in this group
+    while (this.undoStack.length > 0 && this.undoStack[this.undoStack.length - 1].group === group) {
+      entries.push(this.undoStack.pop()!);
     }
 
-    return entry;
+    // Apply reverts and push to redo with the same group ID
+    const redoGroup = ++this.groupCounter;
+    for (const entry of entries) {
+      const tracked = this.tracked.get(entry.selector);
+      if (tracked) {
+        const currentValue = tracked.currentStyles[entry.property] || "";
+        this.redoStack.push({ selector: entry.selector, property: entry.property, value: currentValue, group: redoGroup });
+        tracked.currentStyles[entry.property] = entry.value;
+      }
+    }
+
+    return entries;
+  }
+
+  /** Pop an entire redo group and return all entries */
+  popRedo(): Array<{ selector: string; property: string; value: string }> | null {
+    if (this.redoStack.length === 0) return null;
+
+    const top = this.redoStack[this.redoStack.length - 1];
+    const group = top.group;
+    const entries: UndoEntry[] = [];
+
+    // Pop all entries in this group
+    while (this.redoStack.length > 0 && this.redoStack[this.redoStack.length - 1].group === group) {
+      entries.push(this.redoStack.pop()!);
+    }
+
+    // Apply and push to undo with the same group ID
+    const undoGroup = ++this.groupCounter;
+    for (const entry of entries) {
+      const tracked = this.tracked.get(entry.selector);
+      if (tracked) {
+        const currentValue = tracked.currentStyles[entry.property] || "";
+        this.undoStack.push({ selector: entry.selector, property: entry.property, value: currentValue, group: undoGroup });
+        tracked.currentStyles[entry.property] = entry.value;
+      }
+    }
+
+    return entries;
   }
 
   /** Get all pending changes (properties that differ from original) */
@@ -252,6 +300,13 @@ export class ChangeTracker {
       this.tracked = new Map(data.tracked);
       this.undoStack = data.undoStack || [];
       this.redoStack = data.redoStack || [];
+      // Restore groupCounter from existing entries
+      for (const e of this.undoStack) {
+        if (e.group > this.groupCounter) this.groupCounter = e.group;
+      }
+      for (const e of this.redoStack) {
+        if (e.group > this.groupCounter) this.groupCounter = e.group;
+      }
       return this.hasPendingChanges();
     } catch {
       return false;
