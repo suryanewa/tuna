@@ -18,7 +18,7 @@ export function roundCssValue(val: string): string {
 }
 
 const UNITLESS_PROPS = new Set([
-  "opacity", "z-index", "zIndex", "line-height", "lineHeight",
+  "opacity", "z-index", "zIndex",
   "font-weight", "fontWeight", "flex-grow", "flexGrow",
   "flex-shrink", "flexShrink", "order", "orphans", "widows",
   "columns", "column-count", "columnCount", "tab-size", "tabSize",
