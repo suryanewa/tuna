@@ -337,5 +337,5 @@ export function createPicker(
     }
   }
 
-  return { activate, deactivate, destroy, hideHighlight, clearSelection, selectElement, highlightElement };
+  return { activate, deactivate, destroy, hideHighlight, clearSelection, selectElement, highlightElement, refreshSelection: scheduleTrack };
 }

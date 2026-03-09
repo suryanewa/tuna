@@ -107,7 +107,11 @@ function RetuneInner(props: RetuneConfig) {
   // Scope: "element" = this element only, "class" = all matching elements
   type ChangeScope = "element" | "class";
   const [scope, setScope] = useState<ChangeScope>("element");
+  const scopeRef = useRef<ChangeScope>(scope);
+  scopeRef.current = scope;
   const [sharedSelector, setSharedSelector] = useState<{ selector: string; count: number } | null>(null);
+  const sharedSelectorRef = useRef<{ selector: string; count: number } | null>(null);
+  sharedSelectorRef.current = sharedSelector;
 
   const mountRef = useRef<ReturnType<typeof mountOverlay> | null>(null);
   const pickerRef = useRef<ReturnType<typeof createPicker> | null>(null);
@@ -155,12 +159,23 @@ function RetuneInner(props: RetuneConfig) {
           }));
         case "getFormattedChanges":
           return formatChanges(tracker.getPendingChanges(), params?.fidelity || fidelityRef.current);
-        case "clearChanges":
+        case "clearChanges": {
           preview.clearAll();
           tracker.clear();
           syncTrackerStateRef.current();
+          const el = selectedElementRef.current;
+          if (el) {
+            tracker.track(
+              el.selector, el.tagName, el.textContent, el.classes,
+              el.reactComponents, el.computedStyles, el.sourceFile,
+              el.stylingApproach, el.inlineStyles, el.elementId,
+              el.accessibleName, el.parentContext, el.childSummary,
+              el.domPath, el.nearbySiblings, el.position,
+            );
+          }
           refreshSelectedElementRef.current();
           return { ok: true };
+        }
         default:
           throw new Error(`Unknown method: ${method}`);
       }
@@ -290,16 +305,28 @@ function RetuneInner(props: RetuneConfig) {
   refreshSelectedElementRef.current = refreshSelectedElement;
 
   const handlePropertyChange = useCallback((property: string, value: string) => {
-    if (!selectedElement || !previewRef.current || !trackerRef.current) return;
-    const selector = scope === "class" && sharedSelector
-      ? sharedSelector.selector
-      : selectedElement.selector;
-    previewRef.current.applyChange(selector, property, value);
-    trackerRef.current.recordChange(selector, property, value);
-    syncTrackerState();
-    refreshSelectedElement();
+    const el = selectedElementRef.current;
+    const preview = previewRef.current;
+    const tracker = trackerRef.current;
+    if (!el || !preview || !tracker) return;
+    const selector = scopeRef.current === "class" && sharedSelectorRef.current
+      ? sharedSelectorRef.current.selector
+      : el.selector;
+    preview.applyChange(selector, property, value);
+    // Ensure element is tracked (may have been cleared by reset)
+    tracker.track(
+      selector, el.tagName, el.textContent, el.classes,
+      el.reactComponents, el.computedStyles, el.sourceFile,
+      el.stylingApproach, el.inlineStyles, el.elementId,
+      el.accessibleName, el.parentContext, el.childSummary,
+      el.domPath, el.nearbySiblings, el.position,
+    );
+    tracker.recordChange(selector, property, value);
+    syncTrackerStateRef.current();
+    refreshSelectedElementRef.current();
+    pickerRef.current?.refreshSelection();
     setChangeRevision((r) => r + 1);
-  }, [selectedElement, scope, sharedSelector, syncTrackerState, refreshSelectedElement]);
+  }, []);
 
   const handleApplyToElement = useCallback((el: Element, property: string, value: string) => {
     const preview = previewRef.current;
@@ -414,6 +441,17 @@ function RetuneInner(props: RetuneConfig) {
     preview.clearAll();
     tracker.clear();
     syncTrackerState();
+    // Re-track the currently selected element so future changes are recorded
+    const el = selectedElementRef.current;
+    if (el) {
+      tracker.track(
+        el.selector, el.tagName, el.textContent, el.classes,
+        el.reactComponents, el.computedStyles, el.sourceFile,
+        el.stylingApproach, el.inlineStyles, el.elementId,
+        el.accessibleName, el.parentContext, el.childSummary,
+        el.domPath, el.nearbySiblings, el.position,
+      );
+    }
     refreshSelectedElement();
   }, [syncTrackerState, refreshSelectedElement]);
 
@@ -467,6 +505,16 @@ function RetuneInner(props: RetuneConfig) {
         preview.clearAll();
         tracker.clear();
         syncTrackerStateRef.current();
+        const el = selectedElementRef.current;
+        if (el) {
+          tracker.track(
+            el.selector, el.tagName, el.textContent, el.classes,
+            el.reactComponents, el.computedStyles, el.sourceFile,
+            el.stylingApproach, el.inlineStyles, el.elementId,
+            el.accessibleName, el.parentContext, el.childSummary,
+            el.domPath, el.nearbySiblings, el.position,
+          );
+        }
         refreshSelectedElementRef.current();
       },
     };
