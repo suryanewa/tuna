@@ -69,13 +69,19 @@ const ALL_PROPS = [
 
 export type LayoutMode = "block" | "flex" | "grid" | "inline" | "absolute" | "fixed" | "relative" | "sticky";
 
+// Properties where "normal" should be resolved to "0px" for usability
+const NORMAL_TO_ZERO = new Set(["gap", "rowGap", "columnGap"]);
+
 export function getRelevantStyles(element: Element): Record<string, string> {
   const computed = window.getComputedStyle(element);
   const styles: Record<string, string> = {};
 
   for (const prop of ALL_PROPS) {
-    const value = computed.getPropertyValue(camelToKebab(prop));
+    let value = computed.getPropertyValue(camelToKebab(prop));
     if (value) {
+      if (value === "normal" && NORMAL_TO_ZERO.has(prop)) {
+        value = "0px";
+      }
       styles[prop] = value;
     }
   }
