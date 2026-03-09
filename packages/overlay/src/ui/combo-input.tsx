@@ -32,11 +32,15 @@ export function ComboInput({ label, prop, value, options, onChange }: ComboInput
   const [menuPos, setMenuPos] = useState<MenuPosition | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const labelRef = useRef<HTMLSpanElement>(null);
+  const editingRef = useRef(false);
 
   const [prevValue, setPrevValue] = useState(value);
   if (value !== prevValue) {
     setPrevValue(value);
-    setLocalValue(roundCssValue(value || ""));
+    // Don't overwrite what the user is typing
+    if (!editingRef.current) {
+      setLocalValue(roundCssValue(value || ""));
+    }
   }
 
   const openDropdown = useCallback(() => {
@@ -102,6 +106,7 @@ export function ComboInput({ label, prop, value, options, onChange }: ComboInput
   };
 
   const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    editingRef.current = true;
     e.target.select();
   };
 
@@ -120,6 +125,7 @@ export function ComboInput({ label, prop, value, options, onChange }: ComboInput
   };
 
   const handleBlur = () => {
+    editingRef.current = false;
     const resolved = inferCssUnit(localValue, value || "", prop);
     setLocalValue(resolved);
     onChange(prop, resolved);
