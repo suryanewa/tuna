@@ -73,6 +73,8 @@ export type SelectorCandidate = { selector: string; count: number };
 // ---- Hashed / generated class detection (structural, framework-agnostic) ----
 
 export function isHashedClass(name: string): boolean {
+  // BEM double-underscore/double-hyphen classes are human-authored, not hashed
+  if (name.includes("__") || name.includes("--")) return false;
   if (name.startsWith("_") || name.startsWith("css-")) return true;
   if (/^[a-z]{1,3}[A-Za-z0-9_]{8,}$/.test(name)) return true;
   return false;
@@ -113,15 +115,20 @@ export function getPropertyFamily(prop: string): string {
   if (prop.startsWith("list-style-")) return "list-style";
   if (prop.startsWith("grid-template-")) return "grid-template";
   if (prop.startsWith("grid-auto-")) return "grid-auto";
+  if (prop === "flex-grow" || prop === "flex-shrink" || prop === "flex-basis") return "flex";
+  if (prop === "column-count" || prop === "column-width") return "columns";
   if (prop.startsWith("place-")) return prop; // place-items, place-content are distinct
   return prop;
 }
 
-/** Count authored CSS properties by collapsing longhands into shorthand families. */
+/** Count authored CSS properties by collapsing longhands into shorthand families.
+ *  Skips CSS custom properties (--*) which are framework internals, not authored styling. */
 export function countAuthoredProperties(style: CSSStyleDeclaration): number {
   const families = new Set<string>();
   for (let i = 0; i < style.length; i++) {
-    families.add(getPropertyFamily(style[i]));
+    const prop = style[i];
+    if (prop.startsWith("--")) continue; // skip CSS variables
+    families.add(getPropertyFamily(prop));
   }
   return families.size;
 }
@@ -173,9 +180,11 @@ function analyzeElementClasses(element: Element): ClassAnalysis {
     walkRules(rules, elClasses, element, result, maxPropCount, hasComplexSelector, null);
   }
 
-  // Classify: utility = low property count + only simple selectors
+  // Classify: utility = low property count + simple selectors + utility-looking name.
+  // Requiring the name check prevents false positives on semantic classes with
+  // minimal styling (e.g., .btn-lg with only font-size + padding).
   for (const [cls, maxProps] of maxPropCount) {
-    if (maxProps <= 2 && !hasComplexSelector.has(cls)) {
+    if (maxProps <= 2 && !hasComplexSelector.has(cls) && isKnownUtilityPattern(cls)) {
       result.utilityClasses.add(cls);
     }
   }
@@ -258,9 +267,10 @@ export function getSelectorCandidates(element: Element): SelectorCandidate[] {
 
   const analysis = analyzeElementClasses(element);
 
-  const classes = Array.from(el.classList).filter((name) => {
-    // Always filter out hashed/generated classes
-    if (isHashedClass(name)) return false;
+  const nonHashed = Array.from(el.classList).filter((name) => !isHashedClass(name));
+  if (nonHashed.length === 0) return [];
+
+  const classes = nonHashed.filter((name) => {
     // Always keep compound selector participants (specificity forks)
     if (analysis.compoundClasses.has(name)) return true;
     // Filter out classes detected as utility by stylesheet analysis
@@ -272,21 +282,38 @@ export function getSelectorCandidates(element: Element): SelectorCandidate[] {
     return true;
   });
 
-  if (classes.length === 0) return [];
+  // If filtering removed everything, check if it was truly all utility or if we
+  // were too aggressive. Only fall back to showing all when there's genuine ambiguity
+  // (some classes couldn't be confirmed as utility). For pure-utility elements
+  // (e.g., all Tailwind), show nothing — "This element" is sufficient.
+  let surviving: string[];
+  if (classes.length > 0) {
+    surviving = classes;
+  } else {
+    const allConfirmedUtility = nonHashed.every(
+      (name) =>
+        analysis.utilityClasses.has(name) ||
+        analysis.compoundClasses.has(name) ||
+        (!analysis.classesFoundInRules.has(name) && isKnownUtilityPattern(name))
+    );
+    surviving = allConfirmedUtility ? [] : nonHashed;
+  }
+
+  if (surviving.length === 0) return [];
 
   const candidates: SelectorCandidate[] = [];
 
   // All classes combined (most specific) — only if multiple survived filtering
-  if (classes.length > 1) {
-    const selector = classes.map((c) => `.${c}`).join("");
+  if (surviving.length > 1) {
+    const selector = surviving.map((c) => `.${CSS.escape(c)}`).join("");
     try {
       candidates.push({ selector, count: document.querySelectorAll(selector).length });
     } catch { /* skip */ }
   }
 
   // Individual classes
-  for (const c of classes) {
-    const selector = `.${c}`;
+  for (const c of surviving) {
+    const selector = `.${CSS.escape(c)}`;
     try {
       candidates.push({ selector, count: document.querySelectorAll(selector).length });
     } catch { /* skip */ }

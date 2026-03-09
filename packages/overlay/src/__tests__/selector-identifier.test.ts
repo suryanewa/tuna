@@ -98,6 +98,21 @@ describe("isHashedClass", () => {
     expect(isHashedClass("btn")).toBe(false);
     expect(isHashedClass("nav")).toBe(false);
   });
+
+  it("does not flag BEM classes (double underscore)", () => {
+    expect(isHashedClass("card__header")).toBe(false);
+    expect(isHashedClass("card__body")).toBe(false);
+    expect(isHashedClass("btn__icon")).toBe(false);
+    expect(isHashedClass("nav__item")).toBe(false);
+    expect(isHashedClass("menu__dropdown")).toBe(false);
+    expect(isHashedClass("form__input")).toBe(false);
+  });
+
+  it("does not flag BEM modifier classes (double hyphen)", () => {
+    expect(isHashedClass("card--featured")).toBe(false);
+    expect(isHashedClass("btn--disabled")).toBe(false);
+    expect(isHashedClass("card__header--highlighted")).toBe(false);
+  });
 });
 
 describe("getPropertyFamily (shorthand collapsing)", () => {
@@ -145,6 +160,17 @@ describe("getPropertyFamily (shorthand collapsing)", () => {
     expect(getPropertyFamily("transition-duration")).toBe("transition");
   });
 
+  it("collapses flex shorthand longhands", () => {
+    expect(getPropertyFamily("flex-grow")).toBe("flex");
+    expect(getPropertyFamily("flex-shrink")).toBe("flex");
+    expect(getPropertyFamily("flex-basis")).toBe("flex");
+  });
+
+  it("collapses columns shorthand longhands", () => {
+    expect(getPropertyFamily("column-count")).toBe("columns");
+    expect(getPropertyFamily("column-width")).toBe("columns");
+  });
+
   it("keeps independent properties separate", () => {
     expect(getPropertyFamily("display")).toBe("display");
     expect(getPropertyFamily("color")).toBe("color");
@@ -186,6 +212,22 @@ describe("countAuthoredProperties", () => {
   it("returns 0 for empty style", () => {
     const mockStyle = createMockStyle([]);
     expect(countAuthoredProperties(mockStyle)).toBe(0);
+  });
+
+  it("skips CSS custom properties (--*)", () => {
+    const mockStyle = createMockStyle([
+      "--tw-shadow", "--tw-ring-color",
+      "box-shadow",
+    ]);
+    expect(countAuthoredProperties(mockStyle)).toBe(1); // only box-shadow counts
+  });
+
+  it("skips all custom properties in a utility rule", () => {
+    // Tailwind v4: .shadow-sm { --tw-shadow: ...; --tw-shadow-colored: ...; box-shadow: ... }
+    const mockStyle = createMockStyle([
+      "--tw-shadow", "--tw-shadow-colored", "box-shadow",
+    ]);
+    expect(countAuthoredProperties(mockStyle)).toBe(1);
   });
 });
 

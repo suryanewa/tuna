@@ -45,6 +45,15 @@ import {
   type FilterItem, type FilterType, type FilterTarget,
 } from "../ui/filter-utils";
 
+/** Middle-truncate a string, preserving start and end for readability. */
+function middleTruncate(str: string, maxLen: number): string {
+  if (str.length <= maxLen) return str;
+  const keep = maxLen - 1; // 1 char for ellipsis
+  const start = Math.ceil(keep * 0.4);
+  const end = Math.floor(keep * 0.6);
+  return str.slice(0, start) + "\u2026" + str.slice(-end);
+}
+
 const TEXT_ALIGN_OPTIONS: SegmentedOption[] = [
   { value: "left", icon: <TextAlignLeft />, label: "Left" },
   { value: "center", icon: <TextAlignCenter />, label: "Center" },
@@ -522,7 +531,9 @@ export function PropertyPanel({
                   className={`retune-selector-tag${activeSelector === candidate.selector ? " active" : ""}`}
                   onClick={() => onSelectorChange(candidate.selector)}
                 >
-                  <span className="retune-selector-tag-name">{candidate.selector.replace(/^\./, "")}</span>
+                  <span className="retune-selector-tag-name" title={candidate.selector.replace(/^\./, "")}>
+                    {middleTruncate(candidate.selector.replace(/^\./, ""), 24)}
+                  </span>
                   {candidate.count > 1 && (
                     <span className="retune-selector-tag-count">{candidate.count}</span>
                   )}
