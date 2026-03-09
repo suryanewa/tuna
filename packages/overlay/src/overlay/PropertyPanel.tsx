@@ -487,9 +487,6 @@ export function PropertyPanel({
       {/* Header */}
       <div className="retune-panel-header">
         <div className="retune-el-tag">{element.tagName.toLowerCase()}</div>
-        {element.reactComponents.length > 0 && (
-          <div className="retune-el-component">{element.reactComponents.join(" \u203A ")}</div>
-        )}
         {sharedSelector && sharedSelector.count > 1 && onScopeChange && (
           <div className="retune-scope-row">
             <label className="retune-scope-switch" onClick={() => onScopeChange(scope === "element" ? "class" : "element")}>

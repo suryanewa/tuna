@@ -135,7 +135,7 @@ const TreeNode = memo(function TreeNode({
         </span>
         <span className="retune-tree-tag">{tag}</span>
         {qualifier && <span className="retune-tree-qualifier">{qualifier}</span>}
-        {component && <span className="retune-tree-component">{component}</span>}
+        {component && <span className="retune-tree-component">&lt;{component}&gt;</span>}
       </div>
       {isExpanded && children.map((child, i) => (
         <TreeNode
