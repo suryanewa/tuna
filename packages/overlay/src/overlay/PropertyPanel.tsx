@@ -136,8 +136,9 @@ const LIST_STYLE_OPTIONS: SegmentedOption[] = [
   { value: "decimal", icon: <NumberList />, label: "Numbered" },
 ];
 
-type ChangeScope = "element" | "class";
 type ForcedState = ":hover" | ":focus" | ":active" | null;
+
+type SelectorCandidate = { selector: string; count: number };
 
 export function PropertyPanel({
   element,
@@ -145,9 +146,9 @@ export function PropertyPanel({
   onPropertyChange,
   onPropertyHover,
   onApplyToElement,
-  scope = "element",
-  onScopeChange,
-  sharedSelector,
+  selectorCandidates = [],
+  activeSelector = null,
+  onSelectorChange,
   forcedState = null,
   onForcedStateChange,
 }: {
@@ -156,9 +157,9 @@ export function PropertyPanel({
   onPropertyChange: (property: string, value: string) => void;
   onPropertyHover?: (property: BoxModelProperty) => void;
   onApplyToElement?: (element: Element, property: string, value: string) => void;
-  scope?: ChangeScope;
-  onScopeChange?: (scope: ChangeScope) => void;
-  sharedSelector?: { selector: string; count: number } | null;
+  selectorCandidates?: SelectorCandidate[];
+  activeSelector?: string | null;
+  onSelectorChange?: (selector: string | null) => void;
   forcedState?: ForcedState;
   onForcedStateChange?: (state: ForcedState) => void;
 }) {
@@ -492,16 +493,6 @@ export function PropertyPanel({
       {/* Header */}
       <div className="retune-panel-header">
         <div className="retune-el-tag">{element.tagName.toLowerCase()}</div>
-        {sharedSelector && sharedSelector.count > 1 && onScopeChange && (
-          <div className="retune-scope-row">
-            <label className="retune-scope-switch" onClick={() => onScopeChange(scope === "element" ? "class" : "element")}>
-              <span className="retune-scope-label">Apply to all instances</span>
-              <div className={`retune-switch-track${scope === "class" ? " on" : ""}`}>
-                <div className="retune-switch-thumb" />
-              </div>
-            </label>
-          </div>
-        )}
         {onForcedStateChange && (
           <div className="retune-state-toggles">
             {([":hover", ":focus", ":active"] as const).map((state) => (
@@ -516,6 +507,30 @@ export function PropertyPanel({
           </div>
         )}
       </div>
+
+      {/* Selector */}
+      {selectorCandidates.length > 0 && onSelectorChange && (
+        <Section label="Selector">
+          <div className="retune-selector-picker">
+            <button
+              className={`retune-selector-option${activeSelector === null ? " active" : ""}`}
+              onClick={() => onSelectorChange(null)}
+            >
+              <span className="retune-selector-label">This element</span>
+            </button>
+            {selectorCandidates.map((candidate) => (
+              <button
+                key={candidate.selector}
+                className={`retune-selector-option${activeSelector === candidate.selector ? " active" : ""}`}
+                onClick={() => onSelectorChange(activeSelector === candidate.selector ? null : candidate.selector)}
+              >
+                <span className="retune-selector-label">{candidate.selector}</span>
+                <span className="retune-selector-count">{candidate.count}</span>
+              </button>
+            ))}
+          </div>
+        </Section>
+      )}
 
       {/* Position */}
       <Section label="Position">

@@ -19,7 +19,7 @@ import { ChangeTracker } from "../engine/change-tracker";
 import { formatChanges, collapseShorthands, type Fidelity } from "../engine/output";
 import { BridgeClient } from "../bridge/ws-client";
 import { inspectElement, matchesHotkey } from "../ui/helpers";
-import { getSelector, getSharedSelector } from "../selector/identifier";
+import { getSelector, getSelectorCandidates, type SelectorCandidate } from "../selector/identifier";
 import { getPseudoStateStyles, type ForcedState } from "../inspector/styles";
 import { PropertyPanel } from "./PropertyPanel";
 import { ElementTree } from "./ElementTree";
@@ -105,14 +105,12 @@ function RetuneInner(props: RetuneConfig) {
   const tabPillRef = useRef<HTMLDivElement>(null);
   const tabPillFirstRender = useRef(true);
 
-  // Scope: "element" = this element only, "class" = all matching elements
-  type ChangeScope = "element" | "class";
-  const [scope, setScope] = useState<ChangeScope>("element");
-  const scopeRef = useRef<ChangeScope>(scope);
-  scopeRef.current = scope;
-  const [sharedSelector, setSharedSelector] = useState<{ selector: string; count: number } | null>(null);
-  const sharedSelectorRef = useRef<{ selector: string; count: number } | null>(null);
-  sharedSelectorRef.current = sharedSelector;
+  // Selector candidates for the selected element (class-based selectors with match counts)
+  const [selectorCandidates, setSelectorCandidates] = useState<SelectorCandidate[]>([]);
+  // The active selector: null = element-specific, or a class-based selector string
+  const [activeSelector, setActiveSelector] = useState<string | null>(null);
+  const activeSelectorRef = useRef<string | null>(null);
+  activeSelectorRef.current = activeSelector;
 
   // Forced pseudo-state (:hover, :focus, :active)
   const [forcedState, setForcedState] = useState<ForcedState>(null);
@@ -237,15 +235,17 @@ function RetuneInner(props: RetuneConfig) {
           inspected.position,
         );
 
-        // Compute shared selector and set smart default scope
-        const shared = getSharedSelector(element);
-        setSharedSelector(shared);
-        setScope(shared && shared.count > 1 ? "class" : "element");
+        // Compute all selector candidates and pick smart default
+        const candidates = getSelectorCandidates(element);
+        setSelectorCandidates(candidates);
+        // Default to first candidate with >1 match, or null (element-specific)
+        const defaultCandidate = candidates.find((c) => c.count > 1);
+        setActiveSelector(defaultCandidate ? defaultCandidate.selector : null);
 
-        // Also track the shared selector so changes are recorded correctly
-        if (shared) {
+        // Also track selector candidates so changes are recorded correctly
+        for (const candidate of candidates) {
           tracker.track(
-            shared.selector,
+            candidate.selector,
             inspected.tagName,
             inspected.textContent,
             inspected.classes,
@@ -326,9 +326,7 @@ function RetuneInner(props: RetuneConfig) {
     const preview = previewRef.current;
     const tracker = trackerRef.current;
     if (!el || !preview || !tracker) return;
-    const baseSelector = scopeRef.current === "class" && sharedSelectorRef.current
-      ? sharedSelectorRef.current.selector
-      : el.selector;
+    const baseSelector = activeSelectorRef.current ?? el.selector;
     const selector = forcedStateRef.current
       ? baseSelector + forcedStateRef.current
       : baseSelector;
@@ -519,18 +517,17 @@ function RetuneInner(props: RetuneConfig) {
     refreshSelectedElement();
   }, [syncTrackerState, refreshSelectedElement]);
 
-  const handleScopeChange = useCallback((newScope: "element" | "class") => {
+  const handleSelectorChange = useCallback((newSelector: string | null) => {
     const preview = previewRef.current;
     const tracker = trackerRef.current;
-    if (!preview || !tracker || !selectedElement || !sharedSelector) {
-      setScope(newScope);
+    const el = selectedElementRef.current;
+    if (!preview || !tracker || !el) {
+      setActiveSelector(newSelector);
       return;
     }
 
-    const elementSelector = selectedElement.selector;
-    const classSelector = sharedSelector.selector;
-    const fromSelector = scope === "class" ? classSelector : elementSelector;
-    const toSelector = newScope === "class" ? classSelector : elementSelector;
+    const fromSelector = activeSelectorRef.current ?? el.selector;
+    const toSelector = newSelector ?? el.selector;
 
     if (fromSelector !== toSelector) {
       preview.migrateChanges(fromSelector, toSelector);
@@ -540,8 +537,8 @@ function RetuneInner(props: RetuneConfig) {
       setChangeRevision((r) => r + 1);
     }
 
-    setScope(newScope);
-  }, [selectedElement, sharedSelector, scope, syncTrackerState, refreshSelectedElement]);
+    setActiveSelector(newSelector);
+  }, [syncTrackerState, refreshSelectedElement]);
 
   const handleCopy = useCallback(() => {
     const tracker = trackerRef.current;
@@ -698,9 +695,9 @@ function RetuneInner(props: RetuneConfig) {
                 onPropertyChange={handlePropertyChange}
                 onPropertyHover={setHoveredBoxModel}
                 onApplyToElement={handleApplyToElement}
-                scope={scope}
-                onScopeChange={handleScopeChange}
-                sharedSelector={sharedSelector}
+                selectorCandidates={selectorCandidates}
+                activeSelector={activeSelector}
+                onSelectorChange={handleSelectorChange}
                 forcedState={forcedState}
                 onForcedStateChange={handleForcedStateChange}
               />

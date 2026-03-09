@@ -60,11 +60,25 @@ function buildFallbackSelector(el: Element): string {
  * or null if no good shared selector exists.
  */
 export function getSharedSelector(element: Element): { selector: string; count: number } | null {
-  const el = element as HTMLElement;
-  if (!el.classList || el.classList.length === 0) return null;
+  const candidates = getSelectorCandidates(element);
+  // Return the first candidate that matches >1, or the most specific with count=1
+  for (const c of candidates) {
+    if (c.count > 1) return c;
+  }
+  return candidates.length > 0 ? candidates[0] : null;
+}
 
-  // Build candidate selectors from element's classes, most specific first
-  const tag = el.tagName.toLowerCase();
+export type SelectorCandidate = { selector: string; count: number };
+
+/**
+ * Get all meaningful class-based selector candidates for an element.
+ * Returns candidates ordered from most specific (all classes) to least specific (individual classes).
+ * Each candidate includes the match count (how many elements match that selector).
+ */
+export function getSelectorCandidates(element: Element): SelectorCandidate[] {
+  const el = element as HTMLElement;
+  if (!el.classList || el.classList.length === 0) return [];
+
   const classes = Array.from(el.classList).filter((name) => {
     // Skip dynamic/hashed class names
     if (name.startsWith("_") || name.startsWith("css-")) return false;
@@ -72,38 +86,27 @@ export function getSharedSelector(element: Element): { selector: string; count: 
     return true;
   });
 
-  if (classes.length === 0) return null;
+  if (classes.length === 0) return [];
 
-  // Try combinations: all classes together, then individual classes
-  const candidates: string[] = [];
+  const candidates: SelectorCandidate[] = [];
 
   // All classes combined (most specific)
   if (classes.length > 1) {
-    candidates.push(classes.map((c) => `.${c}`).join(""));
+    const selector = classes.map((c) => `.${c}`).join("");
+    try {
+      candidates.push({ selector, count: document.querySelectorAll(selector).length });
+    } catch { /* skip */ }
   }
 
   // Individual classes
   for (const c of classes) {
-    candidates.push(`.${c}`);
-  }
-
-  // Pick the first candidate that matches multiple elements
-  for (const selector of candidates) {
+    const selector = `.${c}`;
     try {
-      const matches = document.querySelectorAll(selector);
-      if (matches.length > 1) {
-        return { selector, count: matches.length };
-      }
-    } catch {
-      continue;
-    }
+      candidates.push({ selector, count: document.querySelectorAll(selector).length });
+    } catch { /* skip */ }
   }
 
-  // If all classes only match this one element, return the most specific with count=1
-  const bestSelector = classes.length > 1
-    ? classes.map((c) => `.${c}`).join("")
-    : `.${classes[0]}`;
-  return { selector: bestSelector, count: 1 };
+  return candidates;
 }
 
 /** Get React fiber from a DOM element */
