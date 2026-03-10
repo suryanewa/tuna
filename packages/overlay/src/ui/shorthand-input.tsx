@@ -140,10 +140,15 @@ export function ShorthandInput({ label, props, values, onChange, placeholder, mi
       e.preventDefault();
       const step = e.shiftKey ? 10 : 1;
       const delta = e.key === "ArrowUp" ? step : -step;
-      const newVals = values.map((v) => {
-        const num = parseFloat(v);
+      // Parse from localValue (up-to-date) not values prop (may be stale)
+      const parts = localValue.includes(",")
+        ? localValue.split(",").map((s) => s.trim())
+        : props.map(() => localValue.trim());
+      const newVals = props.map((_, i) => {
+        const part = parts[i] || parts[0];
+        const num = parseFloat(part);
         const base = isNaN(num) ? 0 : num;
-        const unit = isNaN(num) ? "px" : (v.match(/[a-z%]+$/i)?.[0] || "px");
+        const unit = isNaN(num) ? "px" : (part.match(/[a-z%]+$/i)?.[0] || "px");
         return `${clampNum(base + delta, min, max)}${unit}`;
       });
       setLocalValue(computeDisplay(newVals));
