@@ -296,8 +296,8 @@ export function PropertyPanel({
     setPrevBgImage(s.backgroundImage);
     if (!gradientEditingRef.current) {
       const newMode = detectFillMode(s.backgroundColor, s.backgroundImage);
+      setFillMode(newMode);
       if (newMode !== "solid") {
-        setFillMode(newMode);
         const parsed = parseCssGradient(s.backgroundImage || "");
         if (parsed) setGradient(parsed);
       }

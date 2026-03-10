@@ -248,6 +248,19 @@ function RetuneInner(props: RetuneConfig) {
           inspected.computedStyles = getScopedStyles(element, defaultSelector);
         }
 
+        // Overlay preview changes so re-selecting a previously edited element
+        // shows the current (edited) values, not the original stylesheet values.
+        if (preview) {
+          for (const change of preview.getChanges()) {
+            const baseSel = change.selector.replace(/:(hover|focus|active)$/g, "");
+            try {
+              if (element.matches(baseSel)) {
+                inspected.computedStyles[change.property] = change.value;
+              }
+            } catch { /* invalid selector */ }
+          }
+        }
+
         setSelectedElement(inspected);
         tracker.track(
           inspected.selector,
@@ -351,13 +364,13 @@ function RetuneInner(props: RetuneConfig) {
       // (getScopedStyles reads original stylesheet values, not preview overrides)
       const preview = previewRef.current;
       if (preview) {
-        const baseSelector = scope ?? prev.selector;
-        const pseudoSuffix = forcedStateRef.current || "";
-        const previewSelector = baseSelector + pseudoSuffix;
         for (const change of preview.getChanges()) {
-          if (change.selector === previewSelector) {
-            inspected.computedStyles[change.property] = change.value;
-          }
+          const baseSel = change.selector.replace(/:(hover|focus|active)$/g, "");
+          try {
+            if (prev.element.matches(baseSel)) {
+              inspected.computedStyles[change.property] = change.value;
+            }
+          } catch { /* invalid selector */ }
         }
       }
       return inspected;
@@ -737,6 +750,7 @@ function RetuneInner(props: RetuneConfig) {
             )}
             {panelTab === "design" && selectedElement && (
               <PropertyPanel
+                key={selectedElement.selector}
                 element={selectedElement}
                 position={side}
                 onPropertyChange={handlePropertyChange}
