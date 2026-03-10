@@ -575,8 +575,8 @@
   overflow: hidden;
 }
 
-.retune-align-btn + .retune-align-btn {
-  border-left: 1px solid #e7e5e4;
+.retune-btn-group > :not(:first-child) > .retune-align-btn {
+  box-shadow: inset 1px 0 0 #fff;
 }
 
 .retune-align-btn {
