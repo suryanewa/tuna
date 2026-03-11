@@ -2077,6 +2077,140 @@
 }
 
 /* ── Reduced Motion ── */
+/* ── Token Indicator (dot on inputs when value comes from a token) ── */
+.retune-token-dot {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  z-index: 2;
+  border-radius: 50%;
+  transition: background-color 0.15s ease;
+}
+
+.retune-token-dot:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.retune-token-dot-inner {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #3b82f6;
+}
+
+/* ── Token Picker (floating panel for browsing tokens) ── */
+.retune-token-picker {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  max-height: 240px;
+  display: flex;
+  flex-direction: column;
+  animation: retune-picker-enter 150ms ease-out;
+}
+
+@keyframes retune-picker-enter {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.retune-token-picker-header {
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.retune-token-picker-current {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.retune-token-picker-label {
+  font-family: InterVariable, Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.retune-token-picker-class {
+  font-family: 'SF Mono', 'Fira Code', 'Fira Mono', 'Roboto Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  color: #3b82f6;
+}
+
+.retune-token-picker-list {
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.retune-token-picker-empty {
+  padding: 12px 8px;
+  font-family: InterVariable, Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 11px;
+  color: rgba(0, 0, 0, 0.4);
+  text-align: center;
+}
+
+.retune-token-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s ease;
+}
+
+.retune-token-picker-item:hover {
+  background: #f5f5f4;
+}
+
+.retune-token-picker-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+.retune-token-picker-item-name {
+  font-family: 'SF Mono', 'Fira Code', 'Fira Mono', 'Roboto Mono', monospace;
+  font-size: 11px;
+  font-weight: 450;
+  color: #1c1917;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.retune-token-picker-item-value {
+  font-family: 'SF Mono', 'Fira Code', 'Fira Mono', 'Roboto Mono', monospace;
+  font-size: 10px;
+  color: rgba(0, 0, 0, 0.4);
+  flex-shrink: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .retune-toolbar,
   .retune-toolbar-collapse-btn,
@@ -2111,7 +2245,12 @@
   .retune-toolbar.expanded .retune-toolbar-expanded > *,
   .retune-toolbar.collapsed .retune-toolbar-collapse-btn,
   .retune-grid-picker-dialog,
-  .retune-combo-dropdown-anchor {
+  .retune-combo-dropdown-anchor,
+  .retune-token-picker {
     animation: none;
+  }
+
+  .retune-token-dot {
+    transition: none;
   }
 }

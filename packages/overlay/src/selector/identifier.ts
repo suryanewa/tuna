@@ -307,7 +307,7 @@ export function countAuthoredProperties(style: CSSStyleDeclaration): number {
 }
 
 /** Check if a selector is a simple single-class selector (no combinators, no compound). */
-function isSimpleClassSelector(selectorText: string): boolean {
+export function isSimpleClassSelector(selectorText: string): boolean {
   return selectorText.split(",").every(sel => {
     const s = sel.trim();
     // Remove pseudo-classes/elements for structural analysis

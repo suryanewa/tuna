@@ -13,6 +13,8 @@ import type { ElementChange } from "../types";
 import { type TokenMap, scanDesignTokens, findTokensForValue, summarizeTokenSystem } from "../inspector/tokens";
 import { type StyleSource, findStyleSources, formatStyleSource } from "../inspector/style-source";
 import { camelToKebab, truncate } from "../utils";
+import { findTokenForValue as findUtilityToken } from "../tokens/resolver";
+import { getCategoryForCamelProp } from "../tokens/categories";
 
 export type Fidelity = "minimal" | "standard" | "full";
 
@@ -211,7 +213,7 @@ function formatSingleChange(change: ElementChange, fidelity: Fidelity, tokenMap:
 
   for (const prop of collapsed) {
     const kebab = camelToKebab(prop.property);
-    const tokenHint = getTokenHint(prop.to, tokenMap);
+    const tokenHint = getTokenHint(prop.to, tokenMap, prop.property);
     const source = sourceMap.get(prop.property);
     const sourceStr = source ? formatStyleSource(source) : "—";
     lines.push(`| \`${kebab}\` | \`${prop.from}\` | \`${prop.to}\` | ${sourceStr} | ${tokenHint} |`);
@@ -257,16 +259,44 @@ function formatStylingApproach(approach: string): string {
   }
 }
 
-function getTokenHint(value: string, tokenMap: TokenMap): string {
+function getTokenHint(value: string, tokenMap: TokenMap, property?: string): string {
+  const hints: string[] = [];
+
+  // Check CSS custom properties (design tokens)
   const tokens = findTokensForValue(value, tokenMap);
-  if (tokens.length === 0) return "—";
-  // Show up to 2 matching tokens
-  const display = tokens.slice(0, 2).map(t => `\`var(${t})\``).join(", ");
-  return tokens.length > 2 ? `${display} +${tokens.length - 2} more` : display;
+  if (tokens.length > 0) {
+    const display = tokens.slice(0, 2).map(t => `\`var(${t})\``).join(", ");
+    hints.push(tokens.length > 2 ? `${display} +${tokens.length - 2} more` : display);
+  }
+
+  // Check utility class tokens (from stylesheet scan)
+  if (property) {
+    const kebab = camelToKebab(property);
+    const utilToken = findUtilityToken(kebab, value);
+    if (utilToken) {
+      hints.push(`\`.${utilToken.className}\``);
+    }
+  }
+
+  return hints.length > 0 ? hints.join(", ") : "—";
 }
 
 function getImplementationHint(change: ElementChange): string | null {
   const approach = change.stylingApproach;
+
+  // Prescriptive class-swap hints using utility token registry
+  const swapHints: string[] = [];
+  for (const prop of change.changes) {
+    const kebab = camelToKebab(prop.property);
+    const fromToken = findUtilityToken(kebab, prop.from);
+    const toToken = findUtilityToken(kebab, prop.to);
+    if (fromToken && toToken && fromToken.className !== toToken.className) {
+      swapHints.push(`swap \`.${fromToken.className}\` → \`.${toToken.className}\``);
+    }
+  }
+  if (swapHints.length > 0) {
+    return swapHints.join("; ");
+  }
 
   if (approach === "tailwind") {
     const hints: string[] = [];

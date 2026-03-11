@@ -5,6 +5,8 @@
 
 import { useState, useRef, type ReactNode } from "react";
 import { roundCssValue, inferCssUnit } from "./round-css-value";
+import type { TokenMatch } from "../tokens/types";
+import { TokenIndicator } from "./token-indicator";
 
 function clampNum(val: number, min?: number, max?: number): number {
   if (min !== undefined && val < min) return min;
@@ -34,9 +36,13 @@ export interface NumberInputProps {
   max?: number;
   /** Step size for arrow keys and scrub (default: 1, shift multiplies by 10) */
   step?: number;
+  /** Token match — shows a dot indicator when the value comes from a utility token */
+  tokenMatch?: TokenMatch;
+  /** Called when the token indicator is clicked */
+  onTokenClick?: (prop: string, match: TokenMatch, anchorEl: HTMLElement) => void;
 }
 
-export function NumberInput({ label, prop, value, placeholder, onChange, min, max, step: stepProp }: NumberInputProps) {
+export function NumberInput({ label, prop, value, placeholder, onChange, min, max, step: stepProp, tokenMatch, onTokenClick }: NumberInputProps) {
   const [localValue, setLocalValue] = useState(roundCssValue(value || ""));
   const labelRef = useRef<HTMLSpanElement>(null);
 
@@ -159,8 +165,10 @@ export function NumberInput({ label, prop, value, placeholder, onChange, min, ma
     }
   };
 
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
   return (
-    <div className="retune-prop">
+    <div ref={wrapperRef} className={`retune-prop${tokenMatch ? " retune-prop-has-token" : ""}`}>
       {label && (
         <span
           ref={labelRef}
@@ -175,7 +183,7 @@ export function NumberInput({ label, prop, value, placeholder, onChange, min, ma
       <input
         ref={inputRef}
         className="retune-prop-input"
-        style={label ? undefined : { paddingLeft: 8 }}
+        style={label ? (tokenMatch ? { paddingRight: 22 } : undefined) : { paddingLeft: 8, ...(tokenMatch ? { paddingRight: 22 } : {}) }}
         value={localValue}
         placeholder={placeholder}
         onPointerDown={!label ? handleInputPointerDown : undefined}
@@ -187,6 +195,12 @@ export function NumberInput({ label, prop, value, placeholder, onChange, min, ma
         onKeyDown={handleKeyDown}
         spellCheck={false}
       />
+      {tokenMatch && onTokenClick && (
+        <TokenIndicator
+          match={tokenMatch}
+          onClick={() => onTokenClick(prop, tokenMatch, wrapperRef.current!)}
+        />
+      )}
     </div>
   );
 }
