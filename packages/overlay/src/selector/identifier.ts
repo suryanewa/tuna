@@ -68,7 +68,12 @@ export function getSharedSelector(element: Element): { selector: string; count: 
   return candidates.length > 0 ? candidates[0] : null;
 }
 
-export type SelectorCandidate = { selector: string; count: number };
+export type SelectorCandidate = {
+  selector: string;
+  count: number;
+  /** Classification verdict: semantic classes are shown, utility classes are collapsed */
+  verdict: "semantic" | "utility" | "ambiguous";
+};
 
 // ---- Hashed / generated class detection (structural, framework-agnostic) ----
 
@@ -80,17 +85,183 @@ export function isHashedClass(name: string): boolean {
   return false;
 }
 
-// ---- Name-based utility pattern (fallback for cross-origin sheets) ----
+// ---- Name-based utility scoring (fallback for cross-origin sheets) ----
 
-const KNOWN_UTILITY_PATTERN = /^-?(?:m|p|w|h|text|bg|border|flex|grid|gap|space|rounded|shadow|opacity|font|leading|tracking|z|inset|top|right|bottom|left|min|max|overflow|cursor|transition|duration|ease|delay|animate|scale|rotate|translate|skew|origin|ring|outline|placeholder|divide|sr|not-sr|container|prose|aspect|columns|break|decoration|underline|overline|line-through|no-underline|antialiased|subpixel|italic|not-italic|normal-case|uppercase|lowercase|capitalize|truncate|indent|align|whitespace|hyphens|content|list|object|overflow|scroll|snap|touch|select|resize|appearance|accent|caret|will-change|fill|stroke)\b/;
-const VARIANT_PREFIX = /^(sm|md|lg|xl|2xl|dark|hover|focus|active|group|peer):/;
+/** Stems that are known utility property prefixes (Tailwind, Bootstrap, etc.) */
+const UTILITY_STEMS = new Set([
+  // Spacing
+  "m", "mx", "my", "mt", "mr", "mb", "ml", "ms", "me",
+  "p", "px", "py", "pt", "pr", "pb", "pl", "ps", "pe",
+  "space", "gap",
+  // Sizing
+  "w", "h", "min-w", "max-w", "min-h", "max-h", "size",
+  // Typography
+  "text", "font", "leading", "tracking", "indent",
+  // Colors
+  "bg", "from", "via", "to",
+  // Borders
+  "border", "rounded", "ring", "outline", "divide",
+  // Layout
+  "flex", "grid", "col", "row", "place", "items", "justify", "self",
+  "order", "float", "clear", "basis", "grow", "shrink", "wrap",
+  // Positioning
+  "inset", "top", "right", "bottom", "left", "z",
+  // Visual
+  "shadow", "opacity", "blur", "brightness", "contrast", "saturate",
+  "backdrop", "mix-blend",
+  // Behavior
+  "overflow", "overscroll", "scroll", "snap", "touch", "select",
+  "cursor", "pointer-events", "resize", "appearance",
+  // Transitions
+  "transition", "duration", "ease", "delay", "animate",
+  // Transforms
+  "scale", "rotate", "translate", "skew", "origin",
+  // Other
+  "aspect", "columns", "break", "object", "decoration",
+  "underline", "overline", "line-through", "no-underline",
+  "uppercase", "lowercase", "capitalize", "normal-case", "truncate",
+  "antialiased", "subpixel-antialiased",
+  "whitespace", "hyphens", "content", "list", "sr", "not-sr",
+  "will-change", "fill", "stroke", "caret", "accent",
+  "container", "prose",
+  // Single-word Tailwind utilities
+  "block", "inline", "inline-block", "inline-flex", "inline-grid",
+  "hidden", "visible", "invisible", "collapse",
+  "static", "relative", "absolute", "fixed", "sticky",
+  "isolate", "isolation",
+  "table", "table-caption", "table-cell", "table-column",
+  "table-row", "table-footer-group", "table-header-group",
+  "table-row-group", "table-column-group",
+  "contents", "flow-root",
+  "line-clamp",
+  "italic", "not-italic",
+  // Tailwind v4 additions
+  "inset-ring", "inset-shadow", "field-sizing",
+  "text-wrap", "text-nowrap", "text-balance", "text-pretty",
+]);
 
-/** Regex-only fallback for classes not found in accessible stylesheets.
- *  Used when cross-origin restrictions prevent rule analysis. */
+/** Stems that strongly indicate semantic/component classes */
+const SEMANTIC_STEMS = new Set([
+  "btn", "button", "card", "modal", "nav", "header", "footer", "sidebar",
+  "hero", "section", "container-fluid", "wrapper", "layout", "page", "view",
+  "panel", "dialog", "menu", "toolbar", "badge", "chip", "avatar", "icon",
+  "logo", "form", "input", "table", "list", "item", "link", "tab",
+  "accordion", "carousel", "dropdown", "tooltip", "popover", "alert",
+  "toast", "banner", "widget",
+]);
+
+/** Common keyword values used after utility stems (non-numeric suffixes) */
+const UTILITY_KEYWORD_VALUES = new Set([
+  // font-weight
+  "thin", "extralight", "light", "normal", "medium", "semibold", "bold", "extrabold", "black",
+  // leading
+  "none", "tight", "snug", "relaxed", "loose",
+  // tracking
+  "tighter", "wide", "wider", "widest",
+  // overflow / visibility
+  "hidden", "visible", "scroll", "auto", "clip",
+  // shadow
+  "inner", "outer", "inset",
+  // text-align / justify / align
+  "left", "center", "right", "justify", "start", "end",
+  // flex direction / wrap
+  "row", "col", "wrap", "nowrap", "reverse",
+  // object-fit
+  "cover", "contain", "fill",
+  // alignment
+  "baseline", "stretch", "between", "around", "evenly",
+  // cursor
+  "pointer", "default", "move", "grab", "grabbing", "not-allowed", "wait", "crosshair",
+  // misc
+  "ellipsis", "truncate", "clamp",
+]);
+
+/** All known variant prefixes (responsive, state, pseudo, etc.) */
+const VARIANT_PREFIX = /^(?:sm|md|lg|xl|2xl|3xl|4xl|5xl|min-sm|min-md|min-lg|min-xl|min-2xl|max-sm|max-md|max-lg|max-xl|max-2xl|dark|light|hover|focus|focus-within|focus-visible|active|visited|target|first|last|only|odd|even|first-of-type|last-of-type|only-of-type|empty|disabled|enabled|checked|indeterminate|default|required|valid|invalid|in-range|out-of-range|placeholder-shown|autofill|read-only|open|closed|before|after|first-letter|first-line|marker|selection|file|backdrop|placeholder|group-hover|group-focus|group-active|group-first|group-last|peer-hover|peer-focus|peer-checked|peer-disabled|has|not|is|where|supports|aria|data|rtl|ltr|print|portrait|landscape|motion-safe|motion-reduce|contrast-more|contrast-less|forced-colors):/;
+
+/**
+ * Extract the "stem" from a utility class name.
+ * "bg-red-500" → "bg", "mt-4" → "mt", "-translate-x-1/2" → "translate"
+ */
+function extractStem(name: string): string {
+  // Remove variant prefix: "hover:bg-red-500" → "bg-red-500"
+  const stripped = name.replace(/^.*?:/, "");
+  // Remove negative prefix and bang modifiers
+  const clean = stripped.replace(/^[-!]/, "");
+  // Try matching multi-word stems first (e.g., "min-w", "max-h", "line-clamp")
+  const multiMatch = clean.match(/^([a-z]+-[a-z]+)(?=-|$)/);
+  if (multiMatch && UTILITY_STEMS.has(multiMatch[1])) return multiMatch[1];
+  // Single-word stem
+  return clean.split("-")[0];
+}
+
+/**
+ * Score a class name on a 0-1 scale for how likely it is to be a utility class.
+ * Higher = more likely utility. Uses name patterns only (no stylesheet access).
+ */
+export function scoreNamePattern(name: string): { score: number; confidence: number } {
+  // Definitive signals — these are ALWAYS utility, no ambiguity
+  if (VARIANT_PREFIX.test(name)) return { score: 1.0, confidence: 0.95 };
+  if (/\[.+\]/.test(name)) return { score: 1.0, confidence: 0.95 }; // arbitrary values
+  if (/^[a-z][\w-]*\/\d+$/.test(name)) return { score: 1.0, confidence: 0.95 }; // slash opacity
+  if (/!$/.test(name)) return { score: 0.95, confidence: 0.90 }; // Tailwind v4 trailing bang
+
+  const stem = extractStem(name);
+
+  // BEM patterns are always semantic (before any utility checks)
+  if (name.includes("__") || /--[a-z]/.test(name)) return { score: 0.05, confidence: 0.80 };
+
+  // Bare-word utility stems (flex, grid, hidden, block, relative, etc.)
+  // Check before semantic/state to avoid false negatives on common utility keywords
+  if (UTILITY_STEMS.has(name)) {
+    return { score: 0.80, confidence: 0.75 };
+  }
+
+  // Check semantic stems (strong counter-signal)
+  if (SEMANTIC_STEMS.has(stem)) return { score: 0.15, confidence: 0.70 };
+
+  // State classes lean semantic (only reached for non-utility-stem words)
+  if (/^(is-|has-|not-|no-|active|disabled|selected|open|closed|collapsed|expanded|loading|error|success|warning|checked|focused|pressed|dragging)$/.test(name)) {
+    return { score: 0.25, confidence: 0.50 };
+  }
+
+  // Check if stem is a known utility stem
+  const isUtilityStem = UTILITY_STEMS.has(stem);
+  // Check for numeric/size suffix pattern (p-4, mt-8, gap-2)
+  const hasValueSuffix = /-(\d+\.?\d*|xs|sm|md|lg|xl|2xl|3xl|4xl|5xl|6xl|7xl|auto|full|screen|fit|min|max|none|px|0\.5|1\.5|2\.5|3\.5)$/.test(name);
+  // Check for color pattern (bg-red-500, text-blue-200)
+  const hasColorPattern = /-(slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|black|white|transparent|current|inherit)-?\d*$/.test(name);
+  // Check for keyword value suffix (font-bold, leading-tight, overflow-hidden)
+  const suffix = name.length > stem.length ? name.slice(stem.length + 1) : "";
+  const hasKeywordValue = suffix !== "" && UTILITY_KEYWORD_VALUES.has(suffix);
+
+  if (isUtilityStem && (hasValueSuffix || hasColorPattern || hasKeywordValue)) {
+    return { score: 0.85, confidence: 0.80 };
+  }
+  if (isUtilityStem) {
+    // Stem matches but suffix doesn't look like a known value (e.g., "text-hero")
+    // Could be either — don't be aggressive
+    return { score: 0.50, confidence: 0.40 };
+  }
+  if (hasValueSuffix && !isUtilityStem) {
+    // Has a value suffix but unknown stem (e.g., "spacing-4", "sz-md")
+    return { score: 0.55, confidence: 0.35 };
+  }
+
+  // Short names with hyphens and numbers tend to be utility
+  if (name.length <= 6 && /^[a-z]+-\d/.test(name)) {
+    return { score: 0.70, confidence: 0.50 };
+  }
+
+  // Default: no strong signals
+  return { score: 0.35, confidence: 0.20 };
+}
+
+/** Legacy API — kept for backward compatibility with tests.
+ *  Returns true if the score exceeds the utility threshold. */
 export function isKnownUtilityPattern(name: string): boolean {
-  return KNOWN_UTILITY_PATTERN.test(name) || VARIANT_PREFIX.test(name)
-    || /\[.*\]/.test(name)  // arbitrary values: w-[200px]
-    || /\//.test(name);     // slash values: bg-black/50
+  const { score } = scoreNamePattern(name);
+  return score >= 0.65;
 }
 
 // ---- Stylesheet-based utility detection (framework-agnostic) ----
@@ -153,11 +324,15 @@ function isSimpleClassSelector(selectorText: string): boolean {
  * Analyze an element's classes against actual stylesheet rules in a single pass.
  * Framework-agnostic: detects utility classes by their CSS structure
  * (low property count + simple selectors) rather than naming conventions.
+ *
+ * Returns per-class scores combining structural (stylesheet) and name signals.
  */
 interface ClassAnalysis {
   compoundClasses: Set<string>;
   utilityClasses: Set<string>;
   classesFoundInRules: Set<string>;
+  /** Per-class utility score (0=semantic, 1=utility) with confidence */
+  scores: Map<string, { score: number; confidence: number; verdict: "semantic" | "utility" | "ambiguous" }>;
 }
 
 function analyzeElementClasses(element: Element): ClassAnalysis {
@@ -166,6 +341,7 @@ function analyzeElementClasses(element: Element): ClassAnalysis {
     compoundClasses: new Set(),
     utilityClasses: new Set(),
     classesFoundInRules: new Set(),
+    scores: new Map(),
   };
 
   if (elClasses.length === 0) return result;
@@ -180,13 +356,89 @@ function analyzeElementClasses(element: Element): ClassAnalysis {
     walkRules(rules, elClasses, element, result, maxPropCount, hasComplexSelector, null);
   }
 
-  // Classify: utility = low property count + simple selectors + utility-looking name.
-  // Requiring the name check prevents false positives on semantic classes with
-  // minimal styling (e.g., .btn-lg with only font-size + padding).
-  for (const [cls, maxProps] of maxPropCount) {
-    if (maxProps <= 2 && !hasComplexSelector.has(cls) && isKnownUtilityPattern(cls)) {
-      result.utilityClasses.add(cls);
+  // ── Score each class by combining structural + name signals ──
+  const nonHashed = elClasses.filter(c => !isHashedClass(c));
+
+  for (const cls of nonHashed) {
+    // Already classified by @layer utilities — definitive
+    if (result.utilityClasses.has(cls)) {
+      result.scores.set(cls, { score: 1.0, confidence: 0.98, verdict: "utility" });
+      continue;
     }
+
+    const nameSignal = scoreNamePattern(cls);
+    const foundInRules = result.classesFoundInRules.has(cls);
+
+    let sheetScore: { score: number; confidence: number } | null = null;
+
+    if (foundInRules) {
+      const maxProps = maxPropCount.get(cls) ?? 0;
+      const isComplex = hasComplexSelector.has(cls);
+
+      if (maxProps <= 1 && !isComplex) {
+        sheetScore = { score: 0.90, confidence: 0.85 };
+      } else if (maxProps <= 2 && !isComplex) {
+        sheetScore = { score: 0.75, confidence: 0.80 };
+      } else if (maxProps <= 3 && !isComplex) {
+        sheetScore = { score: 0.50, confidence: 0.65 };
+      } else if (maxProps >= 5) {
+        sheetScore = { score: 0.10, confidence: 0.85 }; // multi-property = semantic
+      } else if (isComplex) {
+        // Complex selectors indicate semantic/component classes
+        sheetScore = { score: Math.max(0, 0.30 - maxProps * 0.05), confidence: 0.75 };
+      } else {
+        sheetScore = { score: 0.40, confidence: 0.60 };
+      }
+    }
+
+    // Combine signals
+    let finalScore: number;
+    let finalConfidence: number;
+
+    if (sheetScore) {
+      // Strong disagreement: name says semantic but sheet says utility →
+      // trust the name. Component variants (btn-lg, card--compact) intentionally
+      // have few properties — low prop count doesn't make them utility.
+      if (nameSignal.score <= 0.25 && sheetScore.score >= 0.65) {
+        finalScore = nameSignal.score;
+        finalConfidence = nameSignal.confidence;
+      } else {
+        // Both signals available — weighted average favoring stylesheet (more reliable)
+        finalScore = sheetScore.score * 0.65 + nameSignal.score * 0.35;
+        finalConfidence = Math.max(sheetScore.confidence, nameSignal.confidence);
+        // Concordance: both agree → boost confidence
+        if (Math.abs(sheetScore.score - nameSignal.score) < 0.2) {
+          finalConfidence = Math.min(finalConfidence + 0.10, 1.0);
+        }
+      }
+    } else {
+      // Cross-origin: name signal only, slight confidence penalty
+      finalScore = nameSignal.score;
+      finalConfidence = nameSignal.confidence * 0.9;
+    }
+
+    // Context adjustment: elements with many non-hashed classes are likely utility-heavy
+    if (nonHashed.length >= 10 && finalScore >= 0.35 && finalScore <= 0.65) {
+      finalScore = Math.min(finalScore + 0.10, 1.0);
+    } else if (nonHashed.length <= 2 && finalScore >= 0.35 && finalScore <= 0.65) {
+      finalScore = Math.max(finalScore - 0.10, 0);
+    }
+
+    // Assign verdict
+    let verdict: "semantic" | "utility" | "ambiguous";
+    if (finalScore >= 0.65) {
+      verdict = "utility";
+      result.utilityClasses.add(cls);
+    } else if (finalScore <= 0.35) {
+      verdict = "semantic";
+    } else if (finalConfidence >= 0.70) {
+      verdict = finalScore >= 0.50 ? "utility" : "semantic";
+      if (verdict === "utility") result.utilityClasses.add(cls);
+    } else {
+      verdict = "ambiguous";
+    }
+
+    result.scores.set(cls, { score: finalScore, confidence: finalConfidence, verdict });
   }
 
   return result;
@@ -258,8 +510,13 @@ function walkRules(
 
 /**
  * Get meaningful class-based selector candidates for an element.
- * Uses stylesheet rule analysis (framework-agnostic) as the primary signal,
- * with regex pattern matching as a fallback for cross-origin sheets.
+ * Uses multi-signal scoring (stylesheet analysis + name patterns + context)
+ * to classify each class as semantic, utility, or ambiguous.
+ *
+ * Returns candidates with verdicts so the UI can display them appropriately:
+ * - semantic: shown as prominent selectable tags
+ * - ambiguous: shown but visually distinguished
+ * - utility: collapsed into a "Show N utility classes" disclosure
  */
 export function getSelectorCandidates(element: Element): SelectorCandidate[] {
   const el = element as HTMLElement;
@@ -270,52 +527,79 @@ export function getSelectorCandidates(element: Element): SelectorCandidate[] {
   const nonHashed = Array.from(el.classList).filter((name) => !isHashedClass(name));
   if (nonHashed.length === 0) return [];
 
-  const classes = nonHashed.filter((name) => {
-    // Always keep compound selector participants (specificity forks)
-    if (analysis.compoundClasses.has(name)) return true;
-    // Filter out classes detected as utility by stylesheet analysis
-    if (analysis.utilityClasses.has(name)) return false;
-    // For classes not found in any accessible sheet, use regex fallback
-    if (!analysis.classesFoundInRules.has(name)) {
-      if (isKnownUtilityPattern(name)) return false;
-    }
-    return true;
-  });
-
-  // If filtering removed everything, check if it was truly all utility or if we
-  // were too aggressive. Only fall back to showing all when there's genuine ambiguity
-  // (some classes couldn't be confirmed as utility). For pure-utility elements
-  // (e.g., all Tailwind), show nothing — "This element" is sufficient.
-  let surviving: string[];
-  if (classes.length > 0) {
-    surviving = classes;
-  } else {
-    const allConfirmedUtility = nonHashed.every(
-      (name) =>
-        analysis.utilityClasses.has(name) ||
-        analysis.compoundClasses.has(name) ||
-        (!analysis.classesFoundInRules.has(name) && isKnownUtilityPattern(name))
-    );
-    surviving = allConfirmedUtility ? [] : nonHashed;
-  }
-
-  if (surviving.length === 0) return [];
-
   const candidates: SelectorCandidate[] = [];
 
-  // All classes combined (most specific) — only if multiple survived filtering
-  if (surviving.length > 1) {
-    const selector = surviving.map((c) => `.${CSS.escape(c)}`).join("");
+  // Separate classes by verdict
+  const semantic: string[] = [];
+  const ambiguous: string[] = [];
+  const utility: string[] = [];
+
+  for (const name of nonHashed) {
+    const info = analysis.scores.get(name);
+    if (!info) {
+      // No score computed (shouldn't happen, but be safe)
+      ambiguous.push(name);
+      continue;
+    }
+    // Compound selector participants are always shown as semantic
+    if (analysis.compoundClasses.has(name) && info.verdict === "utility") {
+      semantic.push(name);
+      continue;
+    }
+    switch (info.verdict) {
+      case "semantic": semantic.push(name); break;
+      case "ambiguous": ambiguous.push(name); break;
+      case "utility": utility.push(name); break;
+    }
+  }
+
+  // Build candidates: semantic classes first (most relevant), then ambiguous
+
+  // If multiple semantic classes, add combined selector as first option
+  if (semantic.length > 1) {
+    const selector = semantic.map((c) => `.${CSS.escape(c)}`).join("");
     try {
-      candidates.push({ selector, count: document.querySelectorAll(selector).length });
+      candidates.push({
+        selector,
+        count: document.querySelectorAll(selector).length,
+        verdict: "semantic",
+      });
     } catch { /* skip */ }
   }
 
-  // Individual classes
-  for (const c of surviving) {
+  // Individual semantic classes
+  for (const c of semantic) {
     const selector = `.${CSS.escape(c)}`;
     try {
-      candidates.push({ selector, count: document.querySelectorAll(selector).length });
+      candidates.push({
+        selector,
+        count: document.querySelectorAll(selector).length,
+        verdict: "semantic",
+      });
+    } catch { /* skip */ }
+  }
+
+  // Ambiguous classes (shown but may be visually distinguished)
+  for (const c of ambiguous) {
+    const selector = `.${CSS.escape(c)}`;
+    try {
+      candidates.push({
+        selector,
+        count: document.querySelectorAll(selector).length,
+        verdict: "ambiguous",
+      });
+    } catch { /* skip */ }
+  }
+
+  // Utility classes (collapsed by default in UI)
+  for (const c of utility) {
+    const selector = `.${CSS.escape(c)}`;
+    try {
+      candidates.push({
+        selector,
+        count: document.querySelectorAll(selector).length,
+        verdict: "utility",
+      });
     } catch { /* skip */ }
   }
 

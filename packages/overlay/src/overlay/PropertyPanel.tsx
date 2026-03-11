@@ -34,7 +34,7 @@ import {
   AlSpacingHorizontal, AlSpacingVertical,
   RadiusTopLeft, RadiusTopRight, RadiusBottomLeft, RadiusBottomRight,
   RectangleSmall, AutolayoutAddHorizontal, AutolayoutAddVertical, GridView,
-  Plus, Minus, ChevronDown, AdjustSmall, ListView, NumberList, EyeSmall, HiddenSmall,
+  Plus, Minus, AdjustSmall, ListView, NumberList, EyeSmall, HiddenSmall,
 } from "../ui/icons";
 import { Tooltip } from "../ui/tooltip";
 import { ShorthandInput } from "../ui/shorthand-input";
@@ -53,6 +53,7 @@ function middleTruncate(str: string, maxLen: number): string {
   const end = Math.floor(keep * 0.6);
   return str.slice(0, start) + "\u2026" + str.slice(-end);
 }
+
 
 const TEXT_ALIGN_OPTIONS: SegmentedOption[] = [
   { value: "left", icon: <TextAlignLeft />, label: "Left" },
@@ -147,7 +148,7 @@ const LIST_STYLE_OPTIONS: SegmentedOption[] = [
 
 type ForcedState = ":hover" | ":focus" | ":active" | null;
 
-type SelectorCandidate = { selector: string; count: number };
+type SelectorCandidate = { selector: string; count: number; verdict: "semantic" | "utility" | "ambiguous" };
 type StyleSource = { selector: string; value: string };
 
 export function PropertyPanel({
@@ -524,32 +525,36 @@ export function PropertyPanel({
             </div>
           </RowGroup>
         )}
-        {selectorCandidates.length > 0 && onSelectorChange && (
-          <RowGroup label="Selector">
-            <div className="retune-selector-field">
-              <button
-                className={`retune-selector-tag${activeSelector === null ? " active" : ""}`}
-                onClick={() => onSelectorChange(null)}
-              >
-                <span className="retune-selector-tag-name">This element</span>
-              </button>
-              {selectorCandidates.map((candidate) => (
+        {selectorCandidates.length > 0 && onSelectorChange && (() => {
+          const meaningful = selectorCandidates.filter(c => c.verdict !== "utility");
+          if (meaningful.length === 0) return null;
+          return (
+            <RowGroup label="Selector">
+              <div className="retune-selector-field">
                 <button
-                  key={candidate.selector}
-                  className={`retune-selector-tag${activeSelector === candidate.selector ? " active" : ""}`}
-                  onClick={() => onSelectorChange(candidate.selector)}
+                  className={`retune-selector-tag${activeSelector === null ? " active" : ""}`}
+                  onClick={() => onSelectorChange(null)}
                 >
-                  <span className="retune-selector-tag-name" title={candidate.selector.replace(/^\./, "")}>
-                    {middleTruncate(candidate.selector.replace(/^\./, ""), 24)}
-                  </span>
-                  {candidate.count > 1 && (
-                    <span className="retune-selector-tag-count">{candidate.count}</span>
-                  )}
+                  <span className="retune-selector-tag-name">This element</span>
                 </button>
-              ))}
-            </div>
-          </RowGroup>
-        )}
+                {meaningful.map((candidate) => (
+                  <button
+                    key={candidate.selector}
+                    className={`retune-selector-tag${activeSelector === candidate.selector ? " active" : ""}`}
+                    onClick={() => onSelectorChange(candidate.selector)}
+                  >
+                    <span className="retune-selector-tag-name" title={candidate.selector.replace(/^\./, "")}>
+                      {middleTruncate(candidate.selector.replace(/^\./, ""), 24)}
+                    </span>
+                    {candidate.count > 1 && (
+                      <span className="retune-selector-tag-count">{candidate.count}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </RowGroup>
+          );
+        })()}
       </Section>
 
       {/* Position */}

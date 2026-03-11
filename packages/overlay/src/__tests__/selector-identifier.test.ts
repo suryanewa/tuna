@@ -4,9 +4,110 @@ import {
   isHashedClass,
   getPropertyFamily,
   countAuthoredProperties,
+  scoreNamePattern,
 } from "../selector/identifier";
 
-describe("isKnownUtilityPattern (regex fallback for cross-origin sheets)", () => {
+describe("scoreNamePattern (multi-signal name scoring)", () => {
+  it("gives high score to definitive utility signals", () => {
+    // Variant prefixes — always utility
+    expect(scoreNamePattern("hover:bg-blue-500").score).toBeGreaterThanOrEqual(0.95);
+    expect(scoreNamePattern("md:flex").score).toBeGreaterThanOrEqual(0.95);
+    expect(scoreNamePattern("dark:text-white").score).toBeGreaterThanOrEqual(0.95);
+    expect(scoreNamePattern("focus-visible:ring-2").score).toBeGreaterThanOrEqual(0.95);
+    expect(scoreNamePattern("rtl:mr-4").score).toBeGreaterThanOrEqual(0.95);
+    expect(scoreNamePattern("print:hidden").score).toBeGreaterThanOrEqual(0.95);
+    expect(scoreNamePattern("motion-reduce:animate-none").score).toBeGreaterThanOrEqual(0.95);
+
+    // Arbitrary values — always utility
+    expect(scoreNamePattern("w-[200px]").score).toBeGreaterThanOrEqual(0.95);
+    expect(scoreNamePattern("bg-[#1a1a1a]").score).toBeGreaterThanOrEqual(0.95);
+    expect(scoreNamePattern("grid-cols-[1fr_2fr]").score).toBeGreaterThanOrEqual(0.95);
+
+    // Slash opacity — always utility
+    expect(scoreNamePattern("bg-black/50").score).toBeGreaterThanOrEqual(0.95);
+    expect(scoreNamePattern("text-white/80").score).toBeGreaterThanOrEqual(0.95);
+  });
+
+  it("gives high score to standard utility patterns", () => {
+    // Spacing with value suffix
+    expect(scoreNamePattern("p-4").score).toBeGreaterThanOrEqual(0.65);
+    expect(scoreNamePattern("mt-8").score).toBeGreaterThanOrEqual(0.65);
+    expect(scoreNamePattern("gap-3").score).toBeGreaterThanOrEqual(0.65);
+    expect(scoreNamePattern("m-auto").score).toBeGreaterThanOrEqual(0.65);
+
+    // Sizing
+    expect(scoreNamePattern("w-full").score).toBeGreaterThanOrEqual(0.65);
+    expect(scoreNamePattern("h-screen").score).toBeGreaterThanOrEqual(0.65);
+    expect(scoreNamePattern("min-w-0").score).toBeGreaterThanOrEqual(0.65);
+    expect(scoreNamePattern("max-h-96").score).toBeGreaterThanOrEqual(0.65);
+    expect(scoreNamePattern("size-4").score).toBeGreaterThanOrEqual(0.65);
+
+    // Colors
+    expect(scoreNamePattern("text-red-500").score).toBeGreaterThanOrEqual(0.65);
+    expect(scoreNamePattern("bg-blue-500").score).toBeGreaterThanOrEqual(0.65);
+
+    // Typography
+    expect(scoreNamePattern("text-sm").score).toBeGreaterThanOrEqual(0.65);
+    expect(scoreNamePattern("font-bold").score).toBeGreaterThanOrEqual(0.65);
+    expect(scoreNamePattern("leading-tight").score).toBeGreaterThanOrEqual(0.65);
+    expect(scoreNamePattern("tracking-wide").score).toBeGreaterThanOrEqual(0.65);
+
+    // Layout
+    expect(scoreNamePattern("rounded-lg").score).toBeGreaterThanOrEqual(0.65);
+    expect(scoreNamePattern("shadow-md").score).toBeGreaterThanOrEqual(0.65);
+    expect(scoreNamePattern("opacity-50").score).toBeGreaterThanOrEqual(0.65);
+    expect(scoreNamePattern("overflow-hidden").score).toBeGreaterThanOrEqual(0.65);
+
+    // Bare stems
+    expect(scoreNamePattern("flex").score).toBeGreaterThanOrEqual(0.65);
+    expect(scoreNamePattern("grid").score).toBeGreaterThanOrEqual(0.65);
+    expect(scoreNamePattern("hidden").score).toBeGreaterThanOrEqual(0.65);
+    expect(scoreNamePattern("block").score).toBeGreaterThanOrEqual(0.65);
+    expect(scoreNamePattern("relative").score).toBeGreaterThanOrEqual(0.65);
+    expect(scoreNamePattern("absolute").score).toBeGreaterThanOrEqual(0.65);
+    expect(scoreNamePattern("sticky").score).toBeGreaterThanOrEqual(0.65);
+
+    // Tailwind v4
+    expect(scoreNamePattern("grow").score).toBeGreaterThanOrEqual(0.65);
+    expect(scoreNamePattern("shrink-0").score).toBeGreaterThanOrEqual(0.65);
+    expect(scoreNamePattern("basis-0").score).toBeGreaterThanOrEqual(0.65);
+  });
+
+  it("gives low score to semantic class names", () => {
+    expect(scoreNamePattern("card").score).toBeLessThanOrEqual(0.35);
+    expect(scoreNamePattern("sidebar").score).toBeLessThanOrEqual(0.35);
+    expect(scoreNamePattern("hero-section").score).toBeLessThanOrEqual(0.35);
+    expect(scoreNamePattern("nav-item").score).toBeLessThanOrEqual(0.35);
+    expect(scoreNamePattern("btn-primary").score).toBeLessThanOrEqual(0.35);
+
+    // BEM patterns — strongly semantic
+    expect(scoreNamePattern("card__header").score).toBeLessThanOrEqual(0.15);
+    expect(scoreNamePattern("btn--disabled").score).toBeLessThanOrEqual(0.15);
+    expect(scoreNamePattern("card__header--highlighted").score).toBeLessThanOrEqual(0.15);
+  });
+
+  it("handles ambiguous cases with moderate scores", () => {
+    // Utility stem + non-value suffix (could be semantic component like "text-hero")
+    const textHero = scoreNamePattern("text-hero");
+    expect(textHero.score).toBeGreaterThan(0.35);
+    expect(textHero.score).toBeLessThan(0.65);
+    expect(textHero.confidence).toBeLessThan(0.60); // low confidence
+
+    // State classes — lean semantic but uncertain
+    expect(scoreNamePattern("active").score).toBeLessThanOrEqual(0.35);
+    expect(scoreNamePattern("disabled").score).toBeLessThanOrEqual(0.35);
+    expect(scoreNamePattern("selected").score).toBeLessThanOrEqual(0.35);
+  });
+
+  it("does not false-positive on semantic names with utility prefixes", () => {
+    // These start with utility stems but are component names
+    const flexContainer = scoreNamePattern("flex-container");
+    // Should be ambiguous, not confidently utility
+    expect(flexContainer.confidence).toBeLessThan(0.60);
+  });
+});
+
+describe("isKnownUtilityPattern (backward-compatible threshold)", () => {
   it("detects Tailwind spacing utilities", () => {
     expect(isKnownUtilityPattern("p-4")).toBe(true);
     expect(isKnownUtilityPattern("m-auto")).toBe(true);
@@ -44,6 +145,38 @@ describe("isKnownUtilityPattern (regex fallback for cross-origin sheets)", () =>
     expect(isKnownUtilityPattern("dark:text-white")).toBe(true);
     expect(isKnownUtilityPattern("sm:grid")).toBe(true);
     expect(isKnownUtilityPattern("focus:ring-2")).toBe(true);
+  });
+
+  it("detects extended variant prefixes (v4, accessibility, etc.)", () => {
+    expect(isKnownUtilityPattern("rtl:mr-4")).toBe(true);
+    expect(isKnownUtilityPattern("print:hidden")).toBe(true);
+    expect(isKnownUtilityPattern("motion-reduce:animate-none")).toBe(true);
+    expect(isKnownUtilityPattern("focus-visible:ring-2")).toBe(true);
+    expect(isKnownUtilityPattern("first:pt-0")).toBe(true);
+    expect(isKnownUtilityPattern("last:pb-0")).toBe(true);
+    expect(isKnownUtilityPattern("odd:bg-gray-100")).toBe(true);
+    expect(isKnownUtilityPattern("placeholder:text-gray-400")).toBe(true);
+    expect(isKnownUtilityPattern("group-hover:opacity-100")).toBe(true);
+    expect(isKnownUtilityPattern("peer-checked:bg-green-500")).toBe(true);
+  });
+
+  it("detects single-word Tailwind utilities", () => {
+    expect(isKnownUtilityPattern("hidden")).toBe(true);
+    expect(isKnownUtilityPattern("block")).toBe(true);
+    expect(isKnownUtilityPattern("relative")).toBe(true);
+    expect(isKnownUtilityPattern("absolute")).toBe(true);
+    expect(isKnownUtilityPattern("fixed")).toBe(true);
+    expect(isKnownUtilityPattern("sticky")).toBe(true);
+    expect(isKnownUtilityPattern("isolate")).toBe(true);
+    expect(isKnownUtilityPattern("invisible")).toBe(true);
+    expect(isKnownUtilityPattern("truncate")).toBe(true);
+  });
+
+  it("detects Tailwind v4 utilities", () => {
+    expect(isKnownUtilityPattern("grow")).toBe(true);
+    expect(isKnownUtilityPattern("shrink-0")).toBe(true);
+    expect(isKnownUtilityPattern("basis-auto")).toBe(true);
+    expect(isKnownUtilityPattern("size-4")).toBe(true);
   });
 
   it("detects arbitrary values", () => {
@@ -184,11 +317,10 @@ describe("getPropertyFamily (shorthand collapsing)", () => {
 
 describe("countAuthoredProperties", () => {
   it("counts shorthand-collapsed properties", () => {
-    // Simulate a CSSStyleDeclaration with padding longhands (browser expands padding: 1rem)
     const mockStyle = createMockStyle([
       "padding-top", "padding-right", "padding-bottom", "padding-left",
     ]);
-    expect(countAuthoredProperties(mockStyle)).toBe(1); // all collapse to "padding"
+    expect(countAuthoredProperties(mockStyle)).toBe(1);
   });
 
   it("counts mixed shorthand and individual properties", () => {
@@ -200,7 +332,6 @@ describe("countAuthoredProperties", () => {
       "color",
       "font-size",
     ]);
-    // padding(1) + border-radius(1) + background(1) + color(1) + font-size(1) = 5
     expect(countAuthoredProperties(mockStyle)).toBe(5);
   });
 
@@ -219,11 +350,10 @@ describe("countAuthoredProperties", () => {
       "--tw-shadow", "--tw-ring-color",
       "box-shadow",
     ]);
-    expect(countAuthoredProperties(mockStyle)).toBe(1); // only box-shadow counts
+    expect(countAuthoredProperties(mockStyle)).toBe(1);
   });
 
   it("skips all custom properties in a utility rule", () => {
-    // Tailwind v4: .shadow-sm { --tw-shadow: ...; --tw-shadow-colored: ...; box-shadow: ... }
     const mockStyle = createMockStyle([
       "--tw-shadow", "--tw-shadow-colored", "box-shadow",
     ]);
@@ -238,7 +368,6 @@ function createMockStyle(properties: string[]): CSSStyleDeclaration {
     [Symbol.iterator]: function* () { yield* properties; },
   } as unknown as CSSStyleDeclaration;
 
-  // Make indexed access work
   for (let i = 0; i < properties.length; i++) {
     (style as any)[i] = properties[i];
   }
