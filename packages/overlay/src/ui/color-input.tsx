@@ -15,9 +15,10 @@ export interface ColorInputProps {
   value: string | undefined;
   onChange: (prop: string, value: string) => void;
   tokenMatch?: TokenMatch;
+  onTokenSelect?: (oldToken: import("../tokens/types").UtilityToken, newToken: import("../tokens/types").UtilityToken) => void;
 }
 
-export function ColorInput({ prop, value, onChange, tokenMatch }: ColorInputProps) {
+export function ColorInput({ prop, value, onChange, tokenMatch, onTokenSelect }: ColorInputProps) {
   const parsed = parseCssColor(value || "");
   const [hexLocal, setHexLocal] = useState(parsed.hex.replace("#", "").toUpperCase());
   const [opacityLocal, setOpacityLocal] = useState(String(parsed.opacity));
@@ -180,7 +181,7 @@ export function ColorInput({ prop, value, onChange, tokenMatch }: ColorInputProp
         <span className="retune-color-opacity-unit">%</span>
       </div>
 
-      {tokenMatch && <TokenIndicator match={tokenMatch} />}
+      {tokenMatch && <TokenIndicator match={tokenMatch} onTokenSelect={onTokenSelect} />}
 
       {pickerOpen && anchorRect && (
         <ColorPicker

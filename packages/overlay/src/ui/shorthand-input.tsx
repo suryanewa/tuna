@@ -39,6 +39,8 @@ export interface ShorthandInputProps {
   max?: number;
   /** Token match — shows a dot indicator when the value comes from a utility token */
   tokenMatch?: TokenMatch;
+  /** Callback when user picks a different token from the picker */
+  onTokenSelect?: (oldToken: import("../tokens/types").UtilityToken, newToken: import("../tokens/types").UtilityToken) => void;
 }
 
 function computeDisplay(values: string[]): string {
@@ -47,7 +49,7 @@ function computeDisplay(values: string[]): string {
   return rounded.join(", ");
 }
 
-export function ShorthandInput({ label, props, values, onChange, placeholder, min, max, tokenMatch }: ShorthandInputProps) {
+export function ShorthandInput({ label, props, values, onChange, placeholder, min, max, tokenMatch, onTokenSelect }: ShorthandInputProps) {
   const [localValue, setLocalValue] = useState(() => computeDisplay(values));
   const [prevValues, setPrevValues] = useState(values);
 
@@ -190,7 +192,7 @@ export function ShorthandInput({ label, props, values, onChange, placeholder, mi
         spellCheck={false}
       />
       {tokenMatch && (
-        <TokenIndicator match={tokenMatch} />
+        <TokenIndicator match={tokenMatch} onTokenSelect={onTokenSelect} />
       )}
     </div>
   );

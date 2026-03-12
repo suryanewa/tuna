@@ -4,6 +4,8 @@ export interface UtilityToken {
   className: string;
   /** CSS properties and their resolved computed values */
   values: Record<string, string>;
+  /** The @layer this token was found in (e.g., "utilities", "components", "base") */
+  layerName?: string;
 }
 
 /** Token categories grouped by property type */

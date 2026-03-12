@@ -9,7 +9,7 @@ import type { BoxModelProperty } from "../ui/box-model-overlay";
 import { Section, Row, RowGroup, Field } from "../ui/section";
 import { NumberInput } from "../ui/number-input";
 import type { TokenMatch } from "../tokens/types";
-import { resolveTokensForElement, isTailwindUtility } from "../tokens/resolver";
+import { resolveTokensForElement, isRawUtility } from "../tokens/resolver";
 import { ComboInput, type ComboOption } from "../ui/combo-input";
 import { ColorInput } from "../ui/color-input";
 import { SelectInput } from "../ui/select-input";
@@ -159,6 +159,7 @@ export function PropertyPanel({
   onPropertyChange,
   onPropertyHover,
   onApplyToElement,
+  onTokenSwap,
   selectorCandidates = [],
   activeSelector = null,
   onSelectorChange,
@@ -171,6 +172,7 @@ export function PropertyPanel({
   onPropertyChange: (property: string, value: string) => void;
   onPropertyHover?: (property: BoxModelProperty) => void;
   onApplyToElement?: (element: Element, property: string, value: string) => void;
+  onTokenSwap?: (oldClassName: string, newClassName: string) => void;
   selectorCandidates?: SelectorCandidate[];
   activeSelector?: string | null;
   onSelectorChange?: (selector: string | null) => void;
@@ -193,26 +195,42 @@ export function PropertyPanel({
     const kebab = camelProp.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`);
     const match = tokenMatches.get(kebab);
     if (!match) return undefined;
-    // Skip Tailwind utility classes — no indicator value
-    if (isTailwindUtility(match.token.className)) return undefined;
+    // Skip raw utility classes — no indicator value for framework utilities
+    if (isRawUtility(match.token)) return undefined;
     return match;
   }, [tokenMatches]);
+
+  // Handle token swap: swap classes on the element
+  const handleTokenSelect = useCallback((oldToken: import("../tokens/types").UtilityToken, newToken: import("../tokens/types").UtilityToken) => {
+    const el = element.element;
+    if (!el) return;
+    // Swap classes on the DOM element
+    el.classList.remove(oldToken.className);
+    el.classList.add(newToken.className);
+    // Notify parent for change tracking
+    onTokenSwap?.(oldToken.className, newToken.className);
+    // Emit property changes for each affected CSS property so change tracker picks them up
+    for (const [prop, val] of Object.entries(newToken.values)) {
+      const camelProp = prop.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+      onPropertyChange(camelProp, val);
+    }
+  }, [element.element, onTokenSwap, onPropertyChange]);
 
   // Token props for a NumberInput
   const tokenProps = useCallback((camelProp: string) => {
     const match = getTokenMatch(camelProp);
     if (!match) return {};
-    return { tokenMatch: match };
-  }, [getTokenMatch]);
+    return { tokenMatch: match, onTokenSelect: handleTokenSelect };
+  }, [getTokenMatch, handleTokenSelect]);
 
   // Token props for ShorthandInput — finds the first matching token among the shorthand's props
   const shorthandTokenProps = useCallback((camelProps: string[]) => {
     for (const p of camelProps) {
       const match = getTokenMatch(p);
-      if (match) return { tokenMatch: match };
+      if (match) return { tokenMatch: match, onTokenSelect: handleTokenSelect };
     }
     return {};
-  }, [getTokenMatch]);
+  }, [getTokenMatch, handleTokenSelect]);
 
   const TEXT_TAGS = ["P", "H1", "H2", "H3", "H4", "H5", "H6", "SPAN", "A", "BUTTON", "LABEL", "LI", "TD", "TH", "FIGCAPTION", "BLOCKQUOTE", "CITE", "EM", "STRONG", "SMALL"];
   const hasDirectText = element.element ? Array.from(element.element.childNodes).some(

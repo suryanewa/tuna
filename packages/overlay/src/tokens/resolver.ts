@@ -75,12 +75,16 @@ export function getAlternativeTokens(
   const group = registry.groups.get(category);
   if (!group) return [];
 
-  // Return all tokens in the same category that affect this property
+  // Return all tokens in the same category that affect the exact same property.
+  // Exclude raw utilities — only show semantic tokens in the picker.
   return group.filter(t => {
-    // Must affect the same property (token values always use kebab-case)
-    if (!Object.keys(t.values).some(p => p === kebab || isSameFamily(p, kebab))) return false;
+    // Must affect the exact same property (token values always use kebab-case)
+    if (!Object.keys(t.values).includes(kebab)) return false;
     // Exclude current token
     if (currentToken && t.className === currentToken.className) return false;
+    // Exclude raw utilities: @layer is the definitive signal (v3+),
+    // regex fallback for projects without @layer (v1/v2)
+    if (isRawUtility(t)) return false;
     return true;
   });
 }
@@ -154,12 +158,30 @@ function kebabToCamel(str: string): string {
   return str.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
 }
 
-/** Known Tailwind prefixes — classes like `p-4`, `mt-2`, `bg-blue-500` are utility, not semantic */
-const TW_PREFIX = /^-?(?:p|px|py|pt|pr|pb|pl|m|mx|my|mt|mr|mb|ml|w|h|min-w|max-w|min-h|max-h|gap|space-[xy]|text|bg|border|rounded|shadow|opacity|font|leading|tracking|z|inset|top|right|bottom|left|flex|grid|grid-cols|col-span|row-span|items|justify|self|place|order|overflow|ring|outline|divide|sr|not-sr|container|aspect|columns|break|decoration|underline|overline|no-underline|cursor|transition|duration|ease|delay|animate|scale|rotate|translate|skew|origin|fill|stroke|will-change|hidden|block|inline|inline-flex|inline-block|table|absolute|relative|fixed|sticky|float|clear|isolate|object|whitespace|align|indent|truncate|uppercase|lowercase|capitalize|normal-case|italic|not-italic|antialiased|subpixel|select|resize|appearance|accent|caret|snap|touch|scroll|hyphens|content|list)($|-)/;
+/**
+ * Check if a token is a raw framework utility (not a semantic design token).
+ *
+ * Primary signal: @layer name. Tailwind v3+ puts all utilities in @layer utilities.
+ * This is 100% accurate — no false positives possible.
+ *
+ * Fallback: regex for projects without @layer (Tailwind v1/v2, whose utility sets
+ * are frozen and fully enumerable).
+ */
+export function isRawUtility(token: UtilityToken): boolean {
+  // Definitive: token lives in @layer utilities
+  if (token.layerName === "utilities") return true;
+  // No layer info — fall back to regex for legacy Tailwind (v1/v2)
+  if (!token.layerName) return TW_PREFIX_LEGACY.test(token.className);
+  // Token is in a named layer that isn't "utilities" (e.g., "components", "base") — semantic
+  return false;
+}
+
+/** Legacy regex for Tailwind v1/v2 (frozen utility sets, no @layer support) */
+const TW_PREFIX_LEGACY = /^-?(?:p|px|py|pt|pr|pb|pl|m|mx|my|mt|mr|mb|ml|w|h|min-w|max-w|min-h|max-h|gap|space-[xy]|text|bg|border|rounded|shadow|opacity|font|leading|tracking|z|inset|top|right|bottom|left|flex|grid|grid-cols|col-span|row-span|items|justify|self|place|order|overflow|ring|outline|divide|sr|not-sr|container|aspect|columns|break|decoration|underline|overline|no-underline|cursor|transition|duration|ease|delay|animate|scale|rotate|translate|skew|origin|fill|stroke|will-change|hidden|block|inline|inline-flex|inline-block|table|absolute|relative|fixed|sticky|float|clear|isolate|object|whitespace|align|indent|truncate|uppercase|lowercase|capitalize|normal-case|italic|not-italic|antialiased|subpixel|select|resize|appearance|accent|caret|snap|touch|scroll|hyphens|content|list)($|-)/;
 
 /** Check if a class name looks like a Tailwind utility (not a semantic token) */
 export function isTailwindUtility(className: string): boolean {
-  return TW_PREFIX.test(className);
+  return TW_PREFIX_LEGACY.test(className);
 }
 
 /** Check if two properties are in the same shorthand family */

@@ -451,6 +451,27 @@ function RetuneInner(props: RetuneConfig) {
     }
   }, []);
 
+  // Token swap: track class changes for AI output
+  const handleTokenSwap = useCallback((oldClassName: string, newClassName: string) => {
+    const el = selectedElementRef.current;
+    const tracker = trackerRef.current;
+    if (!el || !tracker) return;
+    const selector = activeSelectorRef.current ?? el.selector;
+    // Record as a special property change so the AI agent knows to swap classes
+    tracker.track(
+      selector, el.tagName, el.textContent, el.classes,
+      el.reactComponents, el.computedStyles, el.sourceFile,
+      el.stylingApproach, el.inlineStyles, el.elementId,
+      el.accessibleName, el.parentContext, el.childSummary,
+      el.domPath, el.nearbySiblings, el.position,
+    );
+    tracker.recordChange(selector, `class:${oldClassName}`, newClassName);
+    syncTrackerStateRef.current();
+    refreshSelectedElementRef.current();
+    pickerRef.current?.refreshSelection();
+    setChangeRevision((r) => r + 1);
+  }, []);
+
   // Tree: select element programmatically via picker
   const handleTreeSelect = useCallback((el: Element) => {
     const picker = pickerRef.current;
@@ -765,6 +786,7 @@ function RetuneInner(props: RetuneConfig) {
                 onPropertyChange={handlePropertyChange}
                 onPropertyHover={setHoveredBoxModel}
                 onApplyToElement={handleApplyToElement}
+                onTokenSwap={handleTokenSwap}
                 selectorCandidates={selectorCandidates}
                 activeSelector={activeSelector}
                 onSelectorChange={handleSelectorChange}

@@ -39,9 +39,11 @@ export interface NumberInputProps {
   step?: number;
   /** Token match — shows a dot indicator when the value comes from a utility token */
   tokenMatch?: TokenMatch;
+  /** Callback when user picks a different token from the picker */
+  onTokenSelect?: (oldToken: import("../tokens/types").UtilityToken, newToken: import("../tokens/types").UtilityToken) => void;
 }
 
-export function NumberInput({ label, prop, value, placeholder, onChange, min, max, step: stepProp, tokenMatch }: NumberInputProps) {
+export function NumberInput({ label, prop, value, placeholder, onChange, min, max, step: stepProp, tokenMatch, onTokenSelect }: NumberInputProps) {
   const [localValue, setLocalValue] = useState(roundCssValue(value || ""));
   const labelRef = useRef<HTMLSpanElement>(null);
 
@@ -193,7 +195,7 @@ export function NumberInput({ label, prop, value, placeholder, onChange, min, ma
         spellCheck={false}
       />
       {tokenMatch && (
-        <TokenIndicator match={tokenMatch} />
+        <TokenIndicator match={tokenMatch} onTokenSelect={onTokenSelect} />
       )}
     </div>
   );

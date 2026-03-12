@@ -55,7 +55,7 @@ function buildRegistry(): TokenRegistry {
       let rules: CSSRuleList;
       try { rules = sheet.cssRules; } catch { continue; }
       if (!hasTwVars) hasTwVars = detectTailwindVars(rules);
-      scanRules(rules, probe, groups, valueLookup, classLookup);
+      scanRules(rules, probe, groups, valueLookup, classLookup, undefined);
     }
   } finally {
     probe.remove();
@@ -108,14 +108,18 @@ function scanRules(
   groups: Map<TokenCategory, UtilityToken[]>,
   valueLookup: Map<string, UtilityToken[]>,
   classLookup: Map<string, UtilityToken>,
+  layerName: string | undefined,
 ): void {
   for (let i = 0; i < rules.length; i++) {
     const rule = rules[i];
 
-    // Recurse into @layer, @media, @supports
+    // Recurse into @layer, @media, @supports — propagate layer name
     if (rule instanceof CSSGroupingRule ||
         (typeof CSSLayerBlockRule !== "undefined" && rule instanceof CSSLayerBlockRule)) {
-      scanRules((rule as CSSGroupingRule).cssRules, probe, groups, valueLookup, classLookup);
+      const childLayer = (typeof CSSLayerBlockRule !== "undefined" && rule instanceof CSSLayerBlockRule)
+        ? (rule as CSSLayerBlockRule).name || layerName
+        : layerName;
+      scanRules((rule as CSSGroupingRule).cssRules, probe, groups, valueLookup, classLookup, childLayer);
       continue;
     }
 
@@ -173,7 +177,7 @@ function scanRules(
     }
     if (!category) continue;
 
-    const token: UtilityToken = { className, values };
+    const token: UtilityToken = { className, values, layerName };
     classLookup.set(className, token);
 
     // Add to category group
