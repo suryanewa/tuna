@@ -251,9 +251,11 @@ function RetuneInner(props: RetuneConfig) {
 
         // Overlay preview changes so re-selecting a previously edited element
         // shows the current (edited) values, not the original stylesheet values.
+        // Skip pseudo-state changes — we're in default view on element selection.
         if (preview) {
           for (const change of preview.getChanges()) {
-            const baseSel = change.selector.replace(/:(hover|focus|active)$/g, "");
+            if (/:(hover|focus|active)$/.test(change.selector)) continue;
+            const baseSel = change.selector;
             try {
               if (element.matches(baseSel)) {
                 inspected.computedStyles[change.property] = change.value;
@@ -361,12 +363,40 @@ function RetuneInner(props: RetuneConfig) {
       if (scope) {
         inspected.computedStyles = getScopedStyles(prev.element, scope);
       }
-      // Overlay preview changes so the panel reflects what the user changed
-      // (getScopedStyles reads original stylesheet values, not preview overrides)
+      // Overlay preview changes so the panel reflects what the user changed.
+      // State-aware: only merge changes relevant to the current view.
       const preview = previewRef.current;
       if (preview) {
+        const currentState = forcedStateRef.current;
+        const forced = forcedStylesRef.current;
+
+        // When a pseudo-state is forced, overlay the stylesheet pseudo values first
+        // (these are the "starting point" for the pseudo view)
+        if (currentState && prev.element) {
+          const pseudoStyles = getPseudoStateStyles(prev.element, currentState);
+          for (const [prop, value] of Object.entries(pseudoStyles)) {
+            const camelProp = prop.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+            inspected.computedStyles[camelProp] = value;
+          }
+        }
+
         for (const change of preview.getChanges()) {
+          const pseudoMatch = change.selector.match(/:(hover|focus|active)$/);
+          const changePseudo = pseudoMatch ? pseudoMatch[0] : null;
           const baseSel = change.selector.replace(/:(hover|focus|active)$/g, "");
+
+          // Skip forced base-selector styles — they exist only for visual preview,
+          // not for panel display (they'd bleed into the default state view)
+          if (!changePseudo && forced.selector === change.selector
+              && forced.props.includes(change.property)) {
+            continue;
+          }
+
+          // Default view: skip pseudo-state changes
+          if (!currentState && changePseudo) continue;
+          // Pseudo view: skip changes for a different pseudo-state
+          if (currentState && changePseudo && changePseudo !== currentState) continue;
+
           try {
             if (prev.element.matches(baseSel)) {
               inspected.computedStyles[change.property] = change.value;
@@ -389,6 +419,17 @@ function RetuneInner(props: RetuneConfig) {
       ? baseSelector + forcedStateRef.current
       : baseSelector;
     preview.applyChange(selector, property, value);
+    // When editing under a forced pseudo-state, also update the forced base-selector
+    // style so the element visually reflects the change on the page.
+    // The panel filtering in refreshSelectedElement skips these for display.
+    if (forcedStateRef.current) {
+      preview.applyChange(baseSelector, property, value);
+      // Track in forcedStylesRef so cleanup removes it when toggling back
+      const forced = forcedStylesRef.current;
+      if (forced.selector === baseSelector && !forced.props.includes(property)) {
+        forced.props.push(property);
+      }
+    }
     // Ensure element is tracked (may have been cleared by reset)
     tracker.track(
       selector, el.tagName, el.textContent, el.classes,
@@ -425,6 +466,7 @@ function RetuneInner(props: RetuneConfig) {
     }
 
     setForcedState(state);
+    forcedStateRef.current = state; // sync ref immediately so refreshSelectedElement reads the correct state
 
     if (state) {
       // Find CSS rules for this pseudo-state and apply them directly.
