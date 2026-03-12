@@ -15,6 +15,7 @@ import { useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import type { TokenMatch, UtilityToken } from "../tokens/types";
 import { TokenPicker } from "./token-picker";
+import { useScrollLock } from "./use-scroll-lock";
 
 export interface TokenIndicatorProps {
   match: TokenMatch;
@@ -29,6 +30,7 @@ export function TokenIndicator({ match, onTokenSelect }: TokenIndicatorProps) {
   const pickerOpenRef = useRef(false);
   pickerOpenRef.current = pickerOpen;
   const dotElRef = useRef<HTMLSpanElement | null>(null);
+  useScrollLock(pickerOpen);
 
   // Ref callback: attach native pointerdown listener when element mounts.
   const dotRef = useCallback((el: HTMLSpanElement | null) => {

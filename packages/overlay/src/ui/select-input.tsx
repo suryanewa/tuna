@@ -8,6 +8,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { DropdownMenu, type DropdownMenuOption } from "./dropdown-menu";
 import { calcMenuPosition, type MenuPosition } from "./menu-position";
 import { ChevronDown } from "./icons";
+import { useScrollLock } from "./use-scroll-lock";
 
 export interface SelectInputProps {
   label?: string;
@@ -27,6 +28,7 @@ export function SelectInput({ label, prop, value, options, onChange }: SelectInp
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [menuPos, setMenuPos] = useState<MenuPosition | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  useScrollLock(open);
 
   // Sync from parent
   const [prevValue, setPrevValue] = useState(value);

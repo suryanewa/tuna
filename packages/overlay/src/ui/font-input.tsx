@@ -8,6 +8,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { DropdownMenu, type DropdownMenuOption } from "./dropdown-menu";
 import { calcMenuPosition, type MenuPosition } from "./menu-position";
 import { ChevronDown } from "./icons";
+import { useScrollLock } from "./use-scroll-lock";
 
 const COMMON_FONTS = [
   "Inter",
@@ -49,6 +50,7 @@ export function FontInput({ prop, value, onChange }: FontInputProps) {
   const [filter, setFilter] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  useScrollLock(open);
 
   // Sync from parent
   const [prevValue, setPrevValue] = useState(value);

@@ -11,6 +11,7 @@ import { DropdownMenu, type DropdownMenuOption } from "./dropdown-menu";
 import { calcMenuPosition, type MenuPosition } from "./menu-position";
 import { roundCssValue, inferCssUnit } from "./round-css-value";
 import { ChevronDown } from "./icons";
+import { useScrollLock } from "./use-scroll-lock";
 
 export interface ComboOption {
   value: string;
@@ -33,6 +34,7 @@ export function ComboInput({ label, prop, value, options, onChange }: ComboInput
   const containerRef = useRef<HTMLDivElement>(null);
   const labelRef = useRef<HTMLSpanElement>(null);
   const editingRef = useRef(false);
+  useScrollLock(open);
 
   const [prevValue, setPrevValue] = useState(value);
   if (value !== prevValue) {

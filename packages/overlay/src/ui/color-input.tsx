@@ -9,6 +9,7 @@ import { parseCssColor, hexToRgba } from "./color-utils";
 import { ColorPicker } from "./color-picker";
 import type { TokenMatch } from "../tokens/types";
 import { TokenIndicator } from "./token-indicator";
+import { useScrollLock } from "./use-scroll-lock";
 
 export interface ColorInputProps {
   prop: string;
@@ -27,6 +28,7 @@ export function ColorInput({ prop, value, onChange, tokenMatch, onTokenSelect }:
   const swatchRef = useRef<HTMLDivElement>(null);
   const hexFocusedRef = useRef(false);
   const opacityFocusedRef = useRef(false);
+  useScrollLock(pickerOpen);
 
   // Track current hex and opacity as refs for building CSS output
   const currentHexRef = useRef(parsed.hex);

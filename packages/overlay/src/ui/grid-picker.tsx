@@ -7,6 +7,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from "react";
+import { useScrollLock } from "./use-scroll-lock";
 
 const MAX_COLS = 10;
 const MAX_ROWS = 10;
@@ -33,6 +34,7 @@ export function GridPicker({ columns, rows, onChange }: GridPickerProps) {
   const [hoverRow, setHoverRow] = useState<number>(0);
   const [isHovering, setIsHovering] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  useScrollLock(open);
 
   const displayCols = Math.max(1, columns || 1);
   const displayRows = Math.max(1, rows || 1);
