@@ -160,6 +160,8 @@ export function PropertyPanel({
   onPropertyHover,
   onApplyToElement,
   onTokenSwap,
+  onTokenAssociate,
+  tokenAssociations = {},
   selectorCandidates = [],
   activeSelector = null,
   onSelectorChange,
@@ -173,6 +175,10 @@ export function PropertyPanel({
   onPropertyHover?: (property: BoxModelProperty) => void;
   onApplyToElement?: (element: Element, property: string, value: string) => void;
   onTokenSwap?: (oldClassName: string, newClassName: string) => void;
+  /** Record a value-only token association (persisted in change tracker) */
+  onTokenAssociate?: (properties: string[], token: { className: string; values: Record<string, string> }) => void;
+  /** Current value-only token associations from change tracker */
+  tokenAssociations?: Record<string, { className: string; values: Record<string, string> }>;
   selectorCandidates?: SelectorCandidate[];
   activeSelector?: string | null;
   onSelectorChange?: (selector: string | null) => void;
@@ -189,48 +195,84 @@ export function PropertyPanel({
   }, [element.element, s]);
 
   // Helper: get token match for a camelCase prop.
-  // Only returns matches for semantic tokens — Tailwind utilities (pl-2, bg-blue-500)
-  // are handled by the output system, not shown as indicators.
+  // Checks class-based matches first, then falls back to persisted token associations
+  // from the change tracker (value-only applies that survive refresh).
   const getTokenMatch = useCallback((camelProp: string): TokenMatch | undefined => {
     const kebab = camelProp.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`);
     const match = tokenMatches.get(kebab);
-    if (!match) return undefined;
-    // Skip raw utility classes — no indicator value for framework utilities
-    if (isRawUtility(match.token)) return undefined;
-    return match;
-  }, [tokenMatches]);
+    if (match && !isRawUtility(match.token)) return match;
+    // Fall back to persisted token associations from change tracker
+    const assoc = tokenAssociations[camelProp];
+    if (assoc) return { token: assoc, property: kebab };
+    return undefined;
+  }, [tokenMatches, tokenAssociations]);
 
-  // Handle token swap: swap classes on the element
+  // Handle token swap: swap classes on the element.
+  // If the old token's class is on the element, do a class swap.
+  // If not (value-only apply), just update values without touching classes.
   const handleTokenSelect = useCallback((oldToken: import("../tokens/types").UtilityToken, newToken: import("../tokens/types").UtilityToken) => {
     const el = element.element;
     if (!el) return;
-    // Swap classes on the DOM element
-    el.classList.remove(oldToken.className);
-    el.classList.add(newToken.className);
-    // Notify parent for change tracking
-    onTokenSwap?.(oldToken.className, newToken.className);
-    // Emit property changes for each affected CSS property so change tracker picks them up
-    for (const [prop, val] of Object.entries(newToken.values)) {
-      const camelProp = prop.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
-      onPropertyChange(camelProp, val);
+    const isClassBased = el.classList.contains(oldToken.className);
+    if (isClassBased) {
+      // Class-based swap
+      el.classList.remove(oldToken.className);
+      el.classList.add(newToken.className);
+      onTokenSwap?.(oldToken.className, newToken.className);
+      for (const [prop, val] of Object.entries(newToken.values)) {
+        const camelProp = prop.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+        onPropertyChange(camelProp, val);
+      }
+    } else {
+      // Value-only swap: find which properties had the old token applied
+      const affectedProps: string[] = [];
+      for (const [prop, ref] of Object.entries(tokenAssociations)) {
+        if (ref.className === oldToken.className) {
+          affectedProps.push(prop);
+        }
+      }
+      const value = Object.values(newToken.values)[0];
+      if (!value) return;
+      for (const prop of affectedProps) {
+        onPropertyChange(prop, value);
+      }
+      onTokenAssociate?.(affectedProps, { className: newToken.className, values: newToken.values });
     }
-  }, [element.element, onTokenSwap, onPropertyChange]);
+  }, [element.element, onTokenSwap, onPropertyChange, tokenAssociations, onTokenAssociate]);
+
+  // Handle applying a token value from scratch (no existing token on element).
+  // This is a value pick — we set the token's representative value on the specific
+  // properties being edited, without adding the class. This lets the user apply
+  // different tokens to different sides (e.g. different H and V padding).
+  const handleTokenApply = useCallback((newToken: import("../tokens/types").UtilityToken, properties: string[]) => {
+    const el = element.element;
+    if (!el) return;
+    const value = Object.values(newToken.values)[0];
+    if (!value) return;
+    for (const prop of properties) {
+      onPropertyChange(prop, value);
+    }
+    onTokenAssociate?.(properties, { className: newToken.className, values: newToken.values });
+  }, [element.element, onPropertyChange, onTokenAssociate]);
 
   // Token props for a NumberInput
   const tokenProps = useCallback((camelProp: string) => {
     const match = getTokenMatch(camelProp);
-    if (!match) return {};
-    return { tokenMatch: match, onTokenSelect: handleTokenSelect };
-  }, [getTokenMatch, handleTokenSelect]);
+    return {
+      ...(match ? { tokenMatch: match, onTokenSelect: handleTokenSelect } : {}),
+      property: camelProp,
+      onTokenApply: handleTokenApply,
+    };
+  }, [getTokenMatch, handleTokenSelect, handleTokenApply]);
 
   // Token props for ShorthandInput — finds the first matching token among the shorthand's props
   const shorthandTokenProps = useCallback((camelProps: string[]) => {
     for (const p of camelProps) {
       const match = getTokenMatch(p);
-      if (match) return { tokenMatch: match, onTokenSelect: handleTokenSelect };
+      if (match) return { tokenMatch: match, property: p, onTokenSelect: handleTokenSelect, onTokenApply: handleTokenApply };
     }
-    return {};
-  }, [getTokenMatch, handleTokenSelect]);
+    return { property: camelProps[0], onTokenApply: handleTokenApply };
+  }, [getTokenMatch, handleTokenSelect, handleTokenApply]);
 
   const TEXT_TAGS = ["P", "H1", "H2", "H3", "H4", "H5", "H6", "SPAN", "A", "BUTTON", "LABEL", "LI", "TD", "TH", "FIGCAPTION", "BLOCKQUOTE", "CITE", "EM", "STRONG", "SMALL"];
   const hasDirectText = element.element ? Array.from(element.element.childNodes).some(

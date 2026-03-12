@@ -184,6 +184,36 @@ export function isTailwindUtility(className: string): boolean {
   return TW_PREFIX_LEGACY.test(className);
 }
 
+/**
+ * All semantic tokens for a given CSS property (for browsing when no token is applied).
+ * Returns all non-raw tokens in the same category — e.g. spacing tokens show on
+ * both padding and margin inputs, since the value scale is what matters.
+ * Accepts both camelCase and kebab-case property names.
+ */
+export function getTokensForProperty(property: string): UtilityToken[] {
+  const registry = getTokenRegistry();
+  const kebab = camelToKebab(property);
+  const category = getCategoryForProperty(kebab);
+  if (!category) return [];
+  const group = registry.groups.get(category);
+  if (!group) return [];
+  return group.filter(t => !isRawUtility(t));
+}
+
+/**
+ * Quick boolean check — are there any semantic tokens for this property's category?
+ * Uses .some() for early exit. Accepts camelCase or kebab-case.
+ */
+export function hasTokensForProperty(property: string): boolean {
+  const registry = getTokenRegistry();
+  const kebab = camelToKebab(property);
+  const category = getCategoryForProperty(kebab);
+  if (!category) return false;
+  const group = registry.groups.get(category);
+  if (!group) return false;
+  return group.some(t => !isRawUtility(t));
+}
+
 /** Check if two properties are in the same shorthand family */
 function isSameFamily(a: string, b: string): boolean {
   if (a === b) return true;

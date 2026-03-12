@@ -39,8 +39,12 @@ export interface ShorthandInputProps {
   max?: number;
   /** Token match — shows a dot indicator when the value comes from a utility token */
   tokenMatch?: TokenMatch;
+  /** CSS property name for token availability detection */
+  property?: string;
   /** Callback when user picks a different token from the picker */
   onTokenSelect?: (oldToken: import("../tokens/types").UtilityToken, newToken: import("../tokens/types").UtilityToken) => void;
+  /** Callback when user applies a token from scratch (no existing token) */
+  onTokenApply?: (token: import("../tokens/types").UtilityToken, properties: string[]) => void;
 }
 
 function computeDisplay(values: string[]): string {
@@ -49,7 +53,7 @@ function computeDisplay(values: string[]): string {
   return rounded.join(", ");
 }
 
-export function ShorthandInput({ label, props, values, onChange, placeholder, min, max, tokenMatch, onTokenSelect }: ShorthandInputProps) {
+export function ShorthandInput({ label, props, values, onChange, placeholder, min, max, tokenMatch, property, onTokenSelect, onTokenApply }: ShorthandInputProps) {
   const [localValue, setLocalValue] = useState(() => computeDisplay(values));
   const [prevValues, setPrevValues] = useState(values);
 
@@ -191,9 +195,13 @@ export function ShorthandInput({ label, props, values, onChange, placeholder, mi
         onKeyDown={handleKeyDown}
         spellCheck={false}
       />
-      {tokenMatch && (
-        <TokenIndicator match={tokenMatch} onTokenSelect={onTokenSelect} />
-      )}
+      <TokenIndicator
+        match={tokenMatch}
+        property={property || props[0]}
+        relatedProperties={props}
+        onTokenSelect={onTokenSelect}
+        onTokenApply={onTokenApply}
+      />
     </div>
   );
 }

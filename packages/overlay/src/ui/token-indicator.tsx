@@ -1,28 +1,38 @@
 /**
- * TokenIndicator — small dot shown on inputs when the current value
- * comes from a utility-class token. Click to open the token picker.
- * Hovering shows the class name tooltip.
+ * TokenIndicator — dot shown on inputs for token interactions.
+ *
+ * Three states:
+ * - Active (blue dot, always visible): token is currently applied
+ * - Available (gray dot, visible on parent hover): tokens exist but none applied
+ * - Disabled (returns null): no tokens available for this property
+ *
+ * Click opens the TokenDialog for browsing/selecting tokens.
  *
  * NOTE: React's synthetic onPointerDown doesn't work inside Shadow DOM portals
  * because event delegation attaches outside the shadow boundary. We attach a
  * native listener via a ref callback (not useEffect, per CLAUDE.md rules).
  *
- * The picker is rendered via createPortal into the shadow root container to
+ * The dialog is rendered via createPortal into the shadow root container to
  * escape the panel's overflow:hidden clipping.
  */
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import type { TokenMatch, UtilityToken } from "../tokens/types";
-import { TokenPicker } from "./token-picker";
+import { hasTokensForProperty } from "../tokens/resolver";
+import { TokenDialog } from "./token-dialog";
 import { useScrollLock } from "./use-scroll-lock";
 
 export interface TokenIndicatorProps {
-  match: TokenMatch;
+  match?: TokenMatch;
+  property: string;
+  /** For shorthand inputs: all properties in the group (e.g. ["marginLeft", "marginRight"]) */
+  relatedProperties?: string[];
   onTokenSelect?: (oldToken: UtilityToken, newToken: UtilityToken) => void;
+  onTokenApply?: (token: UtilityToken, properties: string[]) => void;
 }
 
-export function TokenIndicator({ match, onTokenSelect }: TokenIndicatorProps) {
+export function TokenIndicator({ match, property, relatedProperties, onTokenSelect, onTokenApply }: TokenIndicatorProps) {
   const [showTooltip, setShowTooltip] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [anchorRect, setAnchorRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
@@ -31,6 +41,10 @@ export function TokenIndicator({ match, onTokenSelect }: TokenIndicatorProps) {
   pickerOpenRef.current = pickerOpen;
   const dotElRef = useRef<HTMLSpanElement | null>(null);
   useScrollLock(pickerOpen);
+
+  const hasAvailable = useMemo(() => hasTokensForProperty(property), [property]);
+  const isActive = !!match;
+  const isDisabled = !isActive && !hasAvailable;
 
   // Ref callback: attach native pointerdown listener when element mounts.
   const dotRef = useCallback((el: HTMLSpanElement | null) => {
@@ -43,9 +57,14 @@ export function TokenIndicator({ match, onTokenSelect }: TokenIndicatorProps) {
     }
   }, []);
 
+  // Store disabled state in a ref so the native handler can read it
+  const isDisabledRef = useRef(isDisabled);
+  isDisabledRef.current = isDisabled;
+
   function handleNativePointerDown(e: PointerEvent) {
     e.stopPropagation();
     e.preventDefault();
+    if (isDisabledRef.current) return;
     const el = dotElRef.current;
     if (!el) return;
     if (pickerOpenRef.current) {
@@ -68,15 +87,34 @@ export function TokenIndicator({ match, onTokenSelect }: TokenIndicatorProps) {
     hideTimeout.current = setTimeout(() => setShowTooltip(false), 150);
   }, []);
 
-  const handleSelect = useCallback((newToken: UtilityToken) => {
-    onTokenSelect?.(match.token, newToken);
-  }, [match.token, onTokenSelect]);
+  const handleSelect = useCallback((token: UtilityToken) => {
+    if (match) {
+      onTokenSelect?.(match.token, token);
+    } else {
+      const props = relatedProperties || [property];
+      onTokenApply?.(token, props);
+    }
+  }, [match, property, relatedProperties, onTokenSelect, onTokenApply]);
 
   const handleClose = useCallback(() => {
     setPickerOpen(false);
   }, []);
 
-  // Find the shadow root container for portaling the picker outside the panel
+  // Tooltip text
+  const tooltipText = isActive
+    ? `.${match.token.className}`
+    : isDisabled
+      ? "No tokens available"
+      : "Apply token";
+
+  // Dot class
+  const dotClass = isActive
+    ? "retune-token-dot retune-token-dot-active"
+    : isDisabled
+      ? "retune-token-dot retune-token-dot-disabled"
+      : "retune-token-dot retune-token-dot-available";
+
+  // Find the shadow root container for portaling the dialog outside the panel
   const portalTarget = dotElRef.current?.getRootNode() instanceof ShadowRoot
     ? (dotElRef.current.getRootNode() as ShadowRoot).querySelector("[data-retune-container]") as HTMLElement
     : null;
@@ -85,18 +123,19 @@ export function TokenIndicator({ match, onTokenSelect }: TokenIndicatorProps) {
     <>
       <span
         ref={dotRef}
-        className="retune-token-dot"
+        className={dotClass}
         onPointerEnter={show}
         onPointerLeave={hide}
       >
         <span className="retune-token-dot-inner" />
         {showTooltip && !pickerOpen && (
-          <span className="retune-token-tooltip">.{match.token.className}</span>
+          <span className="retune-token-tooltip">{tooltipText}</span>
         )}
       </span>
       {pickerOpen && anchorRect && portalTarget && createPortal(
-        <TokenPicker
-          match={match}
+        <TokenDialog
+          property={property}
+          currentToken={match?.token}
           onSelect={handleSelect}
           onClose={handleClose}
           anchorRect={anchorRect}

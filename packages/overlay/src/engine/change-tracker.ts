@@ -4,6 +4,12 @@
 
 import type { ElementChange, PropertyChange } from "../types";
 
+/** A lightweight token reference stored alongside changes */
+export interface TrackedTokenRef {
+  className: string;
+  values: Record<string, string>;
+}
+
 interface TrackedElement {
   selector: string;
   tagName: string;
@@ -12,6 +18,8 @@ interface TrackedElement {
   reactComponents: string[];
   originalStyles: Record<string, string>;
   currentStyles: Record<string, string>;
+  /** Value-only token associations: camelCase property → token ref */
+  tokenAssociations?: Record<string, TrackedTokenRef>;
   sourceFile?: { fileName: string; lineNumber: number; columnNumber?: number } | null;
   stylingApproach?: string;
   inlineStyles?: string | null;
@@ -262,6 +270,26 @@ export class ChangeTracker {
     this.redoStack = [];
 
     return migrated;
+  }
+
+  /** Associate a value-only token apply with specific properties */
+  setTokenAssociation(selector: string, properties: string[], token: TrackedTokenRef) {
+    const tracked = this.tracked.get(selector);
+    if (!tracked) return;
+    if (!tracked.tokenAssociations) tracked.tokenAssociations = {};
+    for (const prop of properties) {
+      tracked.tokenAssociations[prop] = token;
+    }
+  }
+
+  /** Get token association for a property, if any */
+  getTokenAssociation(selector: string, property: string): TrackedTokenRef | undefined {
+    return this.tracked.get(selector)?.tokenAssociations?.[property];
+  }
+
+  /** Get all token associations for a selector */
+  getTokenAssociations(selector: string): Record<string, TrackedTokenRef> | undefined {
+    return this.tracked.get(selector)?.tokenAssociations;
   }
 
   get canUndo(): boolean { return this.undoStack.length > 0; }

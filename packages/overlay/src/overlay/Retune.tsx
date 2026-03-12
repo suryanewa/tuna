@@ -9,7 +9,7 @@
  *   <Retune />
  */
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import type { RetuneConfig, InspectedElement } from "../types";
 import { mountOverlay, unmountOverlay } from "./mount";
@@ -560,6 +560,27 @@ function RetuneInner(props: RetuneConfig) {
     setChangeRevision((r) => r + 1);
   }, []);
 
+  // Token associate: record value-only token apply in change tracker (persists across refresh)
+  const handleTokenAssociate = useCallback((properties: string[], token: { className: string; values: Record<string, string> }) => {
+    const tracker = trackerRef.current;
+    const el = selectedElementRef.current;
+    if (!tracker || !el) return;
+    const selector = activeSelectorRef.current ?? el.selector;
+    tracker.setTokenAssociation(selector, properties, token);
+    tracker.persist();
+    setChangeRevision((r) => r + 1);
+  }, []);
+
+  // Get current token associations for the selected element
+  const selectedTokenAssociations = useMemo(() => {
+    const tracker = trackerRef.current;
+    if (!tracker || !selectedElement) return {};
+    const selector = activeSelector ?? selectedElement.selector;
+    return tracker.getTokenAssociations(selector) ?? {};
+  // changeRevision ensures we re-read after new associations are recorded
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedElement, activeSelector, changeRevision]);
+
   // Tree: select element programmatically via picker
   const handleTreeSelect = useCallback((el: Element) => {
     const picker = pickerRef.current;
@@ -946,6 +967,8 @@ function RetuneInner(props: RetuneConfig) {
                 onPropertyHover={setHoveredBoxModel}
                 onApplyToElement={handleApplyToElement}
                 onTokenSwap={handleTokenSwap}
+                onTokenAssociate={handleTokenAssociate}
+                tokenAssociations={selectedTokenAssociations}
                 selectorCandidates={selectorCandidates}
                 activeSelector={activeSelector}
                 onSelectorChange={handleSelectorChange}

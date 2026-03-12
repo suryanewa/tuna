@@ -16,10 +16,12 @@ export interface ColorInputProps {
   value: string | undefined;
   onChange: (prop: string, value: string) => void;
   tokenMatch?: TokenMatch;
+  property?: string;
   onTokenSelect?: (oldToken: import("../tokens/types").UtilityToken, newToken: import("../tokens/types").UtilityToken) => void;
+  onTokenApply?: (token: import("../tokens/types").UtilityToken, properties: string[]) => void;
 }
 
-export function ColorInput({ prop, value, onChange, tokenMatch, onTokenSelect }: ColorInputProps) {
+export function ColorInput({ prop, value, onChange, tokenMatch, property, onTokenSelect, onTokenApply }: ColorInputProps) {
   const parsed = parseCssColor(value || "");
   const [hexLocal, setHexLocal] = useState(parsed.hex.replace("#", "").toUpperCase());
   const [opacityLocal, setOpacityLocal] = useState(String(parsed.opacity));
@@ -167,6 +169,12 @@ export function ColorInput({ prop, value, onChange, tokenMatch, onTokenSelect }:
           onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
           spellCheck={false}
         />
+        <TokenIndicator
+          match={tokenMatch}
+          property={property || prop}
+          onTokenSelect={onTokenSelect}
+          onTokenApply={onTokenApply}
+        />
       </div>
 
       {/* Right half: opacity */}
@@ -182,8 +190,6 @@ export function ColorInput({ prop, value, onChange, tokenMatch, onTokenSelect }:
         />
         <span className="retune-color-opacity-unit">%</span>
       </div>
-
-      {tokenMatch && <TokenIndicator match={tokenMatch} onTokenSelect={onTokenSelect} />}
 
       {pickerOpen && anchorRect && (
         <ColorPicker

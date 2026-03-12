@@ -39,11 +39,15 @@ export interface NumberInputProps {
   step?: number;
   /** Token match — shows a dot indicator when the value comes from a utility token */
   tokenMatch?: TokenMatch;
+  /** CSS property name for token availability detection */
+  property?: string;
   /** Callback when user picks a different token from the picker */
   onTokenSelect?: (oldToken: import("../tokens/types").UtilityToken, newToken: import("../tokens/types").UtilityToken) => void;
+  /** Callback when user applies a token from scratch (no existing token) */
+  onTokenApply?: (token: import("../tokens/types").UtilityToken, properties: string[]) => void;
 }
 
-export function NumberInput({ label, prop, value, placeholder, onChange, min, max, step: stepProp, tokenMatch, onTokenSelect }: NumberInputProps) {
+export function NumberInput({ label, prop, value, placeholder, onChange, min, max, step: stepProp, tokenMatch, property, onTokenSelect, onTokenApply }: NumberInputProps) {
   const [localValue, setLocalValue] = useState(roundCssValue(value || ""));
   const labelRef = useRef<HTMLSpanElement>(null);
 
@@ -194,9 +198,12 @@ export function NumberInput({ label, prop, value, placeholder, onChange, min, ma
         onKeyDown={handleKeyDown}
         spellCheck={false}
       />
-      {tokenMatch && (
-        <TokenIndicator match={tokenMatch} onTokenSelect={onTokenSelect} />
-      )}
+      <TokenIndicator
+        match={tokenMatch}
+        property={property || prop}
+        onTokenSelect={onTokenSelect}
+        onTokenApply={onTokenApply}
+      />
     </div>
   );
 }
