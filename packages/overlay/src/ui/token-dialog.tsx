@@ -140,18 +140,28 @@ export function TokenDialog({ property, currentToken, onSelect, onClose, anchorR
     return () => panel.removeEventListener("pointerdown", handleClose);
   }, []);
 
-  // Position — appear below the anchor, flip up if needed
-  const panelWidth = 240;
-  const maxHeight = 320;
-  const spaceBelow = window.innerHeight - anchorRect.top - anchorRect.height - 4;
-  const flipUp = spaceBelow < maxHeight && anchorRect.top > spaceBelow;
-  const top = flipUp
-    ? Math.max(4, anchorRect.top - maxHeight - 4)
-    : anchorRect.top + anchorRect.height + 4;
-  const left = Math.max(4, Math.min(
-    anchorRect.left + anchorRect.width - panelWidth,
-    window.innerWidth - panelWidth - 4,
-  ));
+  // Position — collision detection: prefer below anchor, flip above if needed
+  const host = document.querySelector("[data-retune-host]");
+  const parentPanel = host?.shadowRoot?.querySelector(".retune-panel");
+  const parentRect = parentPanel?.getBoundingClientRect();
+  const panelWidth = parentRect ? parentRect.width - 24 : 240;
+  const left = parentRect
+    ? parentRect.left + (parentRect.width - panelWidth) / 2
+    : Math.max(4, Math.min(anchorRect.left + anchorRect.width - panelWidth, window.innerWidth - panelWidth - 4));
+
+  const gap = 4;
+  const dialogMax = 400;
+
+  // Collision detection against viewport — stay close to the anchor input
+  const spaceBelow = window.innerHeight - anchorRect.top - anchorRect.height - gap;
+  const spaceAbove = anchorRect.top - gap;
+  const flipUp = spaceBelow < dialogMax && spaceAbove > spaceBelow;
+  const maxHeight = Math.min(dialogMax, flipUp ? spaceAbove : spaceBelow);
+
+  // When below: set top. When above: set bottom so dialog's bottom edge hugs the input.
+  const posStyle: React.CSSProperties = flipUp
+    ? { position: "fixed", bottom: window.innerHeight - anchorRect.top + gap, left, width: panelWidth, maxHeight }
+    : { position: "fixed", top: anchorRect.top + anchorRect.height + gap, left, width: panelWidth, maxHeight };
 
   const categoryLabel = category
     ? category.charAt(0).toUpperCase() + category.slice(1)
@@ -161,7 +171,7 @@ export function TokenDialog({ property, currentToken, onSelect, onClose, anchorR
     <div
       ref={panelRef}
       className="retune-token-dialog"
-      style={{ position: "fixed", top, left, width: panelWidth }}
+      style={posStyle}
     >
       <div className="retune-token-dialog-header">
         <span className="retune-token-dialog-title">{categoryLabel}</span>

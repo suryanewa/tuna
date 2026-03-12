@@ -71,7 +71,9 @@ export function TokenIndicator({ match, property, relatedProperties, onTokenSele
       setPickerOpen(false);
       return;
     }
-    const rect = el.getBoundingClientRect();
+    // Use the parent input row as anchor so the dialog appears directly below the input
+    const row = el.closest(".retune-prop, .retune-color-row, .retune-row");
+    const rect = row ? row.getBoundingClientRect() : el.getBoundingClientRect();
     setAnchorRect({ top: rect.top, left: rect.left, width: rect.width, height: rect.height });
     setPickerOpen(true);
     setShowTooltip(false);
