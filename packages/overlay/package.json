@@ -6,7 +6,7 @@
     "type": "git",
     "url": "https://github.com/khadgi-sujan/retune"
   },
-  "license": "MIT",
+  "license": "PolyForm-Shield-1.0.0",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
