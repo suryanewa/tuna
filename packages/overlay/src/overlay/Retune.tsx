@@ -427,12 +427,15 @@ function RetuneInner(props: RetuneConfig) {
     setForcedState(state);
 
     if (state) {
-      // Find CSS rules for this pseudo-state and apply them directly
+      // Find CSS rules for this pseudo-state and apply them directly.
+      // getPseudoStateStyles returns kebab-case keys; convert to camelCase
+      // so they match computedStyles keys when merged in refreshSelectedElement.
       const pseudoStyles = getPseudoStateStyles(el.element, state);
       const appliedProps: string[] = [];
       for (const [prop, value] of Object.entries(pseudoStyles)) {
-        preview.applyChange(selector, prop, value);
-        appliedProps.push(prop);
+        const camelProp = prop.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+        preview.applyChange(selector, camelProp, value);
+        appliedProps.push(camelProp);
       }
       forcedStylesRef.current = { selector, props: appliedProps };
     }
