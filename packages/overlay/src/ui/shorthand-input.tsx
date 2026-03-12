@@ -8,6 +8,8 @@
 
 import { useState, useRef, type ReactNode } from "react";
 import { roundCssValue, inferCssUnit } from "./round-css-value";
+import type { TokenMatch } from "../tokens/types";
+import { TokenIndicator } from "./token-indicator";
 
 function clampNum(val: number, min?: number, max?: number): number {
   if (min !== undefined && val < min) return min;
@@ -35,6 +37,8 @@ export interface ShorthandInputProps {
   min?: number;
   /** Maximum numeric value */
   max?: number;
+  /** Token match — shows a dot indicator when the value comes from a utility token */
+  tokenMatch?: TokenMatch;
 }
 
 function computeDisplay(values: string[]): string {
@@ -43,7 +47,7 @@ function computeDisplay(values: string[]): string {
   return rounded.join(", ");
 }
 
-export function ShorthandInput({ label, props, values, onChange, placeholder, min, max }: ShorthandInputProps) {
+export function ShorthandInput({ label, props, values, onChange, placeholder, min, max, tokenMatch }: ShorthandInputProps) {
   const [localValue, setLocalValue] = useState(() => computeDisplay(values));
   const [prevValues, setPrevValues] = useState(values);
 
@@ -157,8 +161,10 @@ export function ShorthandInput({ label, props, values, onChange, placeholder, mi
     }
   };
 
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
   return (
-    <div className="retune-prop">
+    <div ref={wrapperRef} className={`retune-prop${tokenMatch ? " retune-prop-has-token" : ""}`}>
       {label && (
         <span
           className="retune-prop-label"
@@ -171,6 +177,7 @@ export function ShorthandInput({ label, props, values, onChange, placeholder, mi
       )}
       <input
         className="retune-prop-input"
+        style={tokenMatch ? { paddingRight: 22 } : undefined}
         value={localValue}
         placeholder={placeholder}
         onPointerDown={!label ? handleInputPointerDown : undefined}
@@ -182,6 +189,9 @@ export function ShorthandInput({ label, props, values, onChange, placeholder, mi
         onKeyDown={handleKeyDown}
         spellCheck={false}
       />
+      {tokenMatch && (
+        <TokenIndicator match={tokenMatch} />
+      )}
     </div>
   );
 }

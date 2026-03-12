@@ -3,7 +3,7 @@
  * and groups them by property category (spacing, colors, typography, etc.).
  */
 
-import type { TokenRegistry, UtilityToken, TokenCategory } from "./types";
+import type { TokenRegistry, UtilityToken, TokenCategory, CssFramework } from "./types";
 import { getCategoryForProperty } from "./categories";
 import {
   countAuthoredProperties,
@@ -34,6 +34,11 @@ export function invalidateTokenRegistry(): void {
   cachedSheetCount = -1;
 }
 
+/** Check if the project uses Tailwind CSS */
+export function isTailwind(): boolean {
+  return getTokenRegistry().framework === "tailwind";
+}
+
 function buildRegistry(): TokenRegistry {
   const groups = new Map<TokenCategory, UtilityToken[]>();
   const valueLookup = new Map<string, UtilityToken[]>();
@@ -44,10 +49,12 @@ function buildRegistry(): TokenRegistry {
   probe.style.cssText = "position:fixed;top:-9999px;left:-9999px;visibility:hidden;pointer-events:none;";
   document.body.appendChild(probe);
 
+  let hasTwVars = false;
   try {
     for (const sheet of document.styleSheets) {
       let rules: CSSRuleList;
       try { rules = sheet.cssRules; } catch { continue; }
+      if (!hasTwVars) hasTwVars = detectTailwindVars(rules);
       scanRules(rules, probe, groups, valueLookup, classLookup);
     }
   } finally {
@@ -59,7 +66,40 @@ function buildRegistry(): TokenRegistry {
     groups.set(category, sortTokens(tokens, category));
   }
 
-  return { groups, valueLookup, classLookup };
+  const framework = detectFramework(hasTwVars, classLookup);
+
+  return { groups, valueLookup, classLookup, framework };
+}
+
+/** Check if any rules contain Tailwind's --tw-* CSS variables */
+function detectTailwindVars(rules: CSSRuleList): boolean {
+  for (let i = 0; i < rules.length; i++) {
+    const rule = rules[i];
+    if (rule instanceof CSSGroupingRule ||
+        (typeof CSSLayerBlockRule !== "undefined" && rule instanceof CSSLayerBlockRule)) {
+      if (detectTailwindVars((rule as CSSGroupingRule).cssRules)) return true;
+      continue;
+    }
+    if (!(rule instanceof CSSStyleRule)) continue;
+    for (let j = 0; j < rule.style.length; j++) {
+      if (rule.style[j].startsWith("--tw-")) return true;
+    }
+  }
+  return false;
+}
+
+/** Determine framework from registry contents */
+function detectFramework(hasTwVars: boolean, classLookup: Map<string, UtilityToken>): CssFramework {
+  if (hasTwVars) return "tailwind";
+  // Heuristic: if many classes follow Tailwind naming patterns
+  const twPattern = /^(p|m|w|h|gap|text|bg|border|rounded|shadow|opacity|font|leading|tracking|flex|grid|z|inset|top|right|bottom|left)([xytrbl])?-/;
+  let twCount = 0;
+  for (const name of classLookup.keys()) {
+    if (twPattern.test(name)) twCount++;
+  }
+  if (twCount > 10) return "tailwind";
+  if (classLookup.size > 0) return "custom";
+  return "unknown";
 }
 
 function scanRules(
@@ -93,9 +133,11 @@ function scanRules(
     if (!classMatch) continue;
     const className = classMatch[1];
 
-    // Score the class name — skip if it doesn't look like a utility
+    // Score the class name — skip obvious semantic/component classes (BEM, etc.)
+    // Use a low threshold: structural checks (simple selector + few properties)
+    // are the main filter. This only rejects clearly non-token names.
     const { score } = scoreNamePattern(className);
-    if (score < 0.50) continue;
+    if (score < 0.20) continue;
 
     // Already registered (earlier rule takes precedence)
     if (classLookup.has(className)) continue;

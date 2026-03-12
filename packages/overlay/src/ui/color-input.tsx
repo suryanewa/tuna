@@ -7,14 +7,17 @@
 import { useState, useRef, useCallback } from "react";
 import { parseCssColor, hexToRgba } from "./color-utils";
 import { ColorPicker } from "./color-picker";
+import type { TokenMatch } from "../tokens/types";
+import { TokenIndicator } from "./token-indicator";
 
 export interface ColorInputProps {
   prop: string;
   value: string | undefined;
   onChange: (prop: string, value: string) => void;
+  tokenMatch?: TokenMatch;
 }
 
-export function ColorInput({ prop, value, onChange }: ColorInputProps) {
+export function ColorInput({ prop, value, onChange, tokenMatch }: ColorInputProps) {
   const parsed = parseCssColor(value || "");
   const [hexLocal, setHexLocal] = useState(parsed.hex.replace("#", "").toUpperCase());
   const [opacityLocal, setOpacityLocal] = useState(String(parsed.opacity));
@@ -142,7 +145,7 @@ export function ColorInput({ prop, value, onChange }: ColorInputProps) {
   })();
 
   return (
-    <div className="retune-color-row">
+    <div className={`retune-color-row${tokenMatch ? " retune-prop-has-token" : ""}`}>
       {/* Left half: swatch + hex */}
       <div className="retune-color-hex-section">
         <div
@@ -176,6 +179,8 @@ export function ColorInput({ prop, value, onChange }: ColorInputProps) {
         />
         <span className="retune-color-opacity-unit">%</span>
       </div>
+
+      {tokenMatch && <TokenIndicator match={tokenMatch} />}
 
       {pickerOpen && anchorRect && (
         <ColorPicker

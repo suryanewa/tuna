@@ -14,7 +14,7 @@ import { type TokenMap, scanDesignTokens, findTokensForValue, summarizeTokenSyst
 import { type StyleSource, findStyleSources, formatStyleSource } from "../inspector/style-source";
 import { camelToKebab, truncate } from "../utils";
 import { findTokenForValue as findUtilityToken } from "../tokens/resolver";
-import { getCategoryForCamelProp } from "../tokens/categories";
+import { getTokenRegistry } from "../tokens/registry";
 
 export type Fidelity = "minimal" | "standard" | "full";
 
@@ -106,6 +106,13 @@ export function formatChanges(changes: ElementChange[], fidelity: Fidelity): str
       lines.push(`> **Design tokens detected:** ${tokenSummary}`);
       lines.push("");
     }
+  }
+
+  // Framework detection guidance
+  const registry = getTokenRegistry();
+  if (registry.framework === "tailwind") {
+    lines.push("> **Framework:** Tailwind CSS detected. Apply all changes using Tailwind utility classes — do NOT use inline styles or raw CSS values. When a class swap is suggested, replace the old class with the new one in the JSX/HTML.");
+    lines.push("");
   }
 
   // Each element change
@@ -261,6 +268,7 @@ function formatStylingApproach(approach: string): string {
 
 function getTokenHint(value: string, tokenMap: TokenMap, property?: string): string {
   const hints: string[] = [];
+  const registry = getTokenRegistry();
 
   // Check CSS custom properties (design tokens)
   const tokens = findTokensForValue(value, tokenMap);
@@ -275,6 +283,10 @@ function getTokenHint(value: string, tokenMap: TokenMap, property?: string): str
     const utilToken = findUtilityToken(kebab, value);
     if (utilToken) {
       hints.push(`\`.${utilToken.className}\``);
+    } else if (registry.framework === "tailwind") {
+      // Suggest Tailwind class even if not in registry (e.g., JIT-generated)
+      const tw = suggestTailwindClass(property, value);
+      if (tw) hints.push(`\`.${tw}\``);
     }
   }
 
@@ -283,30 +295,44 @@ function getTokenHint(value: string, tokenMap: TokenMap, property?: string): str
 
 function getImplementationHint(change: ElementChange): string | null {
   const approach = change.stylingApproach;
+  const registry = getTokenRegistry();
+  const isTw = registry.framework === "tailwind" || approach === "tailwind";
 
   // Prescriptive class-swap hints using utility token registry
   const swapHints: string[] = [];
+  const twHints: string[] = [];
+
   for (const prop of change.changes) {
     const kebab = camelToKebab(prop.property);
+
+    // Try exact token swap first (from registry scan)
     const fromToken = findUtilityToken(kebab, prop.from);
     const toToken = findUtilityToken(kebab, prop.to);
     if (fromToken && toToken && fromToken.className !== toToken.className) {
       swapHints.push(`swap \`.${fromToken.className}\` → \`.${toToken.className}\``);
+    } else if (fromToken && !toToken && isTw) {
+      // We know the old class but no exact token match for new value — suggest Tailwind class
+      const tw = suggestTailwindClass(prop.property, prop.to);
+      if (tw) {
+        swapHints.push(`swap \`.${fromToken.className}\` → \`.${tw}\``);
+      } else {
+        swapHints.push(`remove \`.${fromToken.className}\`, apply \`${kebab}: ${prop.to}\` via Tailwind arbitrary value \`[${kebab}:${prop.to}]\` or closest utility`);
+      }
+    } else if (isTw) {
+      // No from-token, but project is Tailwind — suggest the target class
+      const tw = suggestTailwindClass(prop.property, prop.to);
+      if (tw) twHints.push(tw);
     }
+  }
+
+  if (swapHints.length > 0 && twHints.length > 0) {
+    return `${swapHints.join("; ")}. Also add: \`${twHints.join(" ")}\``;
   }
   if (swapHints.length > 0) {
     return swapHints.join("; ");
   }
-
-  if (approach === "tailwind") {
-    const hints: string[] = [];
-    for (const prop of change.changes) {
-      const tw = suggestTailwindClass(prop.property, prop.to);
-      if (tw) hints.push(tw);
-    }
-    if (hints.length > 0) {
-      return `Suggested Tailwind classes: \`${hints.join(" ")}\``;
-    }
+  if (twHints.length > 0) {
+    return `Use Tailwind classes: \`${twHints.join(" ")}\``;
   }
 
   if (approach === "css-modules" && change.sourceFile) {

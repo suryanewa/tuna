@@ -8,10 +8,8 @@ import type { InspectedElement } from "../types";
 import type { BoxModelProperty } from "../ui/box-model-overlay";
 import { Section, Row, RowGroup, Field } from "../ui/section";
 import { NumberInput } from "../ui/number-input";
-import type { TokenMatch, UtilityToken } from "../tokens/types";
-import { resolveTokensForElement, getAlternativeTokens } from "../tokens/resolver";
-import { TokenIndicator } from "../ui/token-indicator";
-import { TokenPicker } from "../ui/token-picker";
+import type { TokenMatch } from "../tokens/types";
+import { resolveTokensForElement, isTailwindUtility } from "../tokens/resolver";
 import { ComboInput, type ComboOption } from "../ui/combo-input";
 import { ColorInput } from "../ui/color-input";
 import { SelectInput } from "../ui/select-input";
@@ -188,48 +186,33 @@ export function PropertyPanel({
     return resolveTokensForElement(element.element, s);
   }, [element.element, s]);
 
-  // Token picker state
-  const [tokenPickerState, setTokenPickerState] = useState<{
-    property: string;
-    currentToken?: UtilityToken;
-    anchorRect: { top: number; left: number; width: number; height: number };
-  } | null>(null);
-
-  const handleTokenClick = useCallback((property: string, match: TokenMatch, anchorEl: HTMLElement) => {
-    const rect = anchorEl.getBoundingClientRect();
-    setTokenPickerState({
-      property,
-      currentToken: match.token,
-      anchorRect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
-    });
-  }, []);
-
-  const handleTokenSelect = useCallback((token: UtilityToken) => {
-    if (!tokenPickerState) return;
-    const prop = tokenPickerState.property;
-    const val = token.values[prop] || Object.values(token.values)[0];
-    if (val) {
-      onPropertyChange(prop, val);
-    }
-    setTokenPickerState(null);
-  }, [tokenPickerState, onPropertyChange]);
-
-  const handleTokenPickerClose = useCallback(() => {
-    setTokenPickerState(null);
-  }, []);
-
-  // Helper: get token match for a camelCase prop (converts to kebab-case for lookup)
+  // Helper: get token match for a camelCase prop.
+  // Only returns matches for semantic tokens — Tailwind utilities (pl-2, bg-blue-500)
+  // are handled by the output system, not shown as indicators.
   const getTokenMatch = useCallback((camelProp: string): TokenMatch | undefined => {
     const kebab = camelProp.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`);
-    return tokenMatches.get(kebab);
+    const match = tokenMatches.get(kebab);
+    if (!match) return undefined;
+    // Skip Tailwind utility classes — no indicator value
+    if (isTailwindUtility(match.token.className)) return undefined;
+    return match;
   }, [tokenMatches]);
 
-  // Shorthand: token props for a NumberInput
+  // Token props for a NumberInput
   const tokenProps = useCallback((camelProp: string) => {
     const match = getTokenMatch(camelProp);
     if (!match) return {};
-    return { tokenMatch: match, onTokenClick: handleTokenClick };
-  }, [getTokenMatch, handleTokenClick]);
+    return { tokenMatch: match };
+  }, [getTokenMatch]);
+
+  // Token props for ShorthandInput — finds the first matching token among the shorthand's props
+  const shorthandTokenProps = useCallback((camelProps: string[]) => {
+    for (const p of camelProps) {
+      const match = getTokenMatch(p);
+      if (match) return { tokenMatch: match };
+    }
+    return {};
+  }, [getTokenMatch]);
 
   const TEXT_TAGS = ["P", "H1", "H2", "H3", "H4", "H5", "H6", "SPAN", "A", "BUTTON", "LABEL", "LI", "TD", "TH", "FIGCAPTION", "BLOCKQUOTE", "CITE", "EM", "STRONG", "SMALL"];
   const hasDirectText = element.element ? Array.from(element.element.childNodes).some(
@@ -871,6 +854,7 @@ export function PropertyPanel({
                   values={[s.paddingLeft, s.paddingRight]}
                   onChange={onPropertyChange}
                   min={0}
+                  {...shorthandTokenProps(["paddingLeft", "paddingRight"])}
                 />
               </div>
               <div style={{ flex: 1 }} onPointerEnter={() => onPropertyHover?.("paddingBlock")} onPointerLeave={() => onPropertyHover?.(null)}>
@@ -880,6 +864,7 @@ export function PropertyPanel({
                   values={[s.paddingTop, s.paddingBottom]}
                   onChange={onPropertyChange}
                   min={0}
+                  {...shorthandTokenProps(["paddingTop", "paddingBottom"])}
                 />
               </div>
               <Tooltip content="Edit individual sides" side="top">
@@ -924,6 +909,7 @@ export function PropertyPanel({
                   props={["marginLeft", "marginRight"]}
                   values={[s.marginLeft, s.marginRight]}
                   onChange={onPropertyChange}
+                  {...shorthandTokenProps(["marginLeft", "marginRight"])}
                 />
               </div>
               <div style={{ flex: 1 }} onPointerEnter={() => onPropertyHover?.("marginBlock")} onPointerLeave={() => onPropertyHover?.(null)}>
@@ -932,6 +918,7 @@ export function PropertyPanel({
                   props={["marginTop", "marginBottom"]}
                   values={[s.marginTop, s.marginBottom]}
                   onChange={onPropertyChange}
+                  {...shorthandTokenProps(["marginTop", "marginBottom"])}
                 />
               </div>
               <Tooltip content="Edit individual sides" side="top">
@@ -1125,7 +1112,7 @@ export function PropertyPanel({
           </Row>
           <Row>
             <Field label="Color">
-              <ColorInput prop="color" value={s.color} onChange={onPropertyChange} />
+              <ColorInput prop="color" value={s.color} onChange={onPropertyChange} {...tokenProps("color")} />
             </Field>
           </Row>
           <Row>
@@ -1287,6 +1274,7 @@ export function PropertyPanel({
                 values={[s.borderTopLeftRadius, s.borderTopRightRadius, s.borderBottomRightRadius, s.borderBottomLeftRadius]}
                 onChange={onPropertyChange}
                 min={0}
+                {...shorthandTokenProps(["borderTopLeftRadius", "borderTopRightRadius", "borderBottomRightRadius", "borderBottomLeftRadius"])}
               />
               <Tooltip content="Edit individual corners" side="top">
                 <button className="retune-split-btn" onClick={() => setRadiusExpanded(true)}>
@@ -1327,7 +1315,7 @@ export function PropertyPanel({
             </Row>
             {fillMode === "solid" ? (
               <Row>
-                <ColorInput prop="backgroundColor" value={s.backgroundColor} onChange={onPropertyChange} />
+                <ColorInput prop="backgroundColor" value={s.backgroundColor} onChange={onPropertyChange} {...tokenProps("backgroundColor")} />
               </Row>
             ) : (
               <GradientEditor gradient={gradient} onChange={handleGradientChange} />
@@ -1351,7 +1339,7 @@ export function PropertyPanel({
           <>
             <Row>
               <Field label="Color">
-                <ColorInput prop="borderColor" value={activeBorderColor} onChange={onPropertyChange} />
+                <ColorInput prop="borderColor" value={activeBorderColor} onChange={onPropertyChange} {...tokenProps("borderColor")} />
               </Field>
             </Row>
             <RowGroup label={borderExpanded ? undefined : "Width"}>
@@ -1399,6 +1387,7 @@ export function PropertyPanel({
                     values={[s.borderTopWidth, s.borderRightWidth, s.borderBottomWidth, s.borderLeftWidth]}
                     onChange={onPropertyChange}
                     min={0}
+                    {...shorthandTokenProps(["borderTopWidth", "borderRightWidth", "borderBottomWidth", "borderLeftWidth"])}
                   />
                   <Tooltip content="Edit individual sides" side="top">
                     <button className="retune-split-btn" onClick={() => setBorderExpanded(true)}>
@@ -1609,15 +1598,6 @@ export function PropertyPanel({
         })()}
       </Section>
       <div ref={filterSectionRef} />
-      {tokenPickerState && (
-        <TokenPicker
-          property={tokenPickerState.property}
-          currentToken={tokenPickerState.currentToken}
-          anchorRect={tokenPickerState.anchorRect}
-          onSelect={handleTokenSelect}
-          onClose={handleTokenPickerClose}
-        />
-      )}
     </>
   );
 }

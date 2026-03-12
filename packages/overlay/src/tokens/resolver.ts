@@ -34,10 +34,13 @@ export function resolveTokensForElement(
 
   if (activeTokens.length === 0) return matches;
 
-  // For each active token, check if its values match the element's computed styles
+  // For each active token, check if its values match the element's computed styles.
+  // Token values use kebab-case keys (from CSSStyleDeclaration iteration),
+  // but computedStyles uses camelCase keys (from inspectElement). Convert.
   for (const token of activeTokens) {
     for (const [prop, tokenValue] of Object.entries(token.values)) {
-      const computed = computedStyles[prop];
+      const camelProp = kebabToCamel(prop);
+      const computed = computedStyles[camelProp] || computedStyles[prop];
       if (!computed) continue;
 
       // Normalize for comparison (strip whitespace, lowercase)
@@ -45,7 +48,7 @@ export function resolveTokensForElement(
       const normalizedComputed = normalizeValue(computed);
 
       if (normalizedToken === normalizedComputed) {
-        // This token provides this property's value
+        // Store with kebab-case key (matches what the panel's tokenProps helper expects)
         matches.set(prop, { token, property: prop });
       }
     }
@@ -57,13 +60,16 @@ export function resolveTokensForElement(
 /**
  * Find alternative tokens for a given property and category.
  * Returns tokens from the same category, sorted by the registry's ordering.
+ * Accepts both camelCase and kebab-case property names.
  */
 export function getAlternativeTokens(
   property: string,
   currentToken?: UtilityToken,
 ): UtilityToken[] {
   const registry = getTokenRegistry();
-  const category = getCategoryForProperty(property);
+  // Normalize: accept both camelCase ("paddingLeft") and kebab-case ("padding-left")
+  const kebab = camelToKebab(property);
+  const category = getCategoryForProperty(kebab);
   if (!category) return [];
 
   const group = registry.groups.get(category);
@@ -71,8 +77,8 @@ export function getAlternativeTokens(
 
   // Return all tokens in the same category that affect this property
   return group.filter(t => {
-    // Must affect the same property
-    if (!Object.keys(t.values).some(p => p === property || isSameFamily(p, property))) return false;
+    // Must affect the same property (token values always use kebab-case)
+    if (!Object.keys(t.values).some(p => p === kebab || isSameFamily(p, kebab))) return false;
     // Exclude current token
     if (currentToken && t.className === currentToken.className) return false;
     return true;
@@ -82,13 +88,16 @@ export function getAlternativeTokens(
 /**
  * Find the best token swap for a property value change.
  * Given a property and new value, find the token whose value best matches.
+ * Accepts both camelCase and kebab-case property names.
  */
 export function findTokenForValue(
   property: string,
   value: string,
 ): UtilityToken | null {
   const registry = getTokenRegistry();
-  const key = `${property}:${normalizeValue(value)}`;
+  // Normalize: accept both camelCase and kebab-case
+  const kebab = camelToKebab(property);
+  const key = `${kebab}:${normalizeValue(value)}`;
 
   // Direct lookup first
   const directMatches = registry.valueLookup.get(key);
@@ -97,7 +106,7 @@ export function findTokenForValue(
   }
 
   // Fuzzy numeric match: find the closest token value
-  const category = getCategoryForProperty(property);
+  const category = getCategoryForProperty(kebab);
   if (!category) return null;
 
   const group = registry.groups.get(category);
@@ -110,7 +119,7 @@ export function findTokenForValue(
   let closestDist = Infinity;
 
   for (const token of group) {
-    const tokenVal = token.values[property];
+    const tokenVal = token.values[kebab];
     if (!tokenVal) continue;
     const tokenNum = parseFloat(tokenVal);
     if (isNaN(tokenNum)) continue;
@@ -133,6 +142,24 @@ export function findTokenForValue(
 /** Normalize a CSS value for comparison */
 function normalizeValue(val: string): string {
   return val.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+/** Convert camelCase to kebab-case: "paddingLeft" → "padding-left". Already-kebab passes through. */
+function camelToKebab(str: string): string {
+  return str.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`);
+}
+
+/** Convert kebab-case to camelCase: "padding-top" → "paddingTop" */
+function kebabToCamel(str: string): string {
+  return str.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+}
+
+/** Known Tailwind prefixes — classes like `p-4`, `mt-2`, `bg-blue-500` are utility, not semantic */
+const TW_PREFIX = /^-?(?:p|px|py|pt|pr|pb|pl|m|mx|my|mt|mr|mb|ml|w|h|min-w|max-w|min-h|max-h|gap|space-[xy]|text|bg|border|rounded|shadow|opacity|font|leading|tracking|z|inset|top|right|bottom|left|flex|grid|grid-cols|col-span|row-span|items|justify|self|place|order|overflow|ring|outline|divide|sr|not-sr|container|aspect|columns|break|decoration|underline|overline|no-underline|cursor|transition|duration|ease|delay|animate|scale|rotate|translate|skew|origin|fill|stroke|will-change|hidden|block|inline|inline-flex|inline-block|table|absolute|relative|fixed|sticky|float|clear|isolate|object|whitespace|align|indent|truncate|uppercase|lowercase|capitalize|normal-case|italic|not-italic|antialiased|subpixel|select|resize|appearance|accent|caret|snap|touch|scroll|hyphens|content|list)($|-)/;
+
+/** Check if a class name looks like a Tailwind utility (not a semantic token) */
+export function isTailwindUtility(className: string): boolean {
+  return TW_PREFIX.test(className);
 }
 
 /** Check if two properties are in the same shorthand family */

@@ -1,4 +1,4 @@
-export type { UtilityToken, TokenCategory, TokenRegistry, TokenMatch } from "./types";
-export { getTokenRegistry, invalidateTokenRegistry } from "./registry";
+export type { UtilityToken, TokenCategory, TokenRegistry, TokenMatch, CssFramework } from "./types";
+export { getTokenRegistry, invalidateTokenRegistry, isTailwind } from "./registry";
 export { getCategoryForProperty, getPropertiesForCategory, getCategoryForCamelProp } from "./categories";
-export { resolveTokensForElement, getAlternativeTokens, findTokenForValue } from "./resolver";
+export { resolveTokensForElement, findTokenForValue, isTailwindUtility } from "./resolver";

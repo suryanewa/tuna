@@ -8,6 +8,7 @@ import { roundCssValue, inferCssUnit } from "./round-css-value";
 import type { TokenMatch } from "../tokens/types";
 import { TokenIndicator } from "./token-indicator";
 
+
 function clampNum(val: number, min?: number, max?: number): number {
   if (min !== undefined && val < min) return min;
   if (max !== undefined && val > max) return max;
@@ -38,11 +39,9 @@ export interface NumberInputProps {
   step?: number;
   /** Token match — shows a dot indicator when the value comes from a utility token */
   tokenMatch?: TokenMatch;
-  /** Called when the token indicator is clicked */
-  onTokenClick?: (prop: string, match: TokenMatch, anchorEl: HTMLElement) => void;
 }
 
-export function NumberInput({ label, prop, value, placeholder, onChange, min, max, step: stepProp, tokenMatch, onTokenClick }: NumberInputProps) {
+export function NumberInput({ label, prop, value, placeholder, onChange, min, max, step: stepProp, tokenMatch }: NumberInputProps) {
   const [localValue, setLocalValue] = useState(roundCssValue(value || ""));
   const labelRef = useRef<HTMLSpanElement>(null);
 
@@ -165,10 +164,8 @@ export function NumberInput({ label, prop, value, placeholder, onChange, min, ma
     }
   };
 
-  const wrapperRef = useRef<HTMLDivElement>(null);
-
   return (
-    <div ref={wrapperRef} className={`retune-prop${tokenMatch ? " retune-prop-has-token" : ""}`}>
+    <div className={`retune-prop${tokenMatch ? " retune-prop-has-token" : ""}`}>
       {label && (
         <span
           ref={labelRef}
@@ -195,11 +192,8 @@ export function NumberInput({ label, prop, value, placeholder, onChange, min, ma
         onKeyDown={handleKeyDown}
         spellCheck={false}
       />
-      {tokenMatch && onTokenClick && (
-        <TokenIndicator
-          match={tokenMatch}
-          onClick={() => onTokenClick(prop, tokenMatch, wrapperRef.current!)}
-        />
+      {tokenMatch && (
+        <TokenIndicator match={tokenMatch} />
       )}
     </div>
   );

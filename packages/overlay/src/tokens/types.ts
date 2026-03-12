@@ -16,6 +16,9 @@ export type TokenCategory =
   | "effects"
   | "layout";
 
+/** Detected CSS framework */
+export type CssFramework = "tailwind" | "custom" | "unknown";
+
 /** The full registry of discovered tokens */
 export interface TokenRegistry {
   /** Tokens grouped by category */
@@ -24,6 +27,8 @@ export interface TokenRegistry {
   valueLookup: Map<string, UtilityToken[]>;
   /** Forward lookup: className → token */
   classLookup: Map<string, UtilityToken>;
+  /** Detected CSS framework (tailwind, custom, unknown) */
+  framework: CssFramework;
 }
 
 /** Which token currently provides a property's value on the selected element */
