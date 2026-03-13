@@ -220,8 +220,12 @@ export function createPicker(
 
   function handleMouseMove(e: MouseEvent) {
     if (!active) return;
-    // Skip if cursor is over overlay UI (toolbar, panel) inside the shadow root
-    if (shadowRoot.elementFromPoint(e.clientX, e.clientY)) return;
+    // Skip if cursor is over overlay UI (toolbar, panel) inside the shadow root.
+    // elementFromPoint on a ShadowRoot falls through to page elements when no
+    // shadow element is at the point, so we verify the hit actually belongs to
+    // our shadow tree via getRootNode().
+    const hoverShadowHit = shadowRoot.elementFromPoint(e.clientX, e.clientY);
+    if (hoverShadowHit && hoverShadowHit.getRootNode() === shadowRoot) return;
     const raw = document.elementFromPoint(e.clientX, e.clientY);
     if (!raw || isOverlayElement(raw)) return;
     const el = resolveElement(raw);
@@ -275,8 +279,10 @@ export function createPicker(
     // updates, causing the original target to detach from the DOM).  Elements owned by
     // the picker (highlight / selection boxes) have pointer-events:none so they won't
     // be returned here — only interactive UI (toolbar, panel) will match.
+    // Note: elementFromPoint on a ShadowRoot falls through to page elements when no
+    // shadow element is at the point, so we must verify via getRootNode().
     const shadowHit = shadowRoot.elementFromPoint(e.clientX, e.clientY);
-    if (shadowHit) return;
+    if (shadowHit && shadowHit.getRootNode() === shadowRoot) return;
 
     e.preventDefault();
     e.stopPropagation();
