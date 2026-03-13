@@ -1110,32 +1110,137 @@
   color: rgba(0, 0, 0, 0.4);
 }
 
-/* ── Color Picker Panel ── */
-.retune-color-picker-panel {
+/* ── Floating Dialog (shared shell for color picker, token dialog, etc.) ── */
+.retune-floating-dialog {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   background: #fff;
   border-radius: 12px;
   box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.06),
     0 2px 8px rgba(0, 0, 0, 0.12),
-    0 8px 24px rgba(0, 0, 0, 0.08),
-    0 0 0 1px rgba(0, 0, 0, 0.06);
-  overflow: visible;
+    0 8px 24px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  width: 248px;
-  animation: retune-picker-in 150ms cubic-bezier(0.23, 1, 0.32, 1) both;
-  transform-origin: top center;
+  z-index: 2147483647;
+  pointer-events: auto;
+  animation: retune-dialog-enter 150ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-@keyframes retune-picker-in {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+@keyframes retune-dialog-enter {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
 }
+
+.retune-floating-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 8px 0 12px;
+}
+
+.retune-floating-dialog-title-area {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.retune-floating-dialog-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: #1c1917;
+}
+
+/* Tab styles — single tab has no selected style */
+.retune-floating-dialog-tab {
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  line-height: 16px;
+  letter-spacing: 0.055px;
+  white-space: nowrap;
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: color 0.15s, background-color 0.15s;
+  font-weight: 450;
+  color: #78716c;
+  font-family: inherit;
+}
+.retune-floating-dialog-tab:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+.retune-floating-dialog-tab-active {
+  background: #f5f5f4;
+  font-weight: 550;
+  color: #1c1917;
+}
+.retune-floating-dialog-tab-active:hover {
+  background: #f5f5f4;
+}
+.retune-floating-dialog-tab-single {
+  font-weight: 550;
+  color: #1c1917;
+  cursor: inherit;
+}
+.retune-floating-dialog-tab-single:hover {
+  background: none;
+}
+
+.retune-floating-dialog-close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  border-radius: 8px;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.retune-floating-dialog-close:hover {
+  color: rgba(0, 0, 0, 0.9);
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.retune-floating-dialog-search {
+  padding: 8px;
+}
+.retune-floating-dialog-search-input {
+  width: 100%;
+  height: 32px;
+  background: #f5f5f4;
+  border: none;
+  border-radius: 8px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-family: inherit;
+  color: #1c1917;
+  outline: none;
+  box-sizing: border-box;
+}
+.retune-floating-dialog-search-input::placeholder {
+  color: #a8a29e;
+}
+.retune-floating-dialog-search-input:focus {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+.retune-floating-dialog-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Color Picker Content ── */
 
 .retune-cp-sv-wrap {
   padding: 12px 12px 0 12px;
@@ -1257,8 +1362,6 @@
   display: flex;
   gap: 4px;
   padding: 0 12px 10px;
-  background: #fff;
-  border-radius: 0 0 12px 12px;
 }
 
 .retune-cp-input-group {
@@ -2264,84 +2367,7 @@
   flex-shrink: 0;
 }
 
-/* ── Token Dialog (browse & apply tokens) ── */
-.retune-token-dialog {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 0 0 1px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08);
-  overflow: hidden;
-  z-index: 2147483647;
-  pointer-events: auto;
-  animation: retune-token-dialog-enter 150ms cubic-bezier(0.23, 1, 0.32, 1);
-  display: flex;
-  flex-direction: column;
-  min-height: 300px;
-  max-height: 400px;
-}
-
-@keyframes retune-token-dialog-enter {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.retune-token-dialog-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 12px 0;
-}
-
-.retune-token-dialog-title {
-  font-size: 12px;
-  font-weight: 500;
-  color: #1c1917;
-}
-
-.retune-token-dialog-close {
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: none;
-  color: rgba(0,0,0,0.35);
-  cursor: pointer;
-  border-radius: 4px;
-  padding: 0;
-  transition: color 0.1s ease, background-color 0.1s ease;
-}
-.retune-token-dialog-close:hover {
-  color: #1c1917;
-  background: rgba(0,0,0,0.05);
-}
-
-.retune-token-dialog-search {
-  padding: 8px 12px;
-}
-
-.retune-token-dialog-search-input {
-  width: 100%;
-  height: 32px;
-  background: #f5f5f4;
-  border: none;
-  border-radius: 8px;
-  padding: 0 10px;
-  font-size: 12px;
-  font-family: inherit;
-  color: #1c1917;
-  outline: none;
-  box-sizing: border-box;
-  transition: border-color 0.1s ease;
-}
-.retune-token-dialog-search-input::placeholder {
-  color: #a8a29e;
-}
-.retune-token-dialog-search-input:focus {
-  box-shadow: 0 0 0 2px rgba(59,130,246,0.15);
-}
-
+/* ── Token Dialog List (content inside FloatingDialog) ── */
 .retune-token-dialog-list {
   flex: 1 1 0;
   overflow-y: auto;
@@ -2355,7 +2381,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
+  padding: 8px 16px;
   cursor: pointer;
   transition: background-color 0.08s ease;
   min-height: 32px;
@@ -2395,8 +2421,8 @@
 }
 
 .retune-token-dialog-name {
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 450;
   color: #1c1917;
   flex: 1;
   min-width: 0;
@@ -2445,7 +2471,7 @@
 
   .retune-panel-anim.entering .retune-panel,
   .retune-panel-anim.exiting .retune-panel,
-  .retune-color-picker-panel,
+  .retune-floating-dialog,
   .retune-dropdown-menu,
   .retune-tooltip,
   .retune-edit-count,
@@ -2458,8 +2484,7 @@
 
   .retune-token-dot,
   .retune-token-tooltip,
-  .retune-token-picker,
-  .retune-token-dialog {
+  .retune-token-picker {
     transition: none;
     animation: none;
   }

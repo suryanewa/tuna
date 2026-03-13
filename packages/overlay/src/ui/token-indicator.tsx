@@ -21,7 +21,6 @@ import { createPortal } from "react-dom";
 import type { TokenMatch, UtilityToken } from "../tokens/types";
 import { hasTokensForProperty } from "../tokens/resolver";
 import { TokenDialog } from "./token-dialog";
-import { useScrollLock } from "./use-scroll-lock";
 
 export interface TokenIndicatorProps {
   match?: TokenMatch;
@@ -30,9 +29,12 @@ export interface TokenIndicatorProps {
   relatedProperties?: string[];
   onTokenSelect?: (oldToken: UtilityToken, newToken: UtilityToken) => void;
   onTokenApply?: (token: UtilityToken, properties: string[]) => void;
+  /** When provided, dot click calls this instead of opening the internal TokenDialog.
+   *  Used by ColorInput to open the color picker to the tokens tab. */
+  onRequestOpen?: () => void;
 }
 
-export function TokenIndicator({ match, property, relatedProperties, onTokenSelect, onTokenApply }: TokenIndicatorProps) {
+export function TokenIndicator({ match, property, relatedProperties, onTokenSelect, onTokenApply, onRequestOpen }: TokenIndicatorProps) {
   const [showTooltip, setShowTooltip] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [anchorRect, setAnchorRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
@@ -40,7 +42,6 @@ export function TokenIndicator({ match, property, relatedProperties, onTokenSele
   const pickerOpenRef = useRef(false);
   pickerOpenRef.current = pickerOpen;
   const dotElRef = useRef<HTMLSpanElement | null>(null);
-  useScrollLock(pickerOpen);
 
   const hasAvailable = useMemo(() => hasTokensForProperty(property), [property]);
   const isActive = !!match;
@@ -60,11 +61,18 @@ export function TokenIndicator({ match, property, relatedProperties, onTokenSele
   // Store disabled state in a ref so the native handler can read it
   const isDisabledRef = useRef(isDisabled);
   isDisabledRef.current = isDisabled;
+  const onRequestOpenRef = useRef(onRequestOpen);
+  onRequestOpenRef.current = onRequestOpen;
 
   function handleNativePointerDown(e: PointerEvent) {
     e.stopPropagation();
     e.preventDefault();
     if (isDisabledRef.current) return;
+    // Delegate to parent (e.g. ColorInput opens picker to tokens tab)
+    if (onRequestOpenRef.current) {
+      onRequestOpenRef.current();
+      return;
+    }
     const el = dotElRef.current;
     if (!el) return;
     if (pickerOpenRef.current) {

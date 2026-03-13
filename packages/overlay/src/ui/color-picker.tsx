@@ -1,9 +1,13 @@
 /**
- * ColorPicker — floating color picker panel with SV area, hue slider, and hex/RGB inputs.
- * Ported from the portfolio editor, adapted for Shadow DOM (plain CSS, no Tailwind).
+ * ColorPicker — floating color picker with SV area, hue slider, alpha slider, and hex/RGB inputs.
+ * Uses FloatingDialog as the shell (positioning, header, close handling).
+ *
+ * When token props are provided and color tokens exist, renders with tabs:
+ * "Custom" (picker) and "{Category}" (token list) — matching the portfolio's
+ * ColorPickerDialog pattern.
  */
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import {
   type HSVA,
   hexToHsva,
@@ -14,6 +18,10 @@ import {
   hexToRgb,
   rgbToHex,
 } from "./color-utils";
+import { FloatingDialog } from "./floating-dialog";
+import type { UtilityToken } from "../tokens/types";
+import { getTokensForProperty } from "../tokens/resolver";
+import { getCategoryForProperty } from "../tokens/categories";
 
 export interface ColorPickerProps {
   value: string; // hex color
@@ -22,17 +30,153 @@ export interface ColorPickerProps {
   onAlphaChange?: (alpha: number) => void;
   onClose: () => void;
   anchorRect: { top: number; left: number; width: number; height: number };
+  // Token integration
+  property?: string;
+  currentToken?: UtilityToken;
+  onTokenSelect?: (oldToken: UtilityToken, newToken: UtilityToken) => void;
+  onTokenApply?: (token: UtilityToken, properties: string[]) => void;
+  initialTab?: "custom" | "tokens";
 }
 
 function clamp(v: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, v));
 }
 
-export function ColorPicker({ value, alpha = 100, onChange, onAlphaChange, onClose, anchorRect }: ColorPickerProps) {
-  const panelRef = useRef<HTMLDivElement>(null);
+/** Format a token value for display */
+function formatTokenValue(token: UtilityToken): string {
+  const vals = Object.values(token.values);
+  if (vals.length === 0) return "";
+  const val = vals[0];
+  return val.length > 20 ? val.slice(0, 20) + "\u2026" : val;
+}
+
+/** Get a swatch color from a token */
+function getSwatchColor(token: UtilityToken): string | null {
+  for (const [prop, val] of Object.entries(token.values)) {
+    if (prop.includes("color") || prop === "background-color" || prop === "fill" || prop === "stroke") {
+      return val;
+    }
+  }
+  return null;
+}
+
+export function ColorPicker({
+  value, alpha = 100, onChange, onAlphaChange, onClose, anchorRect,
+  property, currentToken, onTokenSelect, onTokenApply, initialTab,
+}: ColorPickerProps) {
   const [hsva, setHsva] = useState<HSVA>(() => hexToHsva(value || "#000000"));
   const lastSentRef = useRef("");
   const dragCleanupRef = useRef<(() => void) | null>(null);
+
+  // ── Token tab support ─────────────────────────────────────────────
+  const allTokens = useMemo(() => property ? getTokensForProperty(property) : [], [property]);
+  const category = property
+    ? getCategoryForProperty(property.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`))
+    : null;
+  const hasTokens = allTokens.length > 0;
+
+  const [activeTab, setActiveTab] = useState(initialTab || "custom");
+  const [tokenSearch, setTokenSearch] = useState("");
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const tokenListRef = useRef<HTMLDivElement>(null);
+
+  // Sync initialTab when it changes (e.g. reopened to a different tab)
+  const prevInitialTab = useRef(initialTab);
+  if (initialTab !== prevInitialTab.current) {
+    prevInitialTab.current = initialTab;
+    if (initialTab) setActiveTab(initialTab);
+  }
+
+  const filteredTokens = useMemo(() => {
+    if (!tokenSearch) return allTokens;
+    const q = tokenSearch.toLowerCase();
+    return allTokens.filter(t =>
+      t.className.toLowerCase().includes(q) ||
+      Object.values(t.values).some(v => v.toLowerCase().includes(q))
+    );
+  }, [allTokens, tokenSearch]);
+
+  // Reset highlight when filtered list changes
+  useEffect(() => { setHighlightedIndex(-1); }, [filteredTokens]);
+
+  // Auto-scroll highlighted token into view
+  useEffect(() => {
+    if (highlightedIndex < 0) return;
+    const list = tokenListRef.current;
+    if (!list) return;
+    const item = list.querySelector(`[data-token-index="${highlightedIndex}"]`);
+    if (item) item.scrollIntoView({ block: "nearest" });
+  }, [highlightedIndex]);
+
+  // Refs for native token handlers
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  const onTokenSelectRef = useRef(onTokenSelect);
+  onTokenSelectRef.current = onTokenSelect;
+  const onTokenApplyRef = useRef(onTokenApply);
+  onTokenApplyRef.current = onTokenApply;
+  const currentTokenRef = useRef(currentToken);
+  currentTokenRef.current = currentToken;
+  const filteredTokensRef = useRef(filteredTokens);
+  filteredTokensRef.current = filteredTokens;
+  const propertyRef = useRef(property);
+  propertyRef.current = property;
+
+  // Keyboard nav for token search
+  const handleTokenSearchKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    const count = filteredTokensRef.current.length;
+    if (count === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlightedIndex(prev => (prev + 1) % count);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlightedIndex(prev => (prev <= 0 ? count - 1 : prev - 1));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      setHighlightedIndex(curr => {
+        if (curr >= 0 && curr < count) {
+          const token = filteredTokensRef.current[curr];
+          if (token) {
+            if (currentTokenRef.current) {
+              onTokenSelectRef.current?.(currentTokenRef.current, token);
+            } else {
+              onTokenApplyRef.current?.(token, propertyRef.current ? [propertyRef.current] : []);
+            }
+            onCloseRef.current();
+          }
+        }
+        return curr;
+      });
+    }
+  }, []);
+
+  // Native click handler for token items
+  useEffect(() => {
+    const list = tokenListRef.current;
+    if (!list) return;
+    const handleClick = (e: PointerEvent) => {
+      const target = e.target as HTMLElement;
+      const item = target.closest<HTMLElement>("[data-token-index]");
+      if (!item) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const idx = parseInt(item.dataset.tokenIndex!, 10);
+      const token = filteredTokensRef.current[idx];
+      if (token) {
+        if (currentTokenRef.current) {
+          onTokenSelectRef.current?.(currentTokenRef.current, token);
+        } else {
+          onTokenApplyRef.current?.(token, propertyRef.current ? [propertyRef.current] : []);
+        }
+        onCloseRef.current();
+      }
+    };
+    list.addEventListener("pointerdown", handleClick);
+    return () => list.removeEventListener("pointerdown", handleClick);
+  }, []);
+
+  // ── Color picker state ────────────────────────────────────────────
 
   // Clean up any active drag listeners on unmount
   useEffect(() => {
@@ -76,55 +220,6 @@ export function ColorPicker({ value, alpha = 100, onChange, onAlphaChange, onClo
     onChange(hex);
   }, [onChange]);
 
-  // Close on outside click or Escape
-  useEffect(() => {
-    const handlePointerDown = (e: PointerEvent) => {
-      const panel = panelRef.current;
-      if (!panel) return;
-      const path = e.composedPath();
-      if (!path.includes(panel)) {
-        onClose();
-      }
-    };
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        e.stopPropagation();
-        onClose();
-      }
-    };
-    const root = panelRef.current?.getRootNode() as ShadowRoot | Document;
-    // Delay to avoid the click that opened the picker
-    const timer = setTimeout(() => {
-      root.addEventListener("pointerdown", handlePointerDown as EventListener);
-    }, 0);
-    root.addEventListener("keydown", handleKeyDown as EventListener, true);
-    document.addEventListener("keydown", handleKeyDown, true);
-    return () => {
-      clearTimeout(timer);
-      root.removeEventListener("pointerdown", handlePointerDown as EventListener);
-      root.removeEventListener("keydown", handleKeyDown as EventListener, true);
-      document.removeEventListener("keydown", handleKeyDown, true);
-    };
-  }, [onClose]);
-
-  // Position the panel — center within the property panel if available
-  const panelWidth = Math.max(anchorRect.width, 248);
-  const panelEstimatedHeight = 320;
-  const spaceBelow = window.innerHeight - anchorRect.top - anchorRect.height - 4;
-  const flipUp = spaceBelow < panelEstimatedHeight && anchorRect.top > spaceBelow;
-  const top = flipUp
-    ? anchorRect.top - panelEstimatedHeight - 4
-    : anchorRect.top + anchorRect.height + 4;
-
-  // Try to center within the property panel
-  const host = document.querySelector("[data-retune-host]");
-  const parentPanel = host?.shadowRoot?.querySelector(".retune-panel");
-  const parentRect = parentPanel?.getBoundingClientRect();
-  const left = parentRect
-    ? parentRect.left + (parentRect.width - panelWidth) / 2
-    : Math.min(anchorRect.left, window.innerWidth - panelWidth - 4);
-
   // ── SV Picker ───────────────────────────────────────────────────────
 
   const svRef = useRef<HTMLDivElement>(null);
@@ -137,7 +232,6 @@ export function ColorPicker({ value, alpha = 100, onChange, onAlphaChange, onClo
     return { s, v };
   }, []);
 
-  // Keep a ref to the latest hsva so drag handlers don't go stale
   const hsvaRef = useRef(hsva);
   hsvaRef.current = hsva;
   const onChangeRef = useRef(onChange);
@@ -208,12 +302,11 @@ export function ColorPicker({ value, alpha = 100, onChange, onAlphaChange, onClo
 
   // ── Alpha Slider ───────────────────────────────────────────────────
 
-  const alphaRef = useRef<HTMLDivElement>(null);
+  const alphaSliderRef = useRef<HTMLDivElement>(null);
   const [localAlpha, setLocalAlpha] = useState(alpha);
   const onAlphaChangeRef = useRef(onAlphaChange);
   onAlphaChangeRef.current = onAlphaChange;
 
-  // Sync alpha from parent
   const [prevAlpha, setPrevAlpha] = useState(alpha);
   if (alpha !== prevAlpha) {
     setPrevAlpha(alpha);
@@ -221,8 +314,8 @@ export function ColorPicker({ value, alpha = 100, onChange, onAlphaChange, onClo
   }
 
   const getAlpha = useCallback((clientX: number) => {
-    if (!alphaRef.current) return 100;
-    const rect = alphaRef.current.getBoundingClientRect();
+    if (!alphaSliderRef.current) return 100;
+    const rect = alphaSliderRef.current.getBoundingClientRect();
     return clamp(Math.round(((clientX - rect.left) / rect.width) * 100), 0, 100);
   }, []);
 
@@ -279,7 +372,7 @@ export function ColorPicker({ value, alpha = 100, onChange, onAlphaChange, onClo
     setRgbInputs({ r: String(r), g: String(g), b: String(b) });
   }, [rgbInputs, hsva.a, emitChange]);
 
-  const handleKeyDown = useCallback(
+  const handleInputKeyDown = useCallback(
     (commitFn: () => void) => (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === "Enter") {
         e.currentTarget.blur();
@@ -289,53 +382,39 @@ export function ColorPicker({ value, alpha = 100, onChange, onAlphaChange, onClo
     []
   );
 
+  // ── Render ────────────────────────────────────────────────────────
+
   const currentHex = hsvToHex(hsva.h, hsva.s, hsva.v);
   const handleLeft = hsva.s;
   const handleTop = 100 - hsva.v;
 
-  return (
-    <div
-      ref={panelRef}
-      className="retune-color-picker-panel"
-      style={{
-        position: "fixed",
-        top: Math.max(4, top),
-        left: Math.max(4, left),
-        width: panelWidth,
-        zIndex: 10000,
-      }}
-    >
+  const categoryLabel = category
+    ? category.charAt(0).toUpperCase() + category.slice(1)
+    : "Tokens";
+
+  const pickerContent = (
+    <>
       {/* SV Picker */}
       <div className="retune-cp-sv-wrap">
       <div
         ref={svRef}
         className="retune-cp-sv"
-        style={{
-          backgroundColor: `hsl(${hsva.h}, 100%, 50%)`,
-        }}
+        style={{ backgroundColor: `hsl(${hsva.h}, 100%, 50%)` }}
         onPointerDown={handleSVPointerDown}
       >
         <div className="retune-cp-sv-white" />
         <div className="retune-cp-sv-black" />
-        {/* Handle */}
         <div
           className="retune-cp-handle"
-          style={{
-            left: `${handleLeft}%`,
-            top: `${handleTop}%`,
-          }}
+          style={{ left: `${handleLeft}%`, top: `${handleTop}%` }}
         >
-          <div
-            className="retune-cp-handle-inner"
-            style={{ backgroundColor: currentHex }}
-          />
+          <div className="retune-cp-handle-inner" style={{ backgroundColor: currentHex }} />
         </div>
       </div>
       </div>
 
       {/* Sliders */}
       <div className="retune-cp-sliders">
-        {/* Color preview swatch */}
         <div className="retune-cp-preview-wrap">
           <div className="retune-cp-preview-checker" />
           <div
@@ -347,52 +426,19 @@ export function ColorPicker({ value, alpha = 100, onChange, onAlphaChange, onClo
           />
         </div>
         <div className="retune-cp-slider-tracks">
-          {/* Hue */}
-          <div
-            ref={hueRef}
-            className="retune-cp-hue"
-            onPointerDown={handleHuePointerDown}
-          >
-            <div
-              className="retune-cp-handle"
-              style={{
-                left: `${(hsva.h / 360) * 100}%`,
-                top: "50%",
-              }}
-            >
-              <div
-                className="retune-cp-handle-inner"
-                style={{ backgroundColor: `hsl(${hsva.h}, 100%, 50%)` }}
-              />
+          <div ref={hueRef} className="retune-cp-hue" onPointerDown={handleHuePointerDown}>
+            <div className="retune-cp-handle" style={{ left: `${(hsva.h / 360) * 100}%`, top: "50%" }}>
+              <div className="retune-cp-handle-inner" style={{ backgroundColor: `hsl(${hsva.h}, 100%, 50%)` }} />
             </div>
           </div>
-          {/* Alpha */}
-          <div
-            ref={alphaRef}
-            className="retune-cp-alpha"
-            onPointerDown={handleAlphaPointerDown}
-          >
+          <div ref={alphaSliderRef} className="retune-cp-alpha" onPointerDown={handleAlphaPointerDown}>
             <div className="retune-cp-alpha-checker" />
-            <div
-              className="retune-cp-alpha-gradient"
-              style={{
-                background: `linear-gradient(to right, transparent, ${currentHex})`,
-              }}
-            />
-            <div
-              className="retune-cp-handle"
-              style={{
-                left: `${localAlpha}%`,
-                top: "50%",
-              }}
-            >
-              <div
-                className="retune-cp-handle-inner"
-                style={{ backgroundColor: localAlpha < 100
-                  ? `rgba(${hsvToRgb(hsva.h, hsva.s, hsva.v).r}, ${hsvToRgb(hsva.h, hsva.s, hsva.v).g}, ${hsvToRgb(hsva.h, hsva.s, hsva.v).b}, ${localAlpha / 100})`
-                  : currentHex
-                }}
-              />
+            <div className="retune-cp-alpha-gradient" style={{ background: `linear-gradient(to right, transparent, ${currentHex})` }} />
+            <div className="retune-cp-handle" style={{ left: `${localAlpha}%`, top: "50%" }}>
+              <div className="retune-cp-handle-inner" style={{ backgroundColor: localAlpha < 100
+                ? `rgba(${hsvToRgb(hsva.h, hsva.s, hsva.v).r}, ${hsvToRgb(hsva.h, hsva.s, hsva.v).g}, ${hsvToRgb(hsva.h, hsva.s, hsva.v).b}, ${localAlpha / 100})`
+                : currentHex
+              }} />
             </div>
           </div>
         </div>
@@ -402,53 +448,72 @@ export function ColorPicker({ value, alpha = 100, onChange, onAlphaChange, onClo
       <div className="retune-cp-inputs">
         <div className="retune-cp-input-group">
           <label className="retune-cp-label">Hex</label>
-          <input
-            className="retune-cp-input"
-            value={hexInput}
-            onChange={(e) => setHexInput(e.target.value)}
-            onFocus={(e) => { focusedRef.current = "hex"; e.target.select(); }}
-            onBlur={commitHex}
-            onKeyDown={handleKeyDown(commitHex)}
-            spellCheck={false}
-          />
+          <input className="retune-cp-input" value={hexInput} onChange={(e) => setHexInput(e.target.value)} onFocus={(e) => { focusedRef.current = "hex"; e.target.select(); }} onBlur={commitHex} onKeyDown={handleInputKeyDown(commitHex)} spellCheck={false} />
         </div>
         <div className="retune-cp-input-group">
           <label className="retune-cp-label">R</label>
-          <input
-            className="retune-cp-input"
-            inputMode="numeric"
-            value={rgbInputs.r}
-            onChange={(e) => setRgbInputs(prev => ({ ...prev, r: e.target.value }))}
-            onFocus={(e) => { focusedRef.current = "r"; e.target.select(); }}
-            onBlur={commitRgb}
-            onKeyDown={handleKeyDown(commitRgb)}
-          />
+          <input className="retune-cp-input" inputMode="numeric" value={rgbInputs.r} onChange={(e) => setRgbInputs(prev => ({ ...prev, r: e.target.value }))} onFocus={(e) => { focusedRef.current = "r"; e.target.select(); }} onBlur={commitRgb} onKeyDown={handleInputKeyDown(commitRgb)} />
         </div>
         <div className="retune-cp-input-group">
           <label className="retune-cp-label">G</label>
-          <input
-            className="retune-cp-input"
-            inputMode="numeric"
-            value={rgbInputs.g}
-            onChange={(e) => setRgbInputs(prev => ({ ...prev, g: e.target.value }))}
-            onFocus={(e) => { focusedRef.current = "g"; e.target.select(); }}
-            onBlur={commitRgb}
-            onKeyDown={handleKeyDown(commitRgb)}
-          />
+          <input className="retune-cp-input" inputMode="numeric" value={rgbInputs.g} onChange={(e) => setRgbInputs(prev => ({ ...prev, g: e.target.value }))} onFocus={(e) => { focusedRef.current = "g"; e.target.select(); }} onBlur={commitRgb} onKeyDown={handleInputKeyDown(commitRgb)} />
         </div>
         <div className="retune-cp-input-group">
           <label className="retune-cp-label">B</label>
-          <input
-            className="retune-cp-input"
-            inputMode="numeric"
-            value={rgbInputs.b}
-            onChange={(e) => setRgbInputs(prev => ({ ...prev, b: e.target.value }))}
-            onFocus={(e) => { focusedRef.current = "b"; e.target.select(); }}
-            onBlur={commitRgb}
-            onKeyDown={handleKeyDown(commitRgb)}
-          />
+          <input className="retune-cp-input" inputMode="numeric" value={rgbInputs.b} onChange={(e) => setRgbInputs(prev => ({ ...prev, b: e.target.value }))} onFocus={(e) => { focusedRef.current = "b"; e.target.select(); }} onBlur={commitRgb} onKeyDown={handleInputKeyDown(commitRgb)} />
         </div>
       </div>
+    </>
+  );
+
+  const tokenContent = (
+    <div ref={tokenListRef} className="retune-token-dialog-list">
+      {filteredTokens.length === 0 && (
+        <div className="retune-token-dialog-empty">No tokens found</div>
+      )}
+      {filteredTokens.map((token, i) => {
+        const isActive = currentToken?.className === token.className;
+        const isHighlighted = i === highlightedIndex;
+        return (
+          <div
+            key={token.className}
+            className={`retune-token-dialog-item${isActive ? " retune-token-dialog-item-active" : ""}${isHighlighted ? " retune-token-dialog-item-highlighted" : ""}`}
+            data-token-index={i}
+          >
+            {isActive && <span className="retune-token-dialog-active-dot" />}
+            <span
+              className="retune-token-dialog-swatch"
+              style={{ backgroundColor: getSwatchColor(token) || "transparent" }}
+            />
+            <span className="retune-token-dialog-name">{token.className}</span>
+          </div>
+        );
+      })}
     </div>
+  );
+
+  if (hasTokens) {
+    return (
+      <FloatingDialog
+        tabs={[
+          { value: "custom", label: "Custom" },
+          { value: "tokens", label: categoryLabel },
+        ]}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onClose={onClose}
+        anchorRect={anchorRect}
+        search={activeTab === "tokens" ? { value: tokenSearch, onChange: setTokenSearch, placeholder: "Search", onKeyDown: handleTokenSearchKeyDown } : undefined}
+        minHeight={activeTab === "tokens" ? 300 : undefined}
+      >
+        {activeTab === "tokens" ? tokenContent : pickerContent}
+      </FloatingDialog>
+    );
+  }
+
+  return (
+    <FloatingDialog title="Color" onClose={onClose} anchorRect={anchorRect}>
+      {pickerContent}
+    </FloatingDialog>
   );
 }

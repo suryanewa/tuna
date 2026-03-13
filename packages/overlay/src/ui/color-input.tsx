@@ -7,9 +7,8 @@
 import { useState, useRef, useCallback } from "react";
 import { parseCssColor, hexToRgba } from "./color-utils";
 import { ColorPicker } from "./color-picker";
-import type { TokenMatch } from "../tokens/types";
+import type { TokenMatch, UtilityToken } from "../tokens/types";
 import { TokenIndicator } from "./token-indicator";
-import { useScrollLock } from "./use-scroll-lock";
 
 export interface ColorInputProps {
   prop: string;
@@ -26,11 +25,11 @@ export function ColorInput({ prop, value, onChange, tokenMatch, property, onToke
   const [hexLocal, setHexLocal] = useState(parsed.hex.replace("#", "").toUpperCase());
   const [opacityLocal, setOpacityLocal] = useState(String(parsed.opacity));
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [initialTab, setInitialTab] = useState<"custom" | "tokens">("custom");
   const [anchorRect, setAnchorRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
   const swatchRef = useRef<HTMLDivElement>(null);
   const hexFocusedRef = useRef(false);
   const opacityFocusedRef = useRef(false);
-  useScrollLock(pickerOpen);
 
   // Track current hex and opacity as refs for building CSS output
   const currentHexRef = useRef(parsed.hex);
@@ -58,16 +57,20 @@ export function ColorInput({ prop, value, onChange, tokenMatch, property, onToke
     onChange(prop, hexToRgba(hex, opacity));
   }, [prop, onChange]);
 
-  // ── Swatch click → open picker ──
+  // ── Swatch click → open picker (Custom tab) ──
   const handleSwatchClick = useCallback(() => {
     if (pickerOpen) {
       setPickerOpen(false);
       return;
     }
+    openPicker("custom");
+  }, [pickerOpen]);
+
+  // Shared open logic — computes anchor rect and opens to the given tab
+  const openPicker = useCallback((tab: "custom" | "tokens") => {
     const el = swatchRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    // Match picker width to the row content area
     const row = el.closest(".retune-row");
     if (row) {
       const rowRect = row.getBoundingClientRect();
@@ -75,8 +78,18 @@ export function ColorInput({ prop, value, onChange, tokenMatch, property, onToke
     } else {
       setAnchorRect({ top: rect.top, left: rect.left, width: rect.width, height: rect.height });
     }
+    setInitialTab(tab);
     setPickerOpen(true);
-  }, [pickerOpen]);
+  }, []);
+
+  // Token dot click → open picker to Tokens tab
+  const handleTokenDotOpen = useCallback(() => {
+    if (pickerOpen) {
+      setPickerOpen(false);
+      return;
+    }
+    openPicker("tokens");
+  }, [pickerOpen, openPicker]);
 
   // ── Picker callbacks ──
   const handlePickerChange = useCallback((hex: string) => {
@@ -92,6 +105,17 @@ export function ColorInput({ prop, value, onChange, tokenMatch, property, onToke
   const handlePickerClose = useCallback(() => {
     setPickerOpen(false);
   }, []);
+
+  // Token apply from within the color picker (tokens tab)
+  const handlePickerTokenApply = useCallback((token: UtilityToken, properties: string[]) => {
+    onTokenApply?.(token, properties);
+    setPickerOpen(false);
+  }, [onTokenApply]);
+
+  const handlePickerTokenSelect = useCallback((oldToken: UtilityToken, newToken: UtilityToken) => {
+    onTokenSelect?.(oldToken, newToken);
+    setPickerOpen(false);
+  }, [onTokenSelect]);
 
   // ── Hex input ──
   const commitHex = useCallback(() => {
@@ -174,6 +198,7 @@ export function ColorInput({ prop, value, onChange, tokenMatch, property, onToke
           property={property || prop}
           onTokenSelect={onTokenSelect}
           onTokenApply={onTokenApply}
+          onRequestOpen={handleTokenDotOpen}
         />
       </div>
 
@@ -199,6 +224,11 @@ export function ColorInput({ prop, value, onChange, tokenMatch, property, onToke
           onAlphaChange={handlePickerAlphaChange}
           onClose={handlePickerClose}
           anchorRect={anchorRect}
+          property={property || prop}
+          currentToken={tokenMatch?.token}
+          onTokenSelect={handlePickerTokenSelect}
+          onTokenApply={handlePickerTokenApply}
+          initialTab={initialTab}
         />
       )}
     </div>

@@ -331,7 +331,7 @@ export function createPicker(
     if (!active) return;
     if (e.key === "Escape") {
       // If a nested overlay (e.g. color picker) is open, let it handle Escape
-      if (shadowRoot.querySelector(".retune-color-picker-panel")) return;
+      if (shadowRoot.querySelector(".retune-floating-dialog")) return;
       e.preventDefault();
       callbacks.onCancel();
     }

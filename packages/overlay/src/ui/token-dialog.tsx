@@ -1,9 +1,10 @@
 /**
  * TokenDialog — floating panel for browsing and selecting tokens.
  * Shows all available semantic tokens for a CSS property with search
- * and category grouping. Replaces TokenPicker for all token interactions.
+ * and category grouping.
  *
- * NOTE: Uses native DOM event listeners for clicks because React's event
+ * Uses FloatingDialog as the shell (positioning, header, search, close handling).
+ * Token list items use native DOM event listeners because React's event
  * delegation doesn't work inside Shadow DOM portals (see token-indicator.tsx).
  */
 
@@ -11,6 +12,7 @@ import { useEffect, useRef, useMemo, useState, useCallback } from "react";
 import type { UtilityToken } from "../tokens/types";
 import { getTokensForProperty } from "../tokens/resolver";
 import { getCategoryForProperty } from "../tokens/categories";
+import { FloatingDialog } from "./floating-dialog";
 
 export interface TokenDialogProps {
   property: string;
@@ -39,9 +41,7 @@ function getSwatchColor(token: UtilityToken): string | null {
 }
 
 export function TokenDialog({ property, currentToken, onSelect, onClose, anchorRect }: TokenDialogProps) {
-  const panelRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
-  const searchRef = useRef<HTMLInputElement>(null);
   const [search, setSearch] = useState("");
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
@@ -108,43 +108,7 @@ export function TokenDialog({ property, currentToken, onSelect, onClose, anchorR
     }
   }, []);
 
-  // Auto-focus search on mount
-  useEffect(() => {
-    const timer = setTimeout(() => searchRef.current?.focus(), 0);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Close on outside click or Escape
-  useEffect(() => {
-    const handlePointerDown = (e: PointerEvent) => {
-      const panel = panelRef.current;
-      if (!panel) return;
-      if (!e.composedPath().includes(panel)) {
-        onCloseRef.current();
-      }
-    };
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        e.stopPropagation();
-        onCloseRef.current();
-      }
-    };
-    const root = panelRef.current?.getRootNode() as ShadowRoot | Document;
-    const timer = setTimeout(() => {
-      root.addEventListener("pointerdown", handlePointerDown as EventListener);
-    }, 0);
-    root.addEventListener("keydown", handleKeyDown as EventListener, true);
-    document.addEventListener("keydown", handleKeyDown, true);
-    return () => {
-      clearTimeout(timer);
-      root.removeEventListener("pointerdown", handlePointerDown as EventListener);
-      root.removeEventListener("keydown", handleKeyDown as EventListener, true);
-      document.removeEventListener("keydown", handleKeyDown, true);
-    };
-  }, []);
-
-  // Native click handler for token items
+  // Native click handler for token items (React delegation doesn't work in Shadow DOM)
   useEffect(() => {
     const list = listRef.current;
     if (!list) return;
@@ -165,74 +129,18 @@ export function TokenDialog({ property, currentToken, onSelect, onClose, anchorR
     return () => list.removeEventListener("pointerdown", handleClick);
   }, []);
 
-  // Native close button handler
-  useEffect(() => {
-    const panel = panelRef.current;
-    if (!panel) return;
-    const handleClose = (e: PointerEvent) => {
-      const target = e.target as HTMLElement;
-      if (target.closest("[data-close]")) {
-        e.preventDefault();
-        e.stopPropagation();
-        onCloseRef.current();
-      }
-    };
-    panel.addEventListener("pointerdown", handleClose);
-    return () => panel.removeEventListener("pointerdown", handleClose);
-  }, []);
-
-  // Position — collision detection: prefer below anchor, flip above if needed
-  const host = document.querySelector("[data-retune-host]");
-  const parentPanel = host?.shadowRoot?.querySelector(".retune-panel");
-  const parentRect = parentPanel?.getBoundingClientRect();
-  const panelWidth = parentRect ? parentRect.width - 24 : 240;
-  const left = parentRect
-    ? parentRect.left + (parentRect.width - panelWidth) / 2
-    : Math.max(4, Math.min(anchorRect.left + anchorRect.width - panelWidth, window.innerWidth - panelWidth - 4));
-
-  const gap = 4;
-  const dialogMax = 400;
-
-  // Collision detection against viewport — stay close to the anchor input
-  const spaceBelow = window.innerHeight - anchorRect.top - anchorRect.height - gap;
-  const spaceAbove = anchorRect.top - gap;
-  const flipUp = spaceBelow < dialogMax && spaceAbove > spaceBelow;
-  const maxHeight = Math.min(dialogMax, flipUp ? spaceAbove : spaceBelow);
-
-  // When below: set top. When above: set bottom so dialog's bottom edge hugs the input.
-  const posStyle: React.CSSProperties = flipUp
-    ? { position: "fixed", bottom: window.innerHeight - anchorRect.top + gap, left, width: panelWidth, maxHeight }
-    : { position: "fixed", top: anchorRect.top + anchorRect.height + gap, left, width: panelWidth, maxHeight };
-
   const categoryLabel = category
     ? category.charAt(0).toUpperCase() + category.slice(1)
     : "Tokens";
 
   return (
-    <div
-      ref={panelRef}
-      className="retune-token-dialog"
-      style={posStyle}
+    <FloatingDialog
+      title={categoryLabel}
+      onClose={onClose}
+      anchorRect={anchorRect}
+      search={{ value: search, onChange: setSearch, placeholder: "Search", onKeyDown: handleSearchKeyDown }}
+      minHeight={300}
     >
-      <div className="retune-token-dialog-header">
-        <span className="retune-token-dialog-title">{categoryLabel}</span>
-        <button type="button" className="retune-token-dialog-close" data-close>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <path d="M16.6464 6.64645C16.8417 6.45118 17.1582 6.45118 17.3535 6.64645C17.5487 6.84171 17.5487 7.15822 17.3535 7.35348L12.707 12L17.3535 16.6464C17.5487 16.8417 17.5487 17.1582 17.3535 17.3535C17.1582 17.5487 16.8417 17.5487 16.6464 17.3535L12 12.707L7.35348 17.3535C7.15822 17.5487 6.84171 17.5487 6.64645 17.3535C6.45118 17.1582 6.45118 16.8417 6.64645 16.6464L11.2929 12L6.64645 7.35348C6.45123 7.15821 6.4512 6.84169 6.64645 6.64645C6.8417 6.45125 7.15823 6.45125 7.35348 6.64645L12 11.2929L16.6464 6.64645Z" fill="currentColor" />
-          </svg>
-        </button>
-      </div>
-      <div className="retune-token-dialog-search">
-        <input
-          ref={searchRef}
-          className="retune-token-dialog-search-input"
-          placeholder="Search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={handleSearchKeyDown}
-          spellCheck={false}
-        />
-      </div>
       <div ref={listRef} className="retune-token-dialog-list">
         {filtered.length === 0 && (
           <div className="retune-token-dialog-empty">No tokens found</div>
@@ -259,6 +167,6 @@ export function TokenDialog({ property, currentToken, onSelect, onClose, anchorR
           );
         })}
       </div>
-    </div>
+    </FloatingDialog>
   );
 }
