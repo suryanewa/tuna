@@ -106,6 +106,35 @@ function setupClaudeCodeMcp(): boolean {
   }
 }
 
+/** Configure MCP server for Cursor (global) */
+function setupCursorMcp(): boolean {
+  const configPath = join(homedir(), ".cursor", "mcp.json");
+  const configDir = dirname(configPath);
+
+  try {
+    mkdirSync(configDir, { recursive: true });
+
+    let config: any = {};
+    if (existsSync(configPath)) {
+      config = JSON.parse(readFileSync(configPath, "utf-8"));
+    }
+
+    if (!config.mcpServers) config.mcpServers = {};
+
+    config.mcpServers.retune = {
+      command: "npx",
+      args: ["retune"],
+    };
+
+    writeFileSync(configPath, JSON.stringify(config, null, 2));
+    log(`MCP configured: ${configPath}`);
+    return true;
+  } catch (err: any) {
+    warn(`Could not configure Cursor MCP: ${err.message}`);
+    return false;
+  }
+}
+
 /** Detect which AI tools are installed */
 function detectTools(): string[] {
   const tools: string[] = [];
@@ -154,8 +183,7 @@ export async function setup() {
         break;
 
       case "cursor":
-        // Cursor MCP config is project-level (.cursor/mcp.json), skip auto-config
-        log("Cursor MCP: Add retune to your project's .cursor/mcp.json manually.");
+        result.mcp = setupCursorMcp();
         if (skillSource) {
           result.skill = installCursorSkill(skillSource);
         }
