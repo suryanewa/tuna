@@ -60,6 +60,43 @@ export interface PropertyChange {
   to: string;
 }
 
+/** A candidate token/class/variable for a changed property's value */
+export interface PropertyCandidate {
+  type: "semantic-token" | "utility-class" | "css-variable";
+  /** Class name or var(--name) */
+  name: string;
+  /** Resolved CSS value */
+  value: string;
+  /** Whether this exactly matches the user's new value */
+  exact: boolean;
+  /** For fuzzy matches: e.g. "nearest: 1rem vs 1.1rem" */
+  distance?: string;
+}
+
+/** Enriched property change with resolution context */
+export interface EnrichedPropertyChange extends PropertyChange {
+  /** Best matching candidate (exact match preferred) */
+  recommended?: PropertyCandidate;
+  /** Alternative candidates in the same category (max 3) */
+  alternatives: PropertyCandidate[];
+  /** CSS custom property names matching this value */
+  cssVariables: string[];
+  /** Where the original value comes from in the cascade */
+  source?: {
+    selector: string;
+    origin: "inline" | "stylesheet" | "user-agent";
+    stylesheet?: string;
+    important: boolean;
+    mediaQuery?: string;
+  };
+  /** Competing rules that could cause specificity conflicts */
+  conflicts?: Array<{
+    selector: string;
+    value: string;
+    important: boolean;
+  }>;
+}
+
 export interface ElementChange {
   /** Element identification */
   selector: string;
@@ -91,4 +128,6 @@ export interface ElementChange {
   nearbySiblings?: string | null;
   /** Element position and dimensions */
   position?: { x: number; y: number; width: number; height: number };
+  /** Token associations from the UI (user-applied tokens) */
+  tokenAssociations?: Record<string, { className: string; values: Record<string, string> }>;
 }

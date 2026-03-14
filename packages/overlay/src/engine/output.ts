@@ -9,12 +9,11 @@
  * - Before/after values with token suggestions
  */
 
-import type { ElementChange } from "../types";
-import { type TokenMap, scanDesignTokens, findTokensForValue, summarizeTokenSystem } from "../inspector/tokens";
-import { type StyleSource, findStyleSources, formatStyleSource } from "../inspector/style-source";
+import type { ElementChange, EnrichedPropertyChange } from "../types";
+import { type TokenMap, scanDesignTokens, summarizeTokenSystem } from "../inspector/tokens";
 import { camelToKebab, truncate } from "../utils";
-import { findTokenForValue as findUtilityToken } from "../tokens/resolver";
 import { getTokenRegistry } from "../tokens/registry";
+import { enrichPropertyChanges } from "./candidates";
 
 export type Fidelity = "minimal" | "standard" | "full";
 
@@ -208,8 +207,8 @@ function formatSingleChange(change: ElementChange, fidelity: Fidelity, tokenMap:
   // Collapse longhand groups into shorthands where possible
   const collapsed = collapseShorthands(change.changes);
 
-  // Resolve style sources from the live DOM
-  const sourceMap = resolveStyleSources(change.selector, collapsed.map(c => c.property));
+  // Enrich each property with candidate tokens/classes/variables and source info
+  const enriched = enrichPropertyChanges(collapsed, tokenMap, change.selector);
 
   // Changes table
   lines.push("");
@@ -218,41 +217,24 @@ function formatSingleChange(change: ElementChange, fidelity: Fidelity, tokenMap:
   lines.push("| Property | Before | After | Source | Token |");
   lines.push("|----------|--------|-------|--------|-------|");
 
-  for (const prop of collapsed) {
+  for (const prop of enriched) {
     const kebab = camelToKebab(prop.property);
-    const tokenHint = getTokenHint(prop.to, tokenMap, prop.property);
-    const source = sourceMap.get(prop.property);
-    const sourceStr = source ? formatStyleSource(source) : "—";
-    lines.push(`| \`${kebab}\` | \`${prop.from}\` | \`${prop.to}\` | ${sourceStr} | ${tokenHint} |`);
+    const tokenStr = formatRecommended(prop);
+    const sourceStr = formatEnrichedSource(prop);
+    lines.push(`| \`${kebab}\` | \`${prop.from}\` | \`${prop.to}\` | ${sourceStr} | ${tokenStr} |`);
   }
 
-  // Implementation hint based on styling approach
+  // Resolution context (detail blocks) — standard + full fidelity only
   if (fidelity !== "minimal") {
-    const hint = getImplementationHint(change);
-    if (hint) {
+    const detailLines = formatResolutionContext(enriched);
+    if (detailLines) {
       lines.push("");
-      lines.push(`> **Implementation hint:** ${hint}`);
+      lines.push(detailLines);
     }
   }
 
   lines.push("");
   return lines.join("\n");
-}
-
-/** Resolve style sources for each property from the live DOM */
-function resolveStyleSources(
-  selector: string,
-  properties: string[]
-): Map<string, StyleSource[]> {
-  try {
-    // Strip pseudo-state suffixes — querySelector can't handle :hover etc.
-    const { base } = parsePseudoState(selector);
-    const element = document.querySelector(base);
-    if (!element) return new Map();
-    return findStyleSources(element, properties);
-  } catch {
-    return new Map();
-  }
 }
 
 function formatStylingApproach(approach: string): string {
@@ -266,141 +248,73 @@ function formatStylingApproach(approach: string): string {
   }
 }
 
-function getTokenHint(value: string, tokenMap: TokenMap, property?: string): string {
-  const hints: string[] = [];
-  const registry = getTokenRegistry();
-
-  // Check CSS custom properties (design tokens)
-  const tokens = findTokensForValue(value, tokenMap);
-  if (tokens.length > 0) {
-    const display = tokens.slice(0, 2).map(t => `\`var(${t})\``).join(", ");
-    hints.push(tokens.length > 2 ? `${display} +${tokens.length - 2} more` : display);
+/** Format the recommended candidate for the Token column */
+function formatRecommended(prop: EnrichedPropertyChange): string {
+  if (!prop.recommended) return "—";
+  const r = prop.recommended;
+  const name = r.type === "css-variable" ? `\`${r.name}\`` : `\`.${r.name}\``;
+  if (!r.exact && r.distance) {
+    return `${name} (${r.distance})`;
   }
-
-  // Check utility class tokens (from stylesheet scan)
-  if (property) {
-    const kebab = camelToKebab(property);
-    const utilToken = findUtilityToken(kebab, value);
-    if (utilToken) {
-      hints.push(`\`.${utilToken.className}\``);
-    } else if (registry.framework === "tailwind") {
-      // Suggest Tailwind class even if not in registry (e.g., JIT-generated)
-      const tw = suggestTailwindClass(property, value);
-      if (tw) hints.push(`\`.${tw}\``);
-    }
-  }
-
-  return hints.length > 0 ? hints.join(", ") : "—";
+  return name;
 }
 
-function getImplementationHint(change: ElementChange): string | null {
-  const approach = change.stylingApproach;
-  const registry = getTokenRegistry();
-  const isTw = registry.framework === "tailwind" || approach === "tailwind";
+/** Format the source column from enriched data */
+function formatEnrichedSource(prop: EnrichedPropertyChange): string {
+  if (!prop.source) return "—";
+  const s = prop.source;
+  if (s.origin === "inline") return "inline style";
+  let result = `\`${s.selector}\``;
+  if (s.stylesheet) result += ` in \`${s.stylesheet}\``;
+  if (s.mediaQuery) result += ` @media(${s.mediaQuery})`;
+  if (s.important) result += " !important";
+  return result;
+}
 
-  // Prescriptive class-swap hints using utility token registry
-  const swapHints: string[] = [];
-  const twHints: string[] = [];
+/** Build the resolution context detail block for properties that have meaningful context */
+function formatResolutionContext(enriched: EnrichedPropertyChange[]): string | null {
+  const entries: string[] = [];
 
-  // Collapse longhands so e.g. 4 identical border-radius values become one "borderRadius"
-  const collapsed = collapseShorthands(change.changes);
+  for (const prop of enriched) {
+    const hasAlternatives = prop.alternatives.length > 0;
+    const hasCssVars = prop.cssVariables.length > 0;
+    const hasConflicts = prop.conflicts && prop.conflicts.length > 0;
+    // Only include if there's something beyond what the table shows
+    if (!hasAlternatives && !hasCssVars && !hasConflicts) continue;
 
-  for (const prop of collapsed) {
     const kebab = camelToKebab(prop.property);
+    const lines: string[] = [];
+    lines.push(`**\`${kebab}\`** \`${prop.from}\` → \`${prop.to}\``);
 
-    // Try exact token swap first (from registry scan)
-    const fromToken = findUtilityToken(kebab, prop.from);
-    const toToken = findUtilityToken(kebab, prop.to);
-    // Only suggest swapping a class if the from-class is actually on the element
-    const fromClassPresent = fromToken ? change.classes.includes(fromToken.className) : false;
-    if (fromToken && toToken && fromToken.className !== toToken.className && fromClassPresent) {
-      swapHints.push(`swap \`.${fromToken.className}\` → \`.${toToken.className}\``);
-    } else if (fromToken && fromClassPresent && !toToken && isTw) {
-      // We know the old class but no exact token match for new value — suggest Tailwind class
-      const tw = suggestTailwindClass(prop.property, prop.to);
-      if (tw) {
-        swapHints.push(`swap \`.${fromToken.className}\` → \`.${tw}\``);
-      } else {
-        swapHints.push(`remove \`.${fromToken.className}\`, apply \`${kebab}: ${prop.to}\` via Tailwind arbitrary value \`[${kebab}:${prop.to}]\` or closest utility`);
+    if (prop.recommended) {
+      const r = prop.recommended;
+      const label = r.exact ? "exact" : r.distance || "fuzzy";
+      lines.push(`- Recommended: \`.${r.type === "css-variable" ? r.name : r.name}\` (${label}, \`${r.value}\`)`);
+    }
+
+    if (hasAlternatives) {
+      const altStr = prop.alternatives.map(a => `\`.${a.name}\` (\`${a.value}\`)`).join(", ");
+      lines.push(`- Alternatives: ${altStr}`);
+    }
+
+    if (hasCssVars) {
+      const varStr = prop.cssVariables.map(v => `\`var(${v})\``).join(", ");
+      lines.push(`- CSS vars: ${varStr}`);
+    }
+
+    if (hasConflicts) {
+      for (const c of prop.conflicts!) {
+        const imp = c.important ? ", !important" : "";
+        lines.push(`- Competing rule: \`${c.selector}\` (\`${c.value}\`${imp})`);
       }
-    } else if (isTw) {
-      // No from-token on element, but project is Tailwind — suggest the target class
-      const tw = suggestTailwindClass(prop.property, prop.to);
-      if (tw) twHints.push(tw);
     }
+
+    entries.push(lines.join("\n"));
   }
 
-  if (swapHints.length > 0 && twHints.length > 0) {
-    return `${swapHints.join("; ")}. Also add: \`${twHints.join(" ")}\``;
-  }
-  if (swapHints.length > 0) {
-    return swapHints.join("; ");
-  }
-  if (twHints.length > 0) {
-    return `Use Tailwind classes: \`${twHints.join(" ")}\``;
-  }
+  if (entries.length === 0) return null;
 
-  if (approach === "css-modules" && change.sourceFile) {
-    return `Look for a \`.module.css\` file near \`${change.sourceFile.fileName}\``;
-  }
-
-  return null;
-}
-
-/** Basic Tailwind class suggestions for common properties */
-function suggestTailwindClass(property: string, value: string): string | null {
-  const num = parseFloat(value);
-  const pxToTw: Record<number, string> = {
-    0: "0", 1: "px", 2: "0.5", 4: "1", 6: "1.5", 8: "2", 10: "2.5",
-    12: "3", 14: "3.5", 16: "4", 20: "5", 24: "6", 28: "7", 32: "8",
-    36: "9", 40: "10", 44: "11", 48: "12", 56: "14", 64: "16",
-    80: "20", 96: "24", 112: "28", 128: "32", 144: "36",
-    160: "40", 176: "44", 192: "48", 208: "52", 224: "56",
-    240: "60", 256: "64", 288: "72", 320: "80", 384: "96",
-  };
-
-  const twSize = pxToTw[num];
-
-  switch (property) {
-    case "paddingTop": return twSize ? `pt-${twSize}` : null;
-    case "paddingRight": return twSize ? `pr-${twSize}` : null;
-    case "paddingBottom": return twSize ? `pb-${twSize}` : null;
-    case "paddingLeft": return twSize ? `pl-${twSize}` : null;
-    case "marginTop": return twSize ? `mt-${twSize}` : null;
-    case "marginRight": return twSize ? `mr-${twSize}` : null;
-    case "marginBottom": return twSize ? `mb-${twSize}` : null;
-    case "marginLeft": return twSize ? `ml-${twSize}` : null;
-    case "gap": return twSize ? `gap-${twSize}` : null;
-    case "borderRadius":
-    case "borderTopLeftRadius":
-    case "borderTopRightRadius":
-    case "borderBottomLeftRadius":
-    case "borderBottomRightRadius": {
-      const radiusMap: Record<number, string> = {
-        0: "rounded-none", 2: "rounded-sm", 4: "rounded", 6: "rounded-md",
-        8: "rounded-lg", 12: "rounded-xl", 16: "rounded-2xl", 24: "rounded-3xl",
-      };
-      return radiusMap[num] || (value === "9999px" ? "rounded-full" : null);
-    }
-    case "fontSize": {
-      const fontMap: Record<number, string> = {
-        12: "text-xs", 14: "text-sm", 16: "text-base", 18: "text-lg",
-        20: "text-xl", 24: "text-2xl", 30: "text-3xl", 36: "text-4xl",
-        48: "text-5xl", 60: "text-6xl", 72: "text-7xl", 96: "text-8xl", 128: "text-9xl",
-      };
-      return fontMap[num] || null;
-    }
-    case "fontWeight": {
-      const weightMap: Record<string, string> = {
-        "100": "font-thin", "200": "font-extralight", "300": "font-light",
-        "400": "font-normal", "500": "font-medium", "600": "font-semibold",
-        "700": "font-bold", "800": "font-extrabold", "900": "font-black",
-      };
-      return weightMap[value] || null;
-    }
-    default:
-      return null;
-  }
+  return `<details>\n<summary>Resolution context</summary>\n\n${entries.join("\n\n")}\n\n</details>`;
 }
 
 /** Shorthand groups: when all longhands share the same "to" value, collapse into one shorthand */

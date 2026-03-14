@@ -36,11 +36,15 @@ export function createServer(bridge: Bridge): McpServer {
 
   server.tool(
     "retune_get_pending_changes",
-    "Get all pending visual changes made in the Retune overlay. Returns a list of elements with their before/after style diffs. Shorthand properties (padding, margin, border-radius, etc.) are collapsed when all sides share the same value.",
-    {},
-    async () => {
+    "Get all pending visual changes made in the Retune overlay. Returns a list of elements with their before/after style diffs. Shorthand properties (padding, margin, border-radius, etc.) are collapsed when all sides share the same value. Set enriched=true to include token/class/variable candidates per property.",
+    {
+      enriched: z.boolean().optional()
+        .describe("Include token/class/variable candidates and specificity context per property. Default: false."),
+    },
+    async ({ enriched }) => {
       try {
-        const changes = await bridge.request("getCollapsedChanges");
+        const requestType = enriched ? "getEnrichedChanges" : "getCollapsedChanges";
+        const changes = await bridge.request(requestType);
         if (!changes || changes.length === 0) {
           return { content: [{ type: "text", text: "No pending changes." }] };
         }

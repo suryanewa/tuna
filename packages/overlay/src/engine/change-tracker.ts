@@ -224,7 +224,7 @@ export class ChangeTracker {
       }
 
       if (propertyChanges.length > 0) {
-        changes.push({
+        const change: ElementChange = {
           selector: tracked.selector,
           tagName: tracked.tagName,
           textContent: tracked.textContent,
@@ -242,7 +242,11 @@ export class ChangeTracker {
           domPath: tracked.domPath,
           nearbySiblings: tracked.nearbySiblings,
           position: tracked.position,
-        });
+        };
+        if (tracked.tokenAssociations && Object.keys(tracked.tokenAssociations).length > 0) {
+          change.tokenAssociations = tracked.tokenAssociations;
+        }
+        changes.push(change);
       }
     }
 

@@ -196,6 +196,15 @@ function RetuneInner(props: RetuneConfig) {
             ...c,
             changes: collapseShorthands(c.changes),
           }));
+        case "getEnrichedChanges": {
+          const { scanDesignTokens } = await import("../inspector/tokens");
+          const { enrichPropertyChanges } = await import("../engine/candidates");
+          const tokenMap = scanDesignTokens();
+          return tracker.getPendingChanges().map((c) => ({
+            ...c,
+            changes: enrichPropertyChanges(collapseShorthands(c.changes), tokenMap, c.selector),
+          }));
+        }
         case "getFormattedChanges":
           return formatChanges(tracker.getPendingChanges(), params?.fidelity || fidelityRef.current);
         case "clearChanges": {

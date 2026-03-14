@@ -19,7 +19,8 @@
     "retune": "./dist/cli.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "skill"
   ],
   "scripts": {
     "build:css": "node scripts/build-css.js",

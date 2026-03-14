@@ -6,7 +6,7 @@
  *
  * Usage:
  *   npx retune          — start the MCP server
- *   npx retune setup    — auto-configure MCP for Claude Code
+ *   npx retune setup    — auto-configure MCP + install skill for AI tools
  */
 
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -15,7 +15,7 @@ import { createServer } from "./server.js";
 
 const port = parseInt(process.env.RETUNE_WS_PORT || "9223", 10);
 
-async function main() {
+async function startServer() {
   // Start WebSocket bridge for browser communication
   const bridge = new Bridge(port);
   await bridge.start();
@@ -39,6 +39,18 @@ async function main() {
     bridge.stop();
     process.exit(0);
   });
+}
+
+async function main() {
+  const command = process.argv[2];
+
+  if (command === "setup") {
+    const { setup } = await import("./setup.js");
+    await setup();
+    return;
+  }
+
+  await startServer();
 }
 
 main().catch((err) => {
