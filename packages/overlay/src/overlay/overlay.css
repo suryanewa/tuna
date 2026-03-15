@@ -2246,7 +2246,7 @@
 
 /* ── Variable Applied State (purple styling) ── */
 .retune-prop-variable-applied {
-  background: #E9D4FF;
+  background: rgba(110, 17, 176, 0.1);
 }
 .retune-prop-variable-applied .retune-prop-input,
 .retune-prop-variable-applied .retune-prop-label {
@@ -2254,7 +2254,7 @@
   cursor: pointer;
 }
 .retune-combo-variable-applied {
-  background: #E9D4FF;
+  background: rgba(110, 17, 176, 0.1);
 }
 .retune-combo-variable-applied .retune-combo-input,
 .retune-combo-variable-applied .retune-combo-label {
@@ -2265,11 +2265,11 @@
   display: none;
 }
 .retune-color-variable-applied {
-  background: #E9D4FF;
+  background: rgba(110, 17, 176, 0.1);
+  /* When variable applied, opacity section is hidden — hex section takes full width with full rounding */
+  border-radius: 8px;
 }
-.retune-color-variable-applied .retune-color-hex-input,
-.retune-color-variable-applied .retune-color-opacity-input,
-.retune-color-variable-applied .retune-color-opacity-unit {
+.retune-color-variable-applied .retune-color-hex-input {
   color: #6E11B0;
   cursor: pointer;
 }
@@ -2385,16 +2385,16 @@
 }
 
 .retune-token-dialog-item-active {
-  background: rgba(59,130,246,0.08);
+  background: rgba(110, 17, 176, 0.1);
 }
 .retune-token-dialog-item-active:hover {
-  background: rgba(59,130,246,0.12);
+  background: rgba(110, 17, 176, 0.15);
 }
 .retune-token-dialog-item-highlighted {
   background: rgba(0,0,0,0.04);
 }
 .retune-token-dialog-item-active.retune-token-dialog-item-highlighted {
-  background: rgba(59,130,246,0.12);
+  background: rgba(110, 17, 176, 0.15);
 }
 
 .retune-token-dialog-active-dot {

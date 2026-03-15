@@ -27,6 +27,14 @@ export interface ColorInputProps {
   onReset?: () => void;
 }
 
+/** Format variable name for display: var(--color-brand) → "color-brand" */
+function formatVarName(className: string): string {
+  if (className.startsWith("var(--") && className.endsWith(")")) {
+    return className.slice(6, -1);
+  }
+  return className;
+}
+
 export function ColorInput({ prop, value, onChange, tokenMatch, property, onTokenSelect, onTokenApply, onTokenUnlink, isChanged, onReset }: ColorInputProps) {
   const parsed = parseCssColor(value || "");
   const [hexLocal, setHexLocal] = useState(parsed.hex.replace("#", "").toUpperCase());
@@ -190,7 +198,7 @@ export function ColorInput({ prop, value, onChange, tokenMatch, property, onToke
   return (
     <div className="retune-color-row">
       <ChangeIndicator isChanged={isChanged ?? false} onReset={onReset ?? (() => {})} />
-      {/* Left half: swatch + hex */}
+      {/* Left half: swatch + hex (or variable name when token applied) */}
       <div className={`retune-color-hex-section${tokenMatch ? " retune-color-variable-applied" : ""}`}>
         <div
           ref={swatchRef}
@@ -201,7 +209,7 @@ export function ColorInput({ prop, value, onChange, tokenMatch, property, onToke
         </div>
         <input
           className="retune-color-hex-input"
-          value={hexLocal}
+          value={tokenMatch ? formatVarName(tokenMatch.token.className) : hexLocal}
           readOnly={!!tokenMatch}
           onClick={tokenMatch ? handleTokenDotOpen : undefined}
           onChange={tokenMatch ? undefined : (e) => setHexLocal(e.target.value.replace(/[^a-fA-F0-9]/g, "").slice(0, 6))}
@@ -220,20 +228,21 @@ export function ColorInput({ prop, value, onChange, tokenMatch, property, onToke
         />
       </div>
 
-      {/* Right half: opacity */}
-      <div className={`retune-color-opacity-section${tokenMatch ? " retune-color-variable-applied" : ""}`} onClick={tokenMatch ? handleTokenDotOpen : undefined}>
-        <input
-          className="retune-color-opacity-input"
-          inputMode="numeric"
-          value={opacityLocal}
-          readOnly={!!tokenMatch}
-          onChange={tokenMatch ? undefined : (e) => setOpacityLocal(e.target.value)}
-          onFocus={tokenMatch ? undefined : (e) => { opacityFocusedRef.current = true; e.target.select(); }}
-          onBlur={tokenMatch ? undefined : commitOpacity}
-          onKeyDown={tokenMatch ? undefined : handleOpacityKeyDown}
-        />
-        <span className="retune-color-opacity-unit">%</span>
-      </div>
+      {/* Right half: opacity — hidden when variable is applied */}
+      {!tokenMatch && (
+        <div className="retune-color-opacity-section">
+          <input
+            className="retune-color-opacity-input"
+            inputMode="numeric"
+            value={opacityLocal}
+            onChange={(e) => setOpacityLocal(e.target.value)}
+            onFocus={(e) => { opacityFocusedRef.current = true; e.target.select(); }}
+            onBlur={commitOpacity}
+            onKeyDown={handleOpacityKeyDown}
+          />
+          <span className="retune-color-opacity-unit">%</span>
+        </div>
+      )}
 
       {pickerOpen && anchorRect && (
         <ColorPicker

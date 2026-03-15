@@ -39,6 +39,10 @@ interface UndoEntry {
   property: string;
   value: string;
   group: number;
+  /** When set, this entry is a metadata-only unlink (no style value change) */
+  action?: "unlink";
+  /** Saved token association for restoring on undo of unlink */
+  tokenRef?: TrackedTokenRef;
 }
 
 const COALESCE_MS = 300;
@@ -144,7 +148,7 @@ export class ChangeTracker {
   }
 
   /** Pop an entire undo group and return all entries */
-  popUndo(): Array<{ selector: string; property: string; value: string }> | null {
+  popUndo(): Array<{ selector: string; property: string; value: string; action?: "unlink" }> | null {
     if (this.undoStack.length === 0) return null;
 
     const top = this.undoStack[this.undoStack.length - 1];
@@ -160,7 +164,18 @@ export class ChangeTracker {
     const redoGroup = ++this.groupCounter;
     for (const entry of entries) {
       const tracked = this.tracked.get(entry.selector);
-      if (tracked) {
+      if (!tracked) continue;
+
+      if (entry.action === "unlink") {
+        // Undo an unlink → relink the property
+        tracked.unlinkedTokens?.delete(entry.property);
+        // Restore saved token association if any
+        if (entry.tokenRef) {
+          if (!tracked.tokenAssociations) tracked.tokenAssociations = {};
+          tracked.tokenAssociations[entry.property] = entry.tokenRef;
+        }
+        this.redoStack.push({ selector: entry.selector, property: entry.property, value: "", group: redoGroup, action: "unlink", tokenRef: entry.tokenRef });
+      } else {
         const currentValue = tracked.currentStyles[entry.property] || "";
         this.redoStack.push({ selector: entry.selector, property: entry.property, value: currentValue, group: redoGroup });
         tracked.currentStyles[entry.property] = entry.value;
@@ -180,7 +195,7 @@ export class ChangeTracker {
   }
 
   /** Pop an entire redo group and return all entries */
-  popRedo(): Array<{ selector: string; property: string; value: string }> | null {
+  popRedo(): Array<{ selector: string; property: string; value: string; action?: "unlink" }> | null {
     if (this.redoStack.length === 0) return null;
 
     const top = this.redoStack[this.redoStack.length - 1];
@@ -196,7 +211,18 @@ export class ChangeTracker {
     const undoGroup = ++this.groupCounter;
     for (const entry of entries) {
       const tracked = this.tracked.get(entry.selector);
-      if (tracked) {
+      if (!tracked) continue;
+
+      if (entry.action === "unlink") {
+        // Redo an unlink → unlink the property again
+        if (!tracked.unlinkedTokens) tracked.unlinkedTokens = new Set();
+        tracked.unlinkedTokens.add(entry.property);
+        // Clear token association again
+        if (tracked.tokenAssociations) {
+          delete tracked.tokenAssociations[entry.property];
+        }
+        this.undoStack.push({ selector: entry.selector, property: entry.property, value: "", group: undoGroup, action: "unlink", tokenRef: entry.tokenRef });
+      } else {
         const currentValue = tracked.currentStyles[entry.property] || "";
         this.undoStack.push({ selector: entry.selector, property: entry.property, value: currentValue, group: undoGroup });
         tracked.currentStyles[entry.property] = entry.value;
@@ -225,7 +251,15 @@ export class ChangeTracker {
         }
       }
 
-      if (propertyChanges.length > 0) {
+      const unlinked = tracked.unlinkedTokens
+        ? Array.from(tracked.unlinkedTokens).map(prop => ({
+            property: prop,
+            value: tracked.currentStyles[prop] || "",
+          }))
+        : [];
+      const hasChanges = propertyChanges.length > 0 || unlinked.length > 0;
+
+      if (hasChanges) {
         const change: ElementChange = {
           selector: tracked.selector,
           tagName: tracked.tagName,
@@ -247,6 +281,9 @@ export class ChangeTracker {
         };
         if (tracked.tokenAssociations && Object.keys(tracked.tokenAssociations).length > 0) {
           change.tokenAssociations = tracked.tokenAssociations;
+        }
+        if (unlinked.length > 0) {
+          change.unlinkedProperties = unlinked;
         }
         changes.push(change);
       }
@@ -341,6 +378,36 @@ export class ChangeTracker {
     }
   }
 
+  /** Unlink properties and push to undo stack so the operation is undoable */
+  recordUnlink(selector: string, properties: string[]) {
+    const tracked = this.tracked.get(selector);
+    if (!tracked) return;
+
+    // Save current token associations before clearing (for undo restore)
+    const savedRefs: Record<string, TrackedTokenRef | undefined> = {};
+    for (const prop of properties) {
+      savedRefs[prop] = tracked.tokenAssociations?.[prop];
+    }
+
+    // Perform the unlink
+    this.unlinkToken(selector, properties);
+
+    // Push to undo stack as a new group
+    this.groupCounter++;
+    for (const prop of properties) {
+      this.undoStack.push({
+        selector,
+        property: prop,
+        value: "",
+        group: this.groupCounter,
+        action: "unlink",
+        tokenRef: savedRefs[prop],
+      });
+    }
+    this.lastChange = null;
+    this.redoStack = [];
+  }
+
   /** Check if a property has been explicitly unlinked */
   isTokenUnlinked(selector: string, property: string): boolean {
     return this.tracked.get(selector)?.unlinkedTokens?.has(property) ?? false;
@@ -370,10 +437,12 @@ export class ChangeTracker {
     return this.tracked.get(selector)?.tokenAssociations;
   }
 
-  /** Check if a single property differs from its original value */
+  /** Check if a single property differs from its original value or has been unlinked */
   isPropertyChanged(selector: string, property: string): boolean {
     const tracked = this.tracked.get(selector);
     if (!tracked) return false;
+    // Unlinked properties are considered changed (intentional detach)
+    if (tracked.unlinkedTokens?.has(property)) return true;
     const original = tracked.originalStyles[property] || "";
     const current = tracked.currentStyles[property] || "";
     return original !== current;
@@ -390,6 +459,12 @@ export class ChangeTracker {
         result.add(prop);
       }
     }
+    // Also include unlinked properties (intentional detach counts as a change)
+    if (tracked.unlinkedTokens) {
+      for (const prop of tracked.unlinkedTokens) {
+        result.add(prop);
+      }
+    }
     return result;
   }
 
@@ -400,7 +475,9 @@ export class ChangeTracker {
 
     const currentValue = tracked.currentStyles[property] || "";
     const originalValue = tracked.originalStyles[property] || "";
-    if (currentValue === originalValue) return null;
+    const isUnlinked = tracked.unlinkedTokens?.has(property) ?? false;
+    // Nothing to reset if value unchanged AND not unlinked
+    if (currentValue === originalValue && !isUnlinked) return null;
 
     // Revert to original
     tracked.currentStyles[property] = originalValue;

@@ -210,18 +210,35 @@ function formatSingleChange(change: ElementChange, fidelity: Fidelity, tokenMap:
   // Enrich each property with candidate tokens/classes/variables and source info
   const enriched = enrichPropertyChanges(collapsed, tokenMap, change.selector);
 
-  // Changes table
-  lines.push("");
-  lines.push("### Changes");
-  lines.push("");
-  lines.push("| Property | Before | After | Source | Token |");
-  lines.push("|----------|--------|-------|--------|-------|");
+  // Changes table — only render if there are value changes
+  if (enriched.length > 0) {
+    lines.push("");
+    lines.push("### Changes");
+    lines.push("");
+    lines.push("| Property | Before | After | Source | Token |");
+    lines.push("|----------|--------|-------|--------|-------|");
 
-  for (const prop of enriched) {
-    const kebab = camelToKebab(prop.property);
-    const tokenStr = formatRecommended(prop);
-    const sourceStr = formatEnrichedSource(prop);
-    lines.push(`| \`${kebab}\` | \`${prop.from}\` | \`${prop.to}\` | ${sourceStr} | ${tokenStr} |`);
+    for (const prop of enriched) {
+      const kebab = camelToKebab(prop.property);
+      const tokenStr = formatRecommended(prop);
+      const sourceStr = formatEnrichedSource(prop);
+      lines.push(`| \`${kebab}\` | \`${prop.from}\` | \`${prop.to}\` | ${sourceStr} | ${tokenStr} |`);
+    }
+  }
+
+  // Detached variables — properties where the user explicitly removed a token/variable binding
+  if (change.unlinkedProperties && change.unlinkedProperties.length > 0) {
+    lines.push("");
+    lines.push("### Detached Variables");
+    lines.push("");
+    lines.push("The following properties had their design token/variable binding removed. Hardcode the current values — do not use the token class or CSS variable:");
+    lines.push("");
+    lines.push("| Property | Current Value |");
+    lines.push("|----------|---------------|");
+    for (const { property, value } of change.unlinkedProperties) {
+      const kebab = camelToKebab(property);
+      lines.push(`| \`${kebab}\` | \`${value}\` |`);
+    }
   }
 
   // Resolution context (detail blocks) — standard + full fidelity only

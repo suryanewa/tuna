@@ -619,9 +619,9 @@ function RetuneInner(props: RetuneConfig) {
     const el = selectedElementRef.current;
     if (!tracker || !el) return;
     const selector = activeSelectorRef.current ?? el.selector;
-    // Mark properties as unlinked — keeps the value, just breaks the token reference
-    tracker.unlinkToken(selector, properties);
-    tracker.persist();
+    // Record unlink with undo support — keeps the value, breaks the token reference
+    tracker.recordUnlink(selector, properties);
+    syncTrackerStateRef.current();
     setChangeRevision((r) => r + 1);
   }, []);
 
@@ -757,7 +757,9 @@ function RetuneInner(props: RetuneConfig) {
     if (!tracker || !preview) return;
     const entries = tracker.popUndo();
     if (entries) {
-      for (const entry of entries) {
+      // Apply preview changes only for value entries (skip metadata-only unlink entries)
+      const valueEntries = entries.filter(e => !e.action);
+      for (const entry of valueEntries) {
         if (entry.value) preview.applyChange(entry.selector, entry.property, entry.value);
         else preview.removeChange(entry.selector, entry.property);
       }
@@ -771,7 +773,7 @@ function RetuneInner(props: RetuneConfig) {
           activeProps.add(`${el.selector}::${c.property}`);
         }
       }
-      for (const entry of entries) {
+      for (const entry of valueEntries) {
         const key = `${entry.selector}::${entry.property}`;
         if (!activeProps.has(key)) {
           preview.removeChange(entry.selector, entry.property);
@@ -791,8 +793,11 @@ function RetuneInner(props: RetuneConfig) {
     if (!tracker || !preview) return;
     const entries = tracker.popRedo();
     if (entries) {
+      // Apply preview changes only for value entries (skip metadata-only unlink entries)
       for (const entry of entries) {
-        preview.applyChange(entry.selector, entry.property, entry.value);
+        if (!entry.action) {
+          preview.applyChange(entry.selector, entry.property, entry.value);
+        }
       }
       syncForcedInlineStyles();
       syncTrackerStateRef.current();

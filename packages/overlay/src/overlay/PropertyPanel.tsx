@@ -288,10 +288,14 @@ export function PropertyPanel({
   const shorthandTokenProps = useCallback((camelProps: string[]) => {
     for (const p of camelProps) {
       const match = getTokenMatch(p);
-      if (match) return { tokenMatch: match, property: p, onTokenSelect: handleTokenSelect, onTokenApply: handleTokenApply, onTokenUnlink: () => handleTokenUnlink(p) };
+      if (match) return {
+        tokenMatch: match, property: p, onTokenSelect: handleTokenSelect, onTokenApply: handleTokenApply,
+        // Unlink ALL properties in the shorthand group so one click detaches fully
+        onTokenUnlink: () => onTokenUnlink?.(camelProps),
+      };
     }
     return { property: camelProps[0], onTokenApply: handleTokenApply };
-  }, [getTokenMatch, handleTokenSelect, handleTokenApply, handleTokenUnlink]);
+  }, [getTokenMatch, handleTokenSelect, handleTokenApply, onTokenUnlink]);
 
   // Change indicator props for a single property
   const changeProps = useCallback((camelProp: string) => ({

@@ -130,4 +130,6 @@ export interface ElementChange {
   position?: { x: number; y: number; width: number; height: number };
   /** Token associations from the UI (user-applied tokens) */
   tokenAssociations?: Record<string, { className: string; values: Record<string, string> }>;
+  /** Properties explicitly detached from their design token/variable: property → current value */
+  unlinkedProperties?: Array<{ property: string; value: string }>;
 }

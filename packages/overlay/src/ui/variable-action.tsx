@@ -104,15 +104,15 @@ export function VariableAction({ match, property, relatedProperties, onTokenSele
   function handleNativePointerDown(e: PointerEvent) {
     e.stopPropagation();
     e.preventDefault();
-    // Delegate to parent if requested (e.g. ColorInput)
-    if (onRequestOpenRef.current) {
-      onRequestOpenRef.current();
-      return;
-    }
-    // For unlink icon (applied state), detach the variable
+    // For unlink icon (applied state), detach the variable — check BEFORE onRequestOpen
     const target = e.target as HTMLElement;
     if (target.closest(".retune-variable-unlink")) {
       onTokenUnlinkRef.current?.();
+      return;
+    }
+    // Delegate to parent if requested (e.g. ColorInput)
+    if (onRequestOpenRef.current) {
+      onRequestOpenRef.current();
       return;
     }
     // Otherwise open the picker
