@@ -127,7 +127,7 @@ export function TokenPicker({ match, onSelect, onClose, anchorRect }: TokenPicke
       style={{ position: "fixed", top, left, width: panelWidth }}
     >
       <div className="retune-token-picker-header">
-        <span className="retune-token-picker-title">{category || "tokens"}</span>
+        <span className="retune-token-picker-title">{category || "variables"}</span>
       </div>
       <div ref={listRef} className="retune-token-picker-list">
         {/* Current token */}

@@ -608,6 +608,19 @@ function RetuneInner(props: RetuneConfig) {
     if (!tracker || !el) return;
     const selector = activeSelectorRef.current ?? el.selector;
     tracker.setTokenAssociation(selector, properties, token);
+    // Clear unlinked state — user is picking a new token
+    tracker.relinkToken(selector, properties);
+    tracker.persist();
+    setChangeRevision((r) => r + 1);
+  }, []);
+
+  const handleTokenUnlink = useCallback((properties: string[]) => {
+    const tracker = trackerRef.current;
+    const el = selectedElementRef.current;
+    if (!tracker || !el) return;
+    const selector = activeSelectorRef.current ?? el.selector;
+    // Mark properties as unlinked — keeps the value, just breaks the token reference
+    tracker.unlinkToken(selector, properties);
     tracker.persist();
     setChangeRevision((r) => r + 1);
   }, []);
@@ -617,8 +630,17 @@ function RetuneInner(props: RetuneConfig) {
     const tracker = trackerRef.current;
     if (!tracker || !selectedElement) return {};
     const selector = activeSelector ?? selectedElement.selector;
-    return tracker.getTokenAssociations(selector) ?? {};
+    return { ...(tracker.getTokenAssociations(selector) ?? {}) };
   // changeRevision ensures we re-read after new associations are recorded
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedElement, activeSelector, changeRevision]);
+
+  // Get unlinked token properties for the selected element
+  const selectedUnlinkedTokens = useMemo(() => {
+    const tracker = trackerRef.current;
+    if (!tracker || !selectedElement) return new Set<string>();
+    const selector = activeSelector ?? selectedElement.selector;
+    return new Set(tracker.getUnlinkedTokens(selector));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedElement, activeSelector, changeRevision]);
 
@@ -1037,7 +1059,9 @@ function RetuneInner(props: RetuneConfig) {
                 onApplyToElement={handleApplyToElement}
                 onTokenSwap={handleTokenSwap}
                 onTokenAssociate={handleTokenAssociate}
+                onTokenUnlink={handleTokenUnlink}
                 tokenAssociations={selectedTokenAssociations}
+                unlinkedTokens={selectedUnlinkedTokens}
                 selectorCandidates={selectorCandidates}
                 activeSelector={activeSelector}
                 onSelectorChange={handleSelectorChange}

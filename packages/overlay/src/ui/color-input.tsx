@@ -9,6 +9,7 @@ import { parseCssColor, hexToRgba } from "./color-utils";
 import { ColorPicker } from "./color-picker";
 import type { TokenMatch, UtilityToken } from "../tokens/types";
 import { TokenIndicator } from "./token-indicator";
+import { claimDialog, releaseDialog } from "./dialog-singleton";
 
 export interface ColorInputProps {
   prop: string;
@@ -18,9 +19,10 @@ export interface ColorInputProps {
   property?: string;
   onTokenSelect?: (oldToken: import("../tokens/types").UtilityToken, newToken: import("../tokens/types").UtilityToken) => void;
   onTokenApply?: (token: import("../tokens/types").UtilityToken, properties: string[]) => void;
+  onTokenUnlink?: () => void;
 }
 
-export function ColorInput({ prop, value, onChange, tokenMatch, property, onTokenSelect, onTokenApply }: ColorInputProps) {
+export function ColorInput({ prop, value, onChange, tokenMatch, property, onTokenSelect, onTokenApply, onTokenUnlink }: ColorInputProps) {
   const parsed = parseCssColor(value || "");
   const [hexLocal, setHexLocal] = useState(parsed.hex.replace("#", "").toUpperCase());
   const [opacityLocal, setOpacityLocal] = useState(String(parsed.opacity));
@@ -30,6 +32,7 @@ export function ColorInput({ prop, value, onChange, tokenMatch, property, onToke
   const swatchRef = useRef<HTMLDivElement>(null);
   const hexFocusedRef = useRef(false);
   const opacityFocusedRef = useRef(false);
+  const stableCloseRef = useRef(() => setPickerOpen(false));
 
   // Track current hex and opacity as refs for building CSS output
   const currentHexRef = useRef(parsed.hex);
@@ -60,6 +63,7 @@ export function ColorInput({ prop, value, onChange, tokenMatch, property, onToke
   // ── Swatch click → open picker (Custom tab) ──
   const handleSwatchClick = useCallback(() => {
     if (pickerOpen) {
+      releaseDialog(stableCloseRef.current);
       setPickerOpen(false);
       return;
     }
@@ -80,11 +84,13 @@ export function ColorInput({ prop, value, onChange, tokenMatch, property, onToke
     }
     setInitialTab(tab);
     setPickerOpen(true);
+    claimDialog(stableCloseRef.current);
   }, []);
 
-  // Token dot click → open picker to Tokens tab
+  // Token dot click → open picker to Variables tab
   const handleTokenDotOpen = useCallback(() => {
     if (pickerOpen) {
+      releaseDialog(stableCloseRef.current);
       setPickerOpen(false);
       return;
     }
@@ -103,17 +109,20 @@ export function ColorInput({ prop, value, onChange, tokenMatch, property, onToke
   }, [emitColor]);
 
   const handlePickerClose = useCallback(() => {
+    releaseDialog(stableCloseRef.current);
     setPickerOpen(false);
   }, []);
 
   // Token apply from within the color picker (tokens tab)
   const handlePickerTokenApply = useCallback((token: UtilityToken, properties: string[]) => {
     onTokenApply?.(token, properties);
+    releaseDialog(stableCloseRef.current);
     setPickerOpen(false);
   }, [onTokenApply]);
 
   const handlePickerTokenSelect = useCallback((oldToken: UtilityToken, newToken: UtilityToken) => {
     onTokenSelect?.(oldToken, newToken);
+    releaseDialog(stableCloseRef.current);
     setPickerOpen(false);
   }, [onTokenSelect]);
 
@@ -198,6 +207,7 @@ export function ColorInput({ prop, value, onChange, tokenMatch, property, onToke
           property={property || prop}
           onTokenSelect={onTokenSelect}
           onTokenApply={onTokenApply}
+          onTokenUnlink={onTokenUnlink}
           onRequestOpen={handleTokenDotOpen}
         />
       </div>

@@ -45,9 +45,11 @@ export interface NumberInputProps {
   onTokenSelect?: (oldToken: import("../tokens/types").UtilityToken, newToken: import("../tokens/types").UtilityToken) => void;
   /** Callback when user applies a token from scratch (no existing token) */
   onTokenApply?: (token: import("../tokens/types").UtilityToken, properties: string[]) => void;
+  /** Callback when user unlinks a token */
+  onTokenUnlink?: () => void;
 }
 
-export function NumberInput({ label, prop, value, placeholder, onChange, min, max, step: stepProp, tokenMatch, property, onTokenSelect, onTokenApply }: NumberInputProps) {
+export function NumberInput({ label, prop, value, placeholder, onChange, min, max, step: stepProp, tokenMatch, property, onTokenSelect, onTokenApply, onTokenUnlink }: NumberInputProps) {
   const [localValue, setLocalValue] = useState(roundCssValue(value || ""));
   const labelRef = useRef<HTMLSpanElement>(null);
 
@@ -203,6 +205,7 @@ export function NumberInput({ label, prop, value, placeholder, onChange, min, ma
         property={property || prop}
         onTokenSelect={onTokenSelect}
         onTokenApply={onTokenApply}
+        onTokenUnlink={onTokenUnlink}
       />
     </div>
   );

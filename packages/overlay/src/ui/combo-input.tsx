@@ -34,9 +34,10 @@ export interface ComboInputProps {
   onTokenSelect?: (oldToken: import("../tokens/types").UtilityToken, newToken: import("../tokens/types").UtilityToken) => void;
   /** Callback when user applies a token from scratch (no existing token) */
   onTokenApply?: (token: import("../tokens/types").UtilityToken, properties: string[]) => void;
+  onTokenUnlink?: () => void;
 }
 
-export function ComboInput({ label, prop, value, options, onChange, tokenMatch, property, onTokenSelect, onTokenApply }: ComboInputProps) {
+export function ComboInput({ label, prop, value, options, onChange, tokenMatch, property, onTokenSelect, onTokenApply, onTokenUnlink }: ComboInputProps) {
   const [localValue, setLocalValue] = useState(roundCssValue(value || ""));
   const [open, setOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
@@ -265,6 +266,7 @@ export function ComboInput({ label, prop, value, options, onChange, tokenMatch, 
         property={property || prop}
         onTokenSelect={onTokenSelect}
         onTokenApply={onTokenApply}
+        onTokenUnlink={onTokenUnlink}
       />
       <button
         type="button"

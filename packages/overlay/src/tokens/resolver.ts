@@ -9,10 +9,15 @@
 import type { UtilityToken, TokenMatch, TokenRegistry, TokenCategory } from "./types";
 import { getTokenRegistry } from "./registry";
 import { getCategoryForProperty } from "./categories";
+import { scanDesignTokens, type DesignToken } from "../inspector/tokens";
 
 /**
  * Resolve which tokens are active on a given element.
  * Returns a map of CSS property → TokenMatch (the token providing that value).
+ *
+ * Detects two kinds of tokens:
+ * 1. Utility classes: element has a class like "spacing-xl" whose values match computed styles
+ * 2. CSS variables: element's applied styles (inline or from rules) use var(--name) references
  */
 export function resolveTokensForElement(
   element: Element,
@@ -21,40 +26,137 @@ export function resolveTokensForElement(
   const registry = getTokenRegistry();
   const matches = new Map<string, TokenMatch>();
 
-  // Get the element's class list
+  // ── 1. Class-based token resolution ──
   const classes = element.classList ? Array.from(element.classList) : [];
-  if (classes.length === 0) return matches;
+  if (classes.length > 0) {
+    const activeTokens: UtilityToken[] = [];
+    for (const cls of classes) {
+      const token = registry.classLookup.get(cls);
+      if (token) activeTokens.push(token);
+    }
 
-  // Find tokens the element actually uses (by class name)
-  const activeTokens: UtilityToken[] = [];
-  for (const cls of classes) {
-    const token = registry.classLookup.get(cls);
-    if (token) activeTokens.push(token);
-  }
+    for (const token of activeTokens) {
+      for (const [prop, tokenValue] of Object.entries(token.values)) {
+        const camelProp = kebabToCamel(prop);
+        const computed = computedStyles[camelProp] || computedStyles[prop];
+        if (!computed) continue;
 
-  if (activeTokens.length === 0) return matches;
+        const normalizedToken = normalizeValue(tokenValue);
+        const normalizedComputed = normalizeValue(computed);
 
-  // For each active token, check if its values match the element's computed styles.
-  // Token values use kebab-case keys (from CSSStyleDeclaration iteration),
-  // but computedStyles uses camelCase keys (from inspectElement). Convert.
-  for (const token of activeTokens) {
-    for (const [prop, tokenValue] of Object.entries(token.values)) {
-      const camelProp = kebabToCamel(prop);
-      const computed = computedStyles[camelProp] || computedStyles[prop];
-      if (!computed) continue;
-
-      // Normalize for comparison (strip whitespace, lowercase)
-      const normalizedToken = normalizeValue(tokenValue);
-      const normalizedComputed = normalizeValue(computed);
-
-      if (normalizedToken === normalizedComputed) {
-        // Store with kebab-case key (matches what the panel's tokenProps helper expects)
-        matches.set(prop, { token, property: prop });
+        if (normalizedToken === normalizedComputed) {
+          matches.set(prop, { token, property: prop });
+        }
       }
     }
   }
 
+  // ── 2. CSS variable detection ──
+  // Check inline styles and matched stylesheet rules for var(--*) references
+  resolveVarTokens(element, matches);
+
   return matches;
+}
+
+/** Regex to extract var(--name) from a CSS value */
+const VAR_REF_RE = /var\((--[a-zA-Z0-9_-]+)/g;
+
+/**
+ * Shorthand → longhand mapping. When a shorthand like `padding` uses var(),
+ * browsers expand it into longhands with empty values. We need to check the
+ * shorthand and apply the match to all its longhands.
+ */
+const SHORTHAND_LONGHANDS: Record<string, string[]> = {
+  "padding": ["padding-top", "padding-right", "padding-bottom", "padding-left"],
+  "margin": ["margin-top", "margin-right", "margin-bottom", "margin-left"],
+  "border-radius": ["border-top-left-radius", "border-top-right-radius", "border-bottom-right-radius", "border-bottom-left-radius"],
+  "gap": ["row-gap", "column-gap"],
+};
+
+/**
+ * Scan an element's applied styles for var(--*) references and add matching
+ * CSS variable tokens to the matches map. Class-based matches take priority.
+ */
+function resolveVarTokens(element: Element, matches: Map<string, TokenMatch>): void {
+  const htmlEl = element as HTMLElement;
+
+  // Build a lookup of known CSS variable tokens: "--name" → UtilityToken
+  const { tokens: varTokens } = getCssVarTokens();
+  if (varTokens.length === 0) return;
+  const varLookup = new Map<string, UtilityToken>();
+  for (const t of varTokens) {
+    const name = t.className.slice(4, -1); // strip "var(" and ")"
+    varLookup.set(name, t);
+  }
+
+  /** Try to match a var() reference and add to matches */
+  const tryMatch = (prop: string, raw: string) => {
+    if (!raw.includes("var(")) return;
+    if (matches.has(prop)) return;
+
+    VAR_REF_RE.lastIndex = 0;
+    const m = VAR_REF_RE.exec(raw);
+    if (!m) return;
+
+    const token = varLookup.get(m[1]);
+    if (!token) return;
+
+    // If this is a shorthand, apply to all longhands
+    const longhands = SHORTHAND_LONGHANDS[prop];
+    if (longhands) {
+      for (const lh of longhands) {
+        if (!matches.has(lh)) {
+          matches.set(lh, { token, property: lh });
+        }
+      }
+    } else {
+      matches.set(prop, { token, property: prop });
+    }
+  };
+
+  // Check inline styles
+  if (htmlEl.style && htmlEl.style.length > 0) {
+    // First check longhand properties from style.item()
+    for (let i = 0; i < htmlEl.style.length; i++) {
+      const prop = htmlEl.style.item(i);
+      const raw = htmlEl.style.getPropertyValue(prop);
+      tryMatch(prop, raw);
+    }
+
+    // Then check shorthands — browsers expand them into longhands with empty
+    // values, so the var() reference is only on the shorthand itself
+    for (const shorthand of Object.keys(SHORTHAND_LONGHANDS)) {
+      const raw = htmlEl.style.getPropertyValue(shorthand);
+      if (raw) tryMatch(shorthand, raw);
+    }
+  }
+
+  // Check matched stylesheet rules for var() references
+  try {
+    for (const sheet of document.styleSheets) {
+      try {
+        for (const rule of sheet.cssRules) {
+          if (!(rule instanceof CSSStyleRule)) continue;
+          if (!element.matches(rule.selectorText)) continue;
+
+          for (let i = 0; i < rule.style.length; i++) {
+            const prop = rule.style.item(i);
+            const raw = rule.style.getPropertyValue(prop);
+            tryMatch(prop, raw);
+          }
+          // Also check shorthands in stylesheet rules
+          for (const shorthand of Object.keys(SHORTHAND_LONGHANDS)) {
+            const raw = rule.style.getPropertyValue(shorthand);
+            if (raw) tryMatch(shorthand, raw);
+          }
+        }
+      } catch {
+        // Cross-origin stylesheet
+      }
+    }
+  } catch {
+    // Stylesheet access not supported
+  }
 }
 
 /**
@@ -184,34 +286,103 @@ export function isTailwindUtility(className: string): boolean {
   return TW_PREFIX_LEGACY.test(className);
 }
 
-/**
- * All semantic tokens for a given CSS property (for browsing when no token is applied).
- * Returns all non-raw tokens in the same category — e.g. spacing tokens show on
- * both padding and margin inputs, since the value scale is what matters.
- * Accepts both camelCase and kebab-case property names.
- */
-export function getTokensForProperty(property: string): UtilityToken[] {
-  const registry = getTokenRegistry();
-  const kebab = camelToKebab(property);
-  const category = getCategoryForProperty(kebab);
-  if (!category) return [];
-  const group = registry.groups.get(category);
-  if (!group) return [];
-  return group.filter(t => !isRawUtility(t));
+// ── CSS custom property categorization ──
+
+/** Cached CSS variable tokens */
+let cssVarTokensCache: { tokens: UtilityToken[]; byCategory: Map<TokenCategory, UtilityToken[]> } | null = null;
+
+/** Pattern-based category detection for CSS custom property names */
+const VAR_CATEGORY_PATTERNS: Array<{ pattern: RegExp; category: TokenCategory }> = [
+  { pattern: /^--(spacing|space|gap|pad|margin)/i, category: "spacing" },
+  { pattern: /^--(size|width|height)/i, category: "sizing" },
+  { pattern: /^--(color|bg|text-color|border-color|foreground|background|accent|muted|destructive|primary|secondary)/i, category: "colors" },
+  { pattern: /^--(font|text|leading|tracking|letter)/i, category: "typography" },
+  { pattern: /^--(radius|border-width|border-radius|rounded)/i, category: "borders" },
+  { pattern: /^--(shadow|opacity)/i, category: "effects" },
+];
+
+/** Detect category from a CSS variable value */
+function categoryFromValue(value: string): TokenCategory | null {
+  const v = value.trim().toLowerCase();
+  // Color values
+  if (v.startsWith("#") || v.startsWith("rgb") || v.startsWith("hsl") || v.startsWith("oklch") || v.startsWith("oklab")) {
+    return "colors";
+  }
+  // Pixel/rem values that are small likely spacing/sizing
+  const num = parseFloat(v);
+  if (!isNaN(num) && (v.endsWith("px") || v.endsWith("rem") || v.endsWith("em"))) {
+    return "spacing"; // Could be spacing or sizing, default to spacing
+  }
+  return null;
+}
+
+/** Categorize a CSS custom property into a token category */
+function categorizeVariable(token: DesignToken): TokenCategory | null {
+  // Try name-based patterns first
+  for (const { pattern, category } of VAR_CATEGORY_PATTERNS) {
+    if (pattern.test(token.name)) return category;
+  }
+  // Fall back to value-based detection
+  return categoryFromValue(token.value);
+}
+
+/** Get CSS custom properties as UtilityToken format, grouped by category */
+function getCssVarTokens(): { tokens: UtilityToken[]; byCategory: Map<TokenCategory, UtilityToken[]> } {
+  if (cssVarTokensCache) return cssVarTokensCache;
+
+  const tokenMap = scanDesignTokens();
+  const tokens: UtilityToken[] = [];
+  const byCategory = new Map<TokenCategory, UtilityToken[]>();
+  const seen = new Set<string>();
+
+  for (const dt of tokenMap.tokens) {
+    // Deduplicate by variable name
+    if (seen.has(dt.name)) continue;
+    seen.add(dt.name);
+
+    const category = categorizeVariable(dt);
+    if (!category) continue;
+
+    const ut: UtilityToken = {
+      className: `var(${dt.name})`,
+      values: { [dt.name]: dt.value },
+    };
+    tokens.push(ut);
+    if (!byCategory.has(category)) byCategory.set(category, []);
+    byCategory.get(category)!.push(ut);
+  }
+
+  cssVarTokensCache = { tokens, byCategory };
+  // Clear cache after 10s so re-scans pick up changes
+  setTimeout(() => { cssVarTokensCache = null; }, 10000);
+
+  return cssVarTokensCache;
 }
 
 /**
- * Quick boolean check — are there any semantic tokens for this property's category?
- * Uses .some() for early exit. Accepts camelCase or kebab-case.
+ * All CSS custom property tokens for a given CSS property (for the variable picker).
+ * Only returns CSS variables — class-based tokens are excluded from the picker.
+ * Accepts both camelCase and kebab-case property names.
+ */
+export function getTokensForProperty(property: string): UtilityToken[] {
+  const kebab = camelToKebab(property);
+  const category = getCategoryForProperty(kebab);
+  if (!category) return [];
+
+  const { byCategory } = getCssVarTokens();
+  return byCategory.get(category) || [];
+}
+
+/**
+ * Quick boolean check — are there any CSS variables for this property's category?
+ * Uses the variable picker data (not class-based tokens). Accepts camelCase or kebab-case.
  */
 export function hasTokensForProperty(property: string): boolean {
-  const registry = getTokenRegistry();
   const kebab = camelToKebab(property);
   const category = getCategoryForProperty(kebab);
   if (!category) return false;
-  const group = registry.groups.get(category);
-  if (!group) return false;
-  return group.some(t => !isRawUtility(t));
+  const { byCategory } = getCssVarTokens();
+  return (byCategory.get(category)?.length ?? 0) > 0;
 }
 
 /** Check if two properties are in the same shorthand family */

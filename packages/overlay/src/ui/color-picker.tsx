@@ -23,6 +23,14 @@ import type { UtilityToken } from "../tokens/types";
 import { getTokensForProperty } from "../tokens/resolver";
 import { getCategoryForProperty } from "../tokens/categories";
 
+/** Format variable name for display: strip var(-- ) → "color-brand" */
+function formatVarName(className: string): string {
+  if (className.startsWith("var(--") && className.endsWith(")")) {
+    return className.slice(6, -1);
+  }
+  return className;
+}
+
 export interface ColorPickerProps {
   value: string; // hex color
   alpha?: number; // 0-100
@@ -388,9 +396,7 @@ export function ColorPicker({
   const handleLeft = hsva.s;
   const handleTop = 100 - hsva.v;
 
-  const categoryLabel = category
-    ? category.charAt(0).toUpperCase() + category.slice(1)
-    : "Tokens";
+  const categoryLabel = "Variables";
 
   const pickerContent = (
     <>
@@ -469,7 +475,7 @@ export function ColorPicker({
   const tokenContent = (
     <div ref={tokenListRef} className="retune-token-dialog-list">
       {filteredTokens.length === 0 && (
-        <div className="retune-token-dialog-empty">No tokens found</div>
+        <div className="retune-token-dialog-empty">No variables found</div>
       )}
       {filteredTokens.map((token, i) => {
         const isActive = currentToken?.className === token.className;
@@ -480,12 +486,11 @@ export function ColorPicker({
             className={`retune-token-dialog-item${isActive ? " retune-token-dialog-item-active" : ""}${isHighlighted ? " retune-token-dialog-item-highlighted" : ""}`}
             data-token-index={i}
           >
-            {isActive && <span className="retune-token-dialog-active-dot" />}
             <span
               className="retune-token-dialog-swatch"
               style={{ backgroundColor: getSwatchColor(token) || "transparent" }}
             />
-            <span className="retune-token-dialog-name">{token.className}</span>
+            <span className="retune-token-dialog-name">{formatVarName(token.className)}</span>
           </div>
         );
       })}

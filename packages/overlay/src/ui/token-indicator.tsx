@@ -1,12 +1,12 @@
 /**
- * TokenIndicator — dot shown on inputs for token interactions.
+ * TokenIndicator — dot shown on inputs for variable interactions.
  *
  * Three states:
- * - Active (blue dot, always visible): token is currently applied
- * - Available (gray dot, visible on parent hover): tokens exist but none applied
- * - Disabled (returns null): no tokens available for this property
+ * - Active (blue dot, always visible): variable is currently applied
+ * - Available (gray dot, visible on parent hover): variables exist but none applied
+ * - Disabled (returns null): no variables available for this property
  *
- * Click opens the TokenDialog for browsing/selecting tokens.
+ * Click opens the TokenDialog for browsing/selecting variables.
  *
  * NOTE: React's synthetic onPointerDown doesn't work inside Shadow DOM portals
  * because event delegation attaches outside the shadow boundary. We attach a
@@ -21,6 +21,16 @@ import { createPortal } from "react-dom";
 import type { TokenMatch, UtilityToken } from "../tokens/types";
 import { hasTokensForProperty } from "../tokens/resolver";
 import { TokenDialog } from "./token-dialog";
+import { claimDialog, releaseDialog } from "./dialog-singleton";
+import { Tooltip } from "./tooltip";
+
+/** Format a variable className for tooltip display: var → "spacing-4", class → ".spacing-xl" */
+function formatMatchName(className: string): string {
+  if (className.startsWith("var(--") && className.endsWith(")")) {
+    return className.slice(6, -1);
+  }
+  return `.${className}`;
+}
 
 export interface TokenIndicatorProps {
   match?: TokenMatch;
@@ -29,19 +39,21 @@ export interface TokenIndicatorProps {
   relatedProperties?: string[];
   onTokenSelect?: (oldToken: UtilityToken, newToken: UtilityToken) => void;
   onTokenApply?: (token: UtilityToken, properties: string[]) => void;
+  onTokenUnlink?: () => void;
   /** When provided, dot click calls this instead of opening the internal TokenDialog.
-   *  Used by ColorInput to open the color picker to the tokens tab. */
+   *  Used by ColorInput to open the color picker to the variables tab. */
   onRequestOpen?: () => void;
 }
 
-export function TokenIndicator({ match, property, relatedProperties, onTokenSelect, onTokenApply, onRequestOpen }: TokenIndicatorProps) {
-  const [showTooltip, setShowTooltip] = useState(false);
+export function TokenIndicator({ match, property, relatedProperties, onTokenSelect, onTokenApply, onTokenUnlink, onRequestOpen }: TokenIndicatorProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [anchorRect, setAnchorRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
-  const hideTimeout = useRef<ReturnType<typeof setTimeout>>();
   const pickerOpenRef = useRef(false);
   pickerOpenRef.current = pickerOpen;
   const dotElRef = useRef<HTMLSpanElement | null>(null);
+
+  // Stable close function for the dialog singleton (called externally when another dialog opens)
+  const stableCloseRef = useRef(() => setPickerOpen(false));
 
   const hasAvailable = useMemo(() => hasTokensForProperty(property), [property]);
   const isActive = !!match;
@@ -68,7 +80,7 @@ export function TokenIndicator({ match, property, relatedProperties, onTokenSele
     e.stopPropagation();
     e.preventDefault();
     if (isDisabledRef.current) return;
-    // Delegate to parent (e.g. ColorInput opens picker to tokens tab)
+    // Delegate to parent (e.g. ColorInput opens picker to variables tab)
     if (onRequestOpenRef.current) {
       onRequestOpenRef.current();
       return;
@@ -76,6 +88,7 @@ export function TokenIndicator({ match, property, relatedProperties, onTokenSele
     const el = dotElRef.current;
     if (!el) return;
     if (pickerOpenRef.current) {
+      releaseDialog(stableCloseRef.current);
       setPickerOpen(false);
       return;
     }
@@ -84,18 +97,8 @@ export function TokenIndicator({ match, property, relatedProperties, onTokenSele
     const rect = row ? row.getBoundingClientRect() : el.getBoundingClientRect();
     setAnchorRect({ top: rect.top, left: rect.left, width: rect.width, height: rect.height });
     setPickerOpen(true);
-    setShowTooltip(false);
+    claimDialog(stableCloseRef.current);
   }
-
-  const show = useCallback(() => {
-    if (pickerOpenRef.current) return;
-    clearTimeout(hideTimeout.current);
-    setShowTooltip(true);
-  }, []);
-
-  const hide = useCallback(() => {
-    hideTimeout.current = setTimeout(() => setShowTooltip(false), 150);
-  }, []);
 
   const handleSelect = useCallback((token: UtilityToken) => {
     if (match) {
@@ -107,15 +110,16 @@ export function TokenIndicator({ match, property, relatedProperties, onTokenSele
   }, [match, property, relatedProperties, onTokenSelect, onTokenApply]);
 
   const handleClose = useCallback(() => {
+    releaseDialog(stableCloseRef.current);
     setPickerOpen(false);
   }, []);
 
   // Tooltip text
   const tooltipText = isActive
-    ? `.${match.token.className}`
+    ? formatMatchName(match.token.className)
     : isDisabled
-      ? "No tokens available"
-      : "Apply token";
+      ? "No variables available"
+      : "Browse variables";
 
   // Dot class
   const dotClass = isActive
@@ -131,22 +135,17 @@ export function TokenIndicator({ match, property, relatedProperties, onTokenSele
 
   return (
     <>
-      <span
-        ref={dotRef}
-        className={dotClass}
-        onPointerEnter={show}
-        onPointerLeave={hide}
-      >
-        <span className="retune-token-dot-inner" />
-        {showTooltip && !pickerOpen && (
-          <span className="retune-token-tooltip">{tooltipText}</span>
-        )}
-      </span>
+      <Tooltip content={tooltipText} side="top" delay={200}>
+        <span ref={dotRef} className={dotClass}>
+          <span className="retune-token-dot-inner" />
+        </span>
+      </Tooltip>
       {pickerOpen && anchorRect && portalTarget && createPortal(
         <TokenDialog
           property={property}
           currentToken={match?.token}
           onSelect={handleSelect}
+          onUnlink={onTokenUnlink ? () => { onTokenUnlink(); handleClose(); } : undefined}
           onClose={handleClose}
           anchorRect={anchorRect}
         />,

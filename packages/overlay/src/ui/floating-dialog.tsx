@@ -25,6 +25,10 @@ interface FloatingDialogBase {
     onKeyDown?: React.KeyboardEventHandler<HTMLInputElement>;
   };
   children: ReactNode;
+  /** Extra buttons rendered to the left of the close button */
+  headerActions?: ReactNode;
+  /** Native click handler for buttons with data-dialog-action attribute */
+  onHeaderAction?: (action: string) => void;
   /** Max height for collision detection (default 400) */
   maxHeight?: number;
   /** Min height on the outer container */
@@ -52,6 +56,7 @@ export type FloatingDialogProps = FloatingDialogWithTitle | FloatingDialogWithTa
 export function FloatingDialog({
   title, tabs, activeTab, onTabChange,
   onClose, anchorRect, search, children,
+  headerActions, onHeaderAction,
   maxHeight: maxHeightProp = 400, minHeight, className,
 }: FloatingDialogProps) {
   const panelRef = useRef<HTMLDivElement>(null);
@@ -60,6 +65,8 @@ export function FloatingDialog({
 
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  const onHeaderActionRef = useRef(onHeaderAction);
+  onHeaderActionRef.current = onHeaderAction;
 
   // Auto-focus search on mount
   useEffect(() => {
@@ -98,20 +105,28 @@ export function FloatingDialog({
     };
   }, []);
 
-  // Native close button handler (React delegation doesn't work in Shadow DOM)
+  // Native button handlers (React delegation doesn't work in Shadow DOM)
   useEffect(() => {
     const panel = panelRef.current;
     if (!panel) return;
-    const handleClose = (e: PointerEvent) => {
+    const handleClick = (e: PointerEvent) => {
       const target = e.target as HTMLElement;
       if (target.closest("[data-dialog-close]")) {
         e.preventDefault();
         e.stopPropagation();
         onCloseRef.current();
+        return;
+      }
+      const actionEl = target.closest<HTMLElement>("[data-dialog-action]");
+      if (actionEl) {
+        e.preventDefault();
+        e.stopPropagation();
+        const action = actionEl.dataset.dialogAction;
+        if (action) onHeaderActionRef.current?.(action);
       }
     };
-    panel.addEventListener("pointerdown", handleClose);
-    return () => panel.removeEventListener("pointerdown", handleClose);
+    panel.addEventListener("pointerdown", handleClick);
+    return () => panel.removeEventListener("pointerdown", handleClick);
   }, []);
 
   // Position — center within property panel, collision detection
@@ -167,6 +182,7 @@ export function FloatingDialog({
             <span className="retune-floating-dialog-title">{title}</span>
           )}
         </div>
+        {headerActions}
         <button type="button" className="retune-floating-dialog-close" data-dialog-close>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
             <path d="M16.6464 6.64645C16.8417 6.45118 17.1582 6.45118 17.3535 6.64645C17.5487 6.84171 17.5487 7.15822 17.3535 7.35348L12.707 12L17.3535 16.6464C17.5487 16.8417 17.5487 17.1582 17.3535 17.3535C17.1582 17.5487 16.8417 17.5487 16.6464 17.3535L12 12.707L7.35348 17.3535C7.15822 17.5487 6.84171 17.5487 6.64645 17.3535C6.45118 17.1582 6.45118 16.8417 6.64645 16.6464L11.2929 12L6.64645 7.35348C6.45123 7.15821 6.4512 6.84169 6.64645 6.64645C6.8417 6.45125 7.15823 6.45125 7.35348 6.64645L12 11.2929L16.6464 6.64645Z" fill="rgba(0,0,0,0.9)" />

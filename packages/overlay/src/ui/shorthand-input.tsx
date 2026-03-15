@@ -45,6 +45,8 @@ export interface ShorthandInputProps {
   onTokenSelect?: (oldToken: import("../tokens/types").UtilityToken, newToken: import("../tokens/types").UtilityToken) => void;
   /** Callback when user applies a token from scratch (no existing token) */
   onTokenApply?: (token: import("../tokens/types").UtilityToken, properties: string[]) => void;
+  /** Callback when user unlinks a token */
+  onTokenUnlink?: () => void;
 }
 
 function computeDisplay(values: string[]): string {
@@ -53,7 +55,7 @@ function computeDisplay(values: string[]): string {
   return rounded.join(", ");
 }
 
-export function ShorthandInput({ label, props, values, onChange, placeholder, min, max, tokenMatch, property, onTokenSelect, onTokenApply }: ShorthandInputProps) {
+export function ShorthandInput({ label, props, values, onChange, placeholder, min, max, tokenMatch, property, onTokenSelect, onTokenApply, onTokenUnlink }: ShorthandInputProps) {
   const [localValue, setLocalValue] = useState(() => computeDisplay(values));
   const [prevValues, setPrevValues] = useState(values);
 
@@ -204,6 +206,7 @@ export function ShorthandInput({ label, props, values, onChange, placeholder, mi
         relatedProperties={props}
         onTokenSelect={onTokenSelect}
         onTokenApply={onTokenApply}
+        onTokenUnlink={onTokenUnlink}
       />
     </div>
   );

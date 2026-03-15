@@ -161,7 +161,9 @@ export function PropertyPanel({
   onApplyToElement,
   onTokenSwap,
   onTokenAssociate,
+  onTokenUnlink,
   tokenAssociations = {},
+  unlinkedTokens,
   selectorCandidates = [],
   activeSelector = null,
   onSelectorChange,
@@ -177,8 +179,12 @@ export function PropertyPanel({
   onTokenSwap?: (oldClassName: string, newClassName: string) => void;
   /** Record a value-only token association (persisted in change tracker) */
   onTokenAssociate?: (properties: string[], token: { className: string; values: Record<string, string> }) => void;
+  /** Clear token association for properties */
+  onTokenUnlink?: (properties: string[]) => void;
   /** Current value-only token associations from change tracker */
   tokenAssociations?: Record<string, { className: string; values: Record<string, string> }>;
+  /** Properties explicitly unlinked from their token */
+  unlinkedTokens?: Set<string>;
   selectorCandidates?: SelectorCandidate[];
   activeSelector?: string | null;
   onSelectorChange?: (selector: string | null) => void;
@@ -198,6 +204,8 @@ export function PropertyPanel({
   // Checks class-based matches first, then falls back to persisted token associations
   // from the change tracker (value-only applies that survive refresh).
   const getTokenMatch = useCallback((camelProp: string): TokenMatch | undefined => {
+    // Skip properties that the user explicitly unlinked
+    if (unlinkedTokens?.has(camelProp)) return undefined;
     const kebab = camelProp.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`);
     const match = tokenMatches.get(kebab);
     if (match && !isRawUtility(match.token)) return match;
@@ -205,7 +213,7 @@ export function PropertyPanel({
     const assoc = tokenAssociations[camelProp];
     if (assoc) return { token: assoc, property: kebab };
     return undefined;
-  }, [tokenMatches, tokenAssociations]);
+  }, [tokenMatches, tokenAssociations, unlinkedTokens]);
 
   // Handle token swap: swap classes on the element.
   // If the old token's class is on the element, do a class swap.
@@ -255,24 +263,29 @@ export function PropertyPanel({
     onTokenAssociate?.(properties, { className: newToken.className, values: newToken.values });
   }, [element.element, onPropertyChange, onTokenAssociate]);
 
+  // Handle unlinking a token from a property (clears association without changing value)
+  const handleTokenUnlink = useCallback((camelProp: string) => {
+    onTokenUnlink?.([camelProp]);
+  }, [onTokenUnlink]);
+
   // Token props for a NumberInput
   const tokenProps = useCallback((camelProp: string) => {
     const match = getTokenMatch(camelProp);
     return {
-      ...(match ? { tokenMatch: match, onTokenSelect: handleTokenSelect } : {}),
+      ...(match ? { tokenMatch: match, onTokenSelect: handleTokenSelect, onTokenUnlink: () => handleTokenUnlink(camelProp) } : {}),
       property: camelProp,
       onTokenApply: handleTokenApply,
     };
-  }, [getTokenMatch, handleTokenSelect, handleTokenApply]);
+  }, [getTokenMatch, handleTokenSelect, handleTokenApply, handleTokenUnlink]);
 
   // Token props for ShorthandInput — finds the first matching token among the shorthand's props
   const shorthandTokenProps = useCallback((camelProps: string[]) => {
     for (const p of camelProps) {
       const match = getTokenMatch(p);
-      if (match) return { tokenMatch: match, property: p, onTokenSelect: handleTokenSelect, onTokenApply: handleTokenApply };
+      if (match) return { tokenMatch: match, property: p, onTokenSelect: handleTokenSelect, onTokenApply: handleTokenApply, onTokenUnlink: () => handleTokenUnlink(p) };
     }
     return { property: camelProps[0], onTokenApply: handleTokenApply };
-  }, [getTokenMatch, handleTokenSelect, handleTokenApply]);
+  }, [getTokenMatch, handleTokenSelect, handleTokenApply, handleTokenUnlink]);
 
   const TEXT_TAGS = ["P", "H1", "H2", "H3", "H4", "H5", "H6", "SPAN", "A", "BUTTON", "LABEL", "LI", "TD", "TH", "FIGCAPTION", "BLOCKQUOTE", "CITE", "EM", "STRONG", "SMALL"];
   const hasDirectText = element.element ? Array.from(element.element.childNodes).some(

@@ -20,6 +20,8 @@ interface TrackedElement {
   currentStyles: Record<string, string>;
   /** Value-only token associations: camelCase property → token ref */
   tokenAssociations?: Record<string, TrackedTokenRef>;
+  /** Properties explicitly unlinked from their class-based token */
+  unlinkedTokens?: Set<string>;
   sourceFile?: { fileName: string; lineNumber: number; columnNumber?: number } | null;
   stylingApproach?: string;
   inlineStyles?: string | null;
@@ -313,6 +315,51 @@ export class ChangeTracker {
     }
   }
 
+  /** Remove token association for specific properties */
+  clearTokenAssociation(selector: string, properties: string[]) {
+    const tracked = this.tracked.get(selector);
+    if (!tracked?.tokenAssociations) return;
+    for (const prop of properties) {
+      delete tracked.tokenAssociations[prop];
+    }
+  }
+
+  /** Mark properties as explicitly unlinked from their class-based token */
+  unlinkToken(selector: string, properties: string[]) {
+    const tracked = this.tracked.get(selector);
+    if (!tracked) return;
+    // Clear value-only associations
+    if (tracked.tokenAssociations) {
+      for (const prop of properties) {
+        delete tracked.tokenAssociations[prop];
+      }
+    }
+    // Track as unlinked (suppresses class-based token detection)
+    if (!tracked.unlinkedTokens) tracked.unlinkedTokens = new Set();
+    for (const prop of properties) {
+      tracked.unlinkedTokens.add(prop);
+    }
+  }
+
+  /** Check if a property has been explicitly unlinked */
+  isTokenUnlinked(selector: string, property: string): boolean {
+    return this.tracked.get(selector)?.unlinkedTokens?.has(property) ?? false;
+  }
+
+  /** Get all unlinked token properties for a selector */
+  getUnlinkedTokens(selector: string): Set<string> {
+    return this.tracked.get(selector)?.unlinkedTokens ?? new Set();
+  }
+
+  /** Re-link a property (clear the unlinked state, e.g. when user picks a new token) */
+  relinkToken(selector: string, properties: string[]) {
+    const tracked = this.tracked.get(selector);
+    if (!tracked?.unlinkedTokens) return;
+    for (const prop of properties) {
+      tracked.unlinkedTokens.delete(prop);
+    }
+  }
+
   /** Get token association for a property, if any */
   getTokenAssociation(selector: string, property: string): TrackedTokenRef | undefined {
     return this.tracked.get(selector)?.tokenAssociations?.[property];
@@ -339,8 +386,13 @@ export class ChangeTracker {
   /** Save state to localStorage */
   persist() {
     try {
+      // Convert Sets to arrays for JSON serialization
+      const entries = Array.from(this.tracked.entries()).map(([k, v]) => [
+        k,
+        { ...v, unlinkedTokens: v.unlinkedTokens ? Array.from(v.unlinkedTokens) : undefined },
+      ]);
       const data = {
-        tracked: Array.from(this.tracked.entries()),
+        tracked: entries,
         undoStack: this.undoStack,
         redoStack: this.redoStack,
       };
@@ -357,6 +409,12 @@ export class ChangeTracker {
       if (!raw) return false;
       const data = JSON.parse(raw);
       this.tracked = new Map(data.tracked);
+      // Restore Sets from arrays
+      for (const tracked of this.tracked.values()) {
+        if (tracked.unlinkedTokens && Array.isArray(tracked.unlinkedTokens)) {
+          tracked.unlinkedTokens = new Set(tracked.unlinkedTokens as unknown as string[]);
+        }
+      }
       this.undoStack = data.undoStack || [];
       this.redoStack = data.redoStack || [];
       // Restore groupCounter from existing entries
