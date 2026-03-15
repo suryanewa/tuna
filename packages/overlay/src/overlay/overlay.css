@@ -2218,7 +2218,7 @@
   z-index: 2;
   color: rgba(0,0,0,0.45);
 }
-.retune-variable-action:hover {
+.retune-variable-action:hover:not(.retune-variable-unlink) {
   color: rgba(0,0,0,0.7);
 }
 /* Show on parent hover */
@@ -2233,12 +2233,15 @@
 .retune-prop-variable-applied .retune-variable-unlink,
 .retune-combo-variable-applied .retune-variable-unlink,
 .retune-color-variable-applied .retune-variable-unlink {
-  opacity: 0.8;
+  opacity: 0;
 }
 .retune-prop-variable-applied:hover .retune-variable-unlink,
 .retune-combo-variable-applied:hover .retune-variable-unlink,
 .retune-color-variable-applied:hover .retune-variable-unlink {
-  opacity: 1;
+  opacity: 0.8;
+}
+.retune-variable-unlink:hover {
+  opacity: 1 !important;
 }
 
 /* ── Variable Applied State (purple styling) ── */
