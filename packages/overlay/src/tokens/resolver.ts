@@ -92,20 +92,27 @@ function resolveVarTokens(element: Element, matches: Map<string, TokenMatch>): v
   /** Try to match a var() reference and add to matches */
   const tryMatch = (prop: string, raw: string) => {
     if (!raw.includes("var(")) return;
-    if (matches.has(prop)) return;
+    // Allow CSS variable to overwrite a raw utility match (e.g., Tailwind p-4)
+    // so the variable isn't lost when the utility gets filtered in getTokenMatch
+    const existing = matches.get(prop);
+    if (existing && !isRawUtility(existing.token)) return;
 
+    // Find the first var() reference that exists in our token lookup
     VAR_REF_RE.lastIndex = 0;
-    const m = VAR_REF_RE.exec(raw);
-    if (!m) return;
-
-    const token = varLookup.get(m[1]);
+    let m: RegExpExecArray | null;
+    let token: UtilityToken | undefined;
+    while ((m = VAR_REF_RE.exec(raw)) !== null) {
+      token = varLookup.get(m[1]);
+      if (token) break;
+    }
     if (!token) return;
 
     // If this is a shorthand, apply to all longhands
     const longhands = SHORTHAND_LONGHANDS[prop];
     if (longhands) {
       for (const lh of longhands) {
-        if (!matches.has(lh)) {
+        const lhExisting = matches.get(lh);
+        if (!lhExisting || isRawUtility(lhExisting.token)) {
           matches.set(lh, { token, property: lh });
         }
       }

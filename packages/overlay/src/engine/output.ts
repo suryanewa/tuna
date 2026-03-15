@@ -211,6 +211,23 @@ function formatSingleChange(change: ElementChange, fidelity: Fidelity, tokenMap:
   // Enrich each property with candidate tokens/classes/variables and source info
   const enriched = enrichPropertyChanges(collapsed, tokenMap, change.selector);
 
+  // Override recommended with user's explicit token choice (from token picker)
+  if (change.tokenAssociations) {
+    for (const prop of enriched) {
+      const camelProp = prop.property.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
+      const assoc = change.tokenAssociations[camelProp];
+      if (assoc) {
+        const isVar = assoc.className.startsWith("var(");
+        prop.recommended = {
+          type: isVar ? "css-variable" : "semantic-token",
+          name: assoc.className,
+          value: Object.values(assoc.values)[0] || prop.to,
+          exact: true,
+        };
+      }
+    }
+  }
+
   // Changes table — only render if there are value changes
   if (enriched.length > 0) {
     lines.push("");

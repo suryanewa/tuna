@@ -43,6 +43,10 @@ interface UndoEntry {
   action?: "unlink";
   /** Saved token association for restoring on undo of unlink */
   tokenRef?: TrackedTokenRef;
+  /** Previous token association for this property (null = no association existed) */
+  prevTokenAssoc?: TrackedTokenRef | null;
+  /** Whether property was in unlinkedTokens before this change */
+  prevUnlinked?: boolean;
 }
 
 const COALESCE_MS = 300;
@@ -107,6 +111,11 @@ export class ChangeTracker {
 
     tracked.currentStyles[property] = newValue;
 
+    // Snapshot token state so undo can restore it
+    const camelProp = property.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+    const prevTokenAssoc = tracked.tokenAssociations?.[camelProp] ?? null;
+    const prevUnlinked = tracked.unlinkedTokens?.has(camelProp) ?? false;
+
     const now = Date.now();
     const last = this.lastChange;
 
@@ -120,13 +129,13 @@ export class ChangeTracker {
         // Already tracked in this group — keep the original "from" value (coalesce)
       } else {
         // New property in this gesture — add to the same group
-        this.undoStack.push({ selector, property, value: oldValue, group: last.group });
+        this.undoStack.push({ selector, property, value: oldValue, group: last.group, prevTokenAssoc, prevUnlinked });
       }
       last.time = now;
     } else {
       // New gesture — new group
       this.groupCounter++;
-      this.undoStack.push({ selector, property, value: oldValue, group: this.groupCounter });
+      this.undoStack.push({ selector, property, value: oldValue, group: this.groupCounter, prevTokenAssoc, prevUnlinked });
       this.lastChange = { selector, time: now, group: this.groupCounter };
     }
 
@@ -177,14 +186,29 @@ export class ChangeTracker {
         this.redoStack.push({ selector: entry.selector, property: entry.property, value: "", group: redoGroup, action: "unlink", tokenRef: entry.tokenRef });
       } else {
         const currentValue = tracked.currentStyles[entry.property] || "";
-        this.redoStack.push({ selector: entry.selector, property: entry.property, value: currentValue, group: redoGroup });
+        const camelProp = entry.property.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+        // Save current token state for redo
+        const currentAssoc = tracked.tokenAssociations?.[camelProp] ?? null;
+        const currentUnlinked = tracked.unlinkedTokens?.has(camelProp) ?? false;
+        this.redoStack.push({ selector: entry.selector, property: entry.property, value: currentValue, group: redoGroup, prevTokenAssoc: currentAssoc, prevUnlinked: currentUnlinked });
         tracked.currentStyles[entry.property] = entry.value;
 
-        // If reverting to original value, clear any token association for this property
-        if (tracked.tokenAssociations) {
-          const camelProp = entry.property.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
-          if (entry.value === (tracked.originalStyles[entry.property] || "")) {
-            delete tracked.tokenAssociations[camelProp];
+        // Restore previous token association state
+        if (entry.prevTokenAssoc !== undefined) {
+          if (entry.prevTokenAssoc) {
+            if (!tracked.tokenAssociations) tracked.tokenAssociations = {};
+            tracked.tokenAssociations[camelProp] = entry.prevTokenAssoc;
+          } else {
+            if (tracked.tokenAssociations) delete tracked.tokenAssociations[camelProp];
+          }
+        }
+        // Restore previous unlinked state
+        if (entry.prevUnlinked !== undefined) {
+          if (entry.prevUnlinked) {
+            if (!tracked.unlinkedTokens) tracked.unlinkedTokens = new Set();
+            tracked.unlinkedTokens.add(camelProp);
+          } else {
+            tracked.unlinkedTokens?.delete(camelProp);
           }
         }
       }
@@ -224,8 +248,31 @@ export class ChangeTracker {
         this.undoStack.push({ selector: entry.selector, property: entry.property, value: "", group: undoGroup, action: "unlink", tokenRef: entry.tokenRef });
       } else {
         const currentValue = tracked.currentStyles[entry.property] || "";
-        this.undoStack.push({ selector: entry.selector, property: entry.property, value: currentValue, group: undoGroup });
+        const camelProp = entry.property.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+        // Save current token state for undo
+        const currentAssoc = tracked.tokenAssociations?.[camelProp] ?? null;
+        const currentUnlinked = tracked.unlinkedTokens?.has(camelProp) ?? false;
+        this.undoStack.push({ selector: entry.selector, property: entry.property, value: currentValue, group: undoGroup, prevTokenAssoc: currentAssoc, prevUnlinked: currentUnlinked });
         tracked.currentStyles[entry.property] = entry.value;
+
+        // Restore token association state from redo entry
+        if (entry.prevTokenAssoc !== undefined) {
+          if (entry.prevTokenAssoc) {
+            if (!tracked.tokenAssociations) tracked.tokenAssociations = {};
+            tracked.tokenAssociations[camelProp] = entry.prevTokenAssoc;
+          } else {
+            if (tracked.tokenAssociations) delete tracked.tokenAssociations[camelProp];
+          }
+        }
+        // Restore unlinked state from redo entry
+        if (entry.prevUnlinked !== undefined) {
+          if (entry.prevUnlinked) {
+            if (!tracked.unlinkedTokens) tracked.unlinkedTokens = new Set();
+            tracked.unlinkedTokens.add(camelProp);
+          } else {
+            tracked.unlinkedTokens?.delete(camelProp);
+          }
+        }
       }
     }
 

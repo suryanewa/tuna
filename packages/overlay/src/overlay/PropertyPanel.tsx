@@ -207,17 +207,18 @@ export function PropertyPanel({
   }, [element.element, s]);
 
   // Helper: get token match for a camelCase prop.
-  // Checks class-based matches first, then falls back to persisted token associations
-  // from the change tracker (value-only applies that survive refresh).
+  // User-set associations take priority over element-scanned matches, since the
+  // user explicitly chose a token (e.g., swapping var(--spacing-4) → var(--spacing-8)).
   const getTokenMatch = useCallback((camelProp: string): TokenMatch | undefined => {
     // Skip properties that the user explicitly unlinked
     if (unlinkedTokens?.has(camelProp)) return undefined;
     const kebab = camelProp.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`);
-    const match = tokenMatches.get(kebab);
-    if (match && !isRawUtility(match.token)) return match;
-    // Fall back to persisted token associations from change tracker
+    // Check persisted associations first (user's explicit choice takes priority)
     const assoc = tokenAssociations[camelProp];
     if (assoc) return { token: assoc, property: kebab };
+    // Then element-scanned matches (class-based + CSS variable detection)
+    const match = tokenMatches.get(kebab);
+    if (match && !isRawUtility(match.token)) return match;
     return undefined;
   }, [tokenMatches, tokenAssociations, unlinkedTokens]);
 
