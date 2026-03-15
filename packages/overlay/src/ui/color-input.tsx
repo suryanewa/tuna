@@ -8,7 +8,8 @@ import { useState, useRef, useCallback } from "react";
 import { parseCssColor, hexToRgba } from "./color-utils";
 import { ColorPicker } from "./color-picker";
 import type { TokenMatch, UtilityToken } from "../tokens/types";
-import { TokenIndicator } from "./token-indicator";
+import { ChangeIndicator } from "./change-indicator";
+import { VariableAction } from "./variable-action";
 import { claimDialog, releaseDialog } from "./dialog-singleton";
 
 export interface ColorInputProps {
@@ -20,9 +21,13 @@ export interface ColorInputProps {
   onTokenSelect?: (oldToken: import("../tokens/types").UtilityToken, newToken: import("../tokens/types").UtilityToken) => void;
   onTokenApply?: (token: import("../tokens/types").UtilityToken, properties: string[]) => void;
   onTokenUnlink?: () => void;
+  /** Whether this property has been changed from its original value */
+  isChanged?: boolean;
+  /** Reset this property to its original value */
+  onReset?: () => void;
 }
 
-export function ColorInput({ prop, value, onChange, tokenMatch, property, onTokenSelect, onTokenApply, onTokenUnlink }: ColorInputProps) {
+export function ColorInput({ prop, value, onChange, tokenMatch, property, onTokenSelect, onTokenApply, onTokenUnlink, isChanged, onReset }: ColorInputProps) {
   const parsed = parseCssColor(value || "");
   const [hexLocal, setHexLocal] = useState(parsed.hex.replace("#", "").toUpperCase());
   const [opacityLocal, setOpacityLocal] = useState(String(parsed.opacity));
@@ -183,7 +188,8 @@ export function ColorInput({ prop, value, onChange, tokenMatch, property, onToke
   })();
 
   return (
-    <div className={`retune-color-row${tokenMatch ? " retune-prop-has-token" : ""}`}>
+    <div className={`retune-color-row${tokenMatch ? " retune-color-variable-applied" : ""}`}>
+      <ChangeIndicator isChanged={isChanged ?? false} onReset={onReset ?? (() => {})} />
       {/* Left half: swatch + hex */}
       <div className="retune-color-hex-section">
         <div
@@ -202,7 +208,7 @@ export function ColorInput({ prop, value, onChange, tokenMatch, property, onToke
           onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
           spellCheck={false}
         />
-        <TokenIndicator
+        <VariableAction
           match={tokenMatch}
           property={property || prop}
           onTokenSelect={onTokenSelect}

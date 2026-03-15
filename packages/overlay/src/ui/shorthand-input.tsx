@@ -9,7 +9,8 @@
 import { useState, useRef, type ReactNode } from "react";
 import { roundCssValue, inferCssUnit } from "./round-css-value";
 import type { TokenMatch } from "../tokens/types";
-import { TokenIndicator } from "./token-indicator";
+import { ChangeIndicator } from "./change-indicator";
+import { VariableAction } from "./variable-action";
 
 function clampNum(val: number, min?: number, max?: number): number {
   if (min !== undefined && val < min) return min;
@@ -47,6 +48,10 @@ export interface ShorthandInputProps {
   onTokenApply?: (token: import("../tokens/types").UtilityToken, properties: string[]) => void;
   /** Callback when user unlinks a token */
   onTokenUnlink?: () => void;
+  /** Whether this property has been changed from its original value */
+  isChanged?: boolean;
+  /** Reset this property to its original value */
+  onReset?: () => void;
 }
 
 function computeDisplay(values: string[]): string {
@@ -55,7 +60,7 @@ function computeDisplay(values: string[]): string {
   return rounded.join(", ");
 }
 
-export function ShorthandInput({ label, props, values, onChange, placeholder, min, max, tokenMatch, property, onTokenSelect, onTokenApply, onTokenUnlink }: ShorthandInputProps) {
+export function ShorthandInput({ label, props, values, onChange, placeholder, min, max, tokenMatch, property, onTokenSelect, onTokenApply, onTokenUnlink, isChanged, onReset }: ShorthandInputProps) {
   const [localValue, setLocalValue] = useState(() => computeDisplay(values));
   const [prevValues, setPrevValues] = useState(values);
 
@@ -175,7 +180,8 @@ export function ShorthandInput({ label, props, values, onChange, placeholder, mi
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div ref={wrapperRef} className={`retune-prop${tokenMatch ? " retune-prop-has-token" : ""}`}>
+    <div ref={wrapperRef} className={`retune-prop${tokenMatch ? " retune-prop-variable-applied" : ""}`}>
+      <ChangeIndicator isChanged={isChanged ?? false} onReset={onReset ?? (() => {})} />
       {label && (
         <span
           className="retune-prop-label"
@@ -188,7 +194,6 @@ export function ShorthandInput({ label, props, values, onChange, placeholder, mi
       )}
       <input
         className="retune-prop-input"
-        style={tokenMatch ? { paddingRight: 22 } : undefined}
         value={localValue}
         placeholder={placeholder}
         onPointerDown={!label ? handleInputPointerDown : undefined}
@@ -200,7 +205,7 @@ export function ShorthandInput({ label, props, values, onChange, placeholder, mi
         onKeyDown={handleKeyDown}
         spellCheck={false}
       />
-      <TokenIndicator
+      <VariableAction
         match={tokenMatch}
         property={property || props[0]}
         relatedProperties={props}

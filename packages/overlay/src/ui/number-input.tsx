@@ -6,7 +6,8 @@
 import { useState, useRef, type ReactNode } from "react";
 import { roundCssValue, inferCssUnit } from "./round-css-value";
 import type { TokenMatch } from "../tokens/types";
-import { TokenIndicator } from "./token-indicator";
+import { ChangeIndicator } from "./change-indicator";
+import { VariableAction } from "./variable-action";
 
 
 function clampNum(val: number, min?: number, max?: number): number {
@@ -47,9 +48,13 @@ export interface NumberInputProps {
   onTokenApply?: (token: import("../tokens/types").UtilityToken, properties: string[]) => void;
   /** Callback when user unlinks a token */
   onTokenUnlink?: () => void;
+  /** Whether this property has been changed from its original value */
+  isChanged?: boolean;
+  /** Reset this property to its original value */
+  onReset?: () => void;
 }
 
-export function NumberInput({ label, prop, value, placeholder, onChange, min, max, step: stepProp, tokenMatch, property, onTokenSelect, onTokenApply, onTokenUnlink }: NumberInputProps) {
+export function NumberInput({ label, prop, value, placeholder, onChange, min, max, step: stepProp, tokenMatch, property, onTokenSelect, onTokenApply, onTokenUnlink, isChanged, onReset }: NumberInputProps) {
   const [localValue, setLocalValue] = useState(roundCssValue(value || ""));
   const labelRef = useRef<HTMLSpanElement>(null);
 
@@ -173,7 +178,8 @@ export function NumberInput({ label, prop, value, placeholder, onChange, min, ma
   };
 
   return (
-    <div className={`retune-prop${tokenMatch ? " retune-prop-has-token" : ""}`}>
+    <div className={`retune-prop${tokenMatch ? " retune-prop-variable-applied" : ""}`}>
+      <ChangeIndicator isChanged={isChanged ?? false} onReset={onReset ?? (() => {})} />
       {label && (
         <span
           ref={labelRef}
@@ -188,7 +194,7 @@ export function NumberInput({ label, prop, value, placeholder, onChange, min, ma
       <input
         ref={inputRef}
         className="retune-prop-input"
-        style={label ? (tokenMatch ? { paddingRight: 22 } : undefined) : { paddingLeft: 8, ...(tokenMatch ? { paddingRight: 22 } : {}) }}
+        style={label ? undefined : { paddingLeft: 8 }}
         value={localValue}
         placeholder={placeholder}
         onPointerDown={!label ? handleInputPointerDown : undefined}
@@ -200,7 +206,7 @@ export function NumberInput({ label, prop, value, placeholder, onChange, min, ma
         onKeyDown={handleKeyDown}
         spellCheck={false}
       />
-      <TokenIndicator
+      <VariableAction
         match={tokenMatch}
         property={property || prop}
         onTokenSelect={onTokenSelect}

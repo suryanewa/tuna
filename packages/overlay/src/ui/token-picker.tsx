@@ -4,7 +4,7 @@
  * Positioned like ColorPicker: fixed, anchored to the trigger dot.
  *
  * NOTE: Uses native DOM event listeners for clicks because React's event
- * delegation doesn't work inside Shadow DOM portals (see token-indicator.tsx).
+ * delegation doesn't work inside Shadow DOM portals (see variable-action.tsx).
  */
 
 import { useEffect, useRef, useCallback } from "react";

@@ -644,6 +644,15 @@ function RetuneInner(props: RetuneConfig) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedElement, activeSelector, changeRevision]);
 
+  // Get changed properties for the selected element (for change indicator dots)
+  const selectedChangedProperties = useMemo(() => {
+    const tracker = trackerRef.current;
+    if (!tracker || !selectedElement) return new Set<string>();
+    const selector = activeSelector ?? selectedElement.selector;
+    return tracker.getChangedProperties(selector);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedElement, activeSelector, changeRevision]);
+
   // Tree: select element programmatically via picker
   const handleTreeSelect = useCallback((el: Element) => {
     const picker = pickerRef.current;
@@ -791,6 +800,42 @@ function RetuneInner(props: RetuneConfig) {
       pickerRef.current?.refreshSelection();
       setChangeRevision((r) => r + 1);
     }
+  }, [syncForcedInlineStyles]);
+
+  // Per-property reset: revert a single property to its original value
+  const handlePropertyReset = useCallback((property: string) => {
+    const tracker = trackerRef.current;
+    const preview = previewRef.current;
+    const el = selectedElementRef.current;
+    if (!tracker || !preview || !el) return;
+    const selector = activeSelectorRef.current ?? el.selector;
+
+    const result = tracker.resetProperty(selector, property);
+    if (!result) return;
+
+    // Update preview
+    if (result.to) {
+      preview.applyChange(selector, property, result.to);
+    } else {
+      preview.removeChange(selector, property);
+    }
+    // Clean up stale preview rule if property reverted to original
+    const pending = tracker.getPendingChanges();
+    const activeProps = new Set<string>();
+    for (const c of pending) {
+      for (const p of c.changes) {
+        activeProps.add(`${c.selector}::${p.property}`);
+      }
+    }
+    if (!activeProps.has(`${selector}::${property}`)) {
+      preview.removeChange(selector, property);
+    }
+
+    syncForcedInlineStyles();
+    syncTrackerStateRef.current();
+    refreshSelectedElementRef.current();
+    pickerRef.current?.refreshSelection();
+    setChangeRevision((r) => r + 1);
   }, [syncForcedInlineStyles]);
 
   // Hotkey listener
@@ -1062,6 +1107,8 @@ function RetuneInner(props: RetuneConfig) {
                 onTokenUnlink={handleTokenUnlink}
                 tokenAssociations={selectedTokenAssociations}
                 unlinkedTokens={selectedUnlinkedTokens}
+                changedProperties={selectedChangedProperties}
+                onPropertyReset={handlePropertyReset}
                 selectorCandidates={selectorCandidates}
                 activeSelector={activeSelector}
                 onSelectorChange={handleSelectorChange}

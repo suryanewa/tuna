@@ -977,7 +977,7 @@
   transition: background-color 0.15s ease;
 }
 
-.retune-prop:hover { background: #e7e5e4; }
+.retune-prop:hover:not(.retune-prop-variable-applied) { background: #e7e5e4; }
 .retune-prop:focus-within {
   background: #f5f5f4;
 }
@@ -2180,105 +2180,87 @@
 }
 
 /* ── Reduced Motion ── */
-/* ── Token Indicator (dot on inputs when value comes from a token) ── */
-/* ── Token Indicator (dot + hover tooltip on inputs) ── */
-.retune-token-dot {
+/* ── Change Indicator (blue dot at top-left corner of changed inputs) ── */
+.retune-change-dot {
   position: absolute;
-  right: 4px;
-  top: 50%;
-  transform: translateY(-50%);
+  top: -7px;
+  left: -7px;
   width: 16px;
   height: 16px;
+  z-index: 3;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: transparent;
-  padding: 0;
-  z-index: 2;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: background-color 0.15s ease;
 }
-
-/* Active state: blue dot, always visible */
-.retune-token-dot-active:hover {
-  background: rgba(59,130,246,0.15);
-}
-
-/* Available state: gray dot, visible on parent hover */
-.retune-token-dot-available {
-  opacity: 0;
-  transition: opacity 0.15s ease, background-color 0.15s ease;
-}
-.retune-prop:hover .retune-token-dot-available,
-.retune-color-hex-section:hover .retune-token-dot-available {
-  opacity: 1;
-}
-.retune-token-dot-available:hover {
-  background: rgba(0,0,0,0.06);
-}
-
-.retune-token-dot-inner {
+.retune-change-dot-inner {
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: #3b82f6;
+  box-shadow: 0 0 0 3px #fff;
   pointer-events: none;
 }
 
-.retune-token-dot-available .retune-token-dot-inner {
-  background: rgba(0,0,0,0.25);
-}
-.retune-token-dot-available:hover .retune-token-dot-inner {
-  background: rgba(0,0,0,0.4);
-}
-
-/* Disabled state: no tokens available, tooltip-only */
-.retune-token-dot-disabled {
+/* ── Variable Action (hexagon/unlink icons on right side of inputs) ── */
+.retune-variable-action {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   opacity: 0;
   transition: opacity 0.15s ease;
-  cursor: default;
+  cursor: pointer;
+  z-index: 2;
+  color: rgba(0,0,0,0.45);
 }
-.retune-prop:hover .retune-token-dot-disabled,
-.retune-color-hex-section:hover .retune-token-dot-disabled,
-.retune-color-row:hover .retune-token-dot-disabled {
+.retune-variable-action:hover {
+  color: rgba(0,0,0,0.7);
+}
+/* Show on parent hover */
+.retune-prop:hover .retune-variable-action,
+.retune-color-hex-section:hover .retune-variable-action {
   opacity: 1;
 }
-.retune-token-dot-disabled .retune-token-dot-inner {
-  background: rgba(0,0,0,0.12);
+/* Unlink icon always visible when variable is applied */
+.retune-prop-variable-applied .retune-variable-unlink,
+.retune-combo-variable-applied .retune-variable-unlink,
+.retune-color-variable-applied .retune-variable-unlink {
+  opacity: 0;
 }
-
-/* Token dot inside ComboInput — shift left of the trigger button */
-.retune-combo .retune-token-dot {
-  right: 36px;
-}
-.retune-combo:hover .retune-token-dot-available {
-  opacity: 1;
-}
-.retune-combo:hover .retune-token-dot-disabled {
+.retune-prop-variable-applied:hover .retune-variable-unlink,
+.retune-combo-variable-applied:hover .retune-variable-unlink,
+.retune-color-variable-applied:hover .retune-variable-unlink {
   opacity: 1;
 }
 
-.retune-token-tooltip {
-  position: absolute;
-  bottom: calc(100% + 6px);
-  right: 0;
-  background: #1c1917;
-  color: #fff;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  font-size: 10px;
-  font-weight: 500;
-  padding: 4px 8px;
-  border-radius: 6px;
-  white-space: nowrap;
-  pointer-events: none;
-  z-index: 10;
-  animation: retune-token-tooltip-enter 100ms ease-out;
+/* ── Variable Applied State (purple styling) ── */
+.retune-prop-variable-applied {
+  background: #E9D4FF;
 }
-
-@keyframes retune-token-tooltip-enter {
-  from { opacity: 0; transform: translateY(2px); }
-  to { opacity: 1; transform: translateY(0); }
+.retune-prop-variable-applied .retune-prop-input,
+.retune-prop-variable-applied .retune-prop-label {
+  color: #6E11B0;
+}
+.retune-combo-variable-applied {
+  background: #E9D4FF;
+}
+.retune-combo-variable-applied .retune-combo-input,
+.retune-combo-variable-applied .retune-combo-label {
+  color: #6E11B0;
+}
+.retune-combo-variable-applied .retune-combo-trigger {
+  display: none;
+}
+.retune-color-variable-applied .retune-color-hex-input {
+  color: #6E11B0;
+}
+.retune-color-variable-applied {
+  background: #E9D4FF;
 }
 
 /* ── Token Picker (floating panel for swapping tokens) ── */
@@ -2482,8 +2464,8 @@
     animation: none;
   }
 
-  .retune-token-dot,
-  .retune-token-tooltip,
+  .retune-variable-action,
+  .retune-change-dot,
   .retune-token-picker {
     transition: none;
     animation: none;

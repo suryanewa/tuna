@@ -370,6 +370,63 @@ export class ChangeTracker {
     return this.tracked.get(selector)?.tokenAssociations;
   }
 
+  /** Check if a single property differs from its original value */
+  isPropertyChanged(selector: string, property: string): boolean {
+    const tracked = this.tracked.get(selector);
+    if (!tracked) return false;
+    const original = tracked.originalStyles[property] || "";
+    const current = tracked.currentStyles[property] || "";
+    return original !== current;
+  }
+
+  /** Get all changed properties for an element (camelCase keys) */
+  getChangedProperties(selector: string): Set<string> {
+    const result = new Set<string>();
+    const tracked = this.tracked.get(selector);
+    if (!tracked) return result;
+    for (const [prop, currentVal] of Object.entries(tracked.currentStyles)) {
+      const originalVal = tracked.originalStyles[prop] || "";
+      if (currentVal !== originalVal) {
+        result.add(prop);
+      }
+    }
+    return result;
+  }
+
+  /** Reset a property to its original value. Pushes to undo stack so redo works. */
+  resetProperty(selector: string, property: string): { from: string; to: string } | null {
+    const tracked = this.tracked.get(selector);
+    if (!tracked) return null;
+
+    const currentValue = tracked.currentStyles[property] || "";
+    const originalValue = tracked.originalStyles[property] || "";
+    if (currentValue === originalValue) return null;
+
+    // Revert to original
+    tracked.currentStyles[property] = originalValue;
+
+    // Push to undo stack as a new group (discrete user action, no coalescing)
+    this.groupCounter++;
+    this.undoStack.push({ selector, property, value: currentValue, group: this.groupCounter });
+    this.lastChange = null; // Don't coalesce with subsequent changes
+    this.redoStack = []; // Standard: clear redo on new action
+
+    // Clear token association and unlinked state for this property
+    if (tracked.tokenAssociations) {
+      const camelProp = property.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+      delete tracked.tokenAssociations[camelProp];
+      delete tracked.tokenAssociations[property];
+    }
+    if (tracked.unlinkedTokens) {
+      tracked.unlinkedTokens.delete(property);
+      const camelProp = property.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+      tracked.unlinkedTokens.delete(camelProp);
+    }
+
+    this.persist();
+    return { from: currentValue, to: originalValue };
+  }
+
   get canUndo(): boolean { return this.undoStack.length > 0; }
   get canRedo(): boolean { return this.redoStack.length > 0; }
 

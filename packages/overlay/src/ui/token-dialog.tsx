@@ -5,7 +5,7 @@
  *
  * Uses FloatingDialog as the shell (positioning, header, search, close handling).
  * List items use native DOM event listeners because React's event
- * delegation doesn't work inside Shadow DOM portals (see token-indicator.tsx).
+ * delegation doesn't work inside Shadow DOM portals (see variable-action.tsx).
  */
 
 import { useEffect, useRef, useMemo, useState, useCallback } from "react";

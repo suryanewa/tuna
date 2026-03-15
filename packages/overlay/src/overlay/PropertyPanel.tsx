@@ -164,6 +164,8 @@ export function PropertyPanel({
   onTokenUnlink,
   tokenAssociations = {},
   unlinkedTokens,
+  changedProperties,
+  onPropertyReset,
   selectorCandidates = [],
   activeSelector = null,
   onSelectorChange,
@@ -185,6 +187,10 @@ export function PropertyPanel({
   tokenAssociations?: Record<string, { className: string; values: Record<string, string> }>;
   /** Properties explicitly unlinked from their token */
   unlinkedTokens?: Set<string>;
+  /** Properties that have been changed from their original value */
+  changedProperties?: Set<string>;
+  /** Reset a single property to its original value */
+  onPropertyReset?: (property: string) => void;
   selectorCandidates?: SelectorCandidate[];
   activeSelector?: string | null;
   onSelectorChange?: (selector: string | null) => void;
@@ -286,6 +292,18 @@ export function PropertyPanel({
     }
     return { property: camelProps[0], onTokenApply: handleTokenApply };
   }, [getTokenMatch, handleTokenSelect, handleTokenApply, handleTokenUnlink]);
+
+  // Change indicator props for a single property
+  const changeProps = useCallback((camelProp: string) => ({
+    isChanged: changedProperties?.has(camelProp) ?? false,
+    onReset: () => onPropertyReset?.(camelProp),
+  }), [changedProperties, onPropertyReset]);
+
+  // Change indicator props for shorthand groups: changed if ANY property in the group changed
+  const shorthandChangeProps = useCallback((camelProps: string[]) => ({
+    isChanged: camelProps.some(p => changedProperties?.has(p)) ?? false,
+    onReset: () => { for (const p of camelProps) onPropertyReset?.(p); },
+  }), [changedProperties, onPropertyReset]);
 
   const TEXT_TAGS = ["P", "H1", "H2", "H3", "H4", "H5", "H6", "SPAN", "A", "BUTTON", "LABEL", "LI", "TD", "TH", "FIGCAPTION", "BLOCKQUOTE", "CITE", "EM", "STRONG", "SMALL"];
   const hasDirectText = element.element ? Array.from(element.element.childNodes).some(
@@ -782,20 +800,20 @@ export function PropertyPanel({
         {positionType === "relative" && (
           <RowGroup label="Offsets">
             <div className="retune-row">
-              <NumberInput label="T" prop="top" value={s.top} onChange={onPropertyChange} />
-              <NumberInput label="R" prop="right" value={s.right} onChange={onPropertyChange} />
+              <NumberInput label="T" prop="top" value={s.top} onChange={onPropertyChange} {...changeProps("top")} />
+              <NumberInput label="R" prop="right" value={s.right} onChange={onPropertyChange} {...changeProps("right")} />
             </div>
             <div className="retune-row">
-              <NumberInput label="B" prop="bottom" value={s.bottom} onChange={onPropertyChange} />
-              <NumberInput label="L" prop="left" value={s.left} onChange={onPropertyChange} />
+              <NumberInput label="B" prop="bottom" value={s.bottom} onChange={onPropertyChange} {...changeProps("bottom")} />
+              <NumberInput label="L" prop="left" value={s.left} onChange={onPropertyChange} {...changeProps("left")} />
             </div>
           </RowGroup>
         )}
         {isSticky && (
           <RowGroup label="Sticky offset">
             <div className="retune-row">
-              <NumberInput label="T" prop="top" value={s.top} onChange={onPropertyChange} />
-              <NumberInput label="B" prop="bottom" value={s.bottom} onChange={onPropertyChange} />
+              <NumberInput label="T" prop="top" value={s.top} onChange={onPropertyChange} {...changeProps("top")} />
+              <NumberInput label="B" prop="bottom" value={s.bottom} onChange={onPropertyChange} {...changeProps("bottom")} />
             </div>
           </RowGroup>
         )}
@@ -848,6 +866,7 @@ export function PropertyPanel({
                       value={s.gap}
                       onChange={onPropertyChange}
                       min={0}
+                      {...changeProps("gap")}
                     />
                   </Field>
                 </div>
@@ -885,8 +904,8 @@ export function PropertyPanel({
             <div style={{ flex: 1 }} onPointerEnter={() => onPropertyHover?.("gap")} onPointerLeave={() => onPropertyHover?.(null)}>
               <Field label="Gap">
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <NumberInput label={<Tooltip content="Horizontal gap between columns" side="top" sideOffset={14}><AlSpacingHorizontal /></Tooltip>} prop="columnGap" value={s.columnGap} onChange={onPropertyChange} min={0} {...tokenProps("columnGap")} />
-                  <NumberInput label={<Tooltip content="Vertical gap between rows" side="top" sideOffset={14}><AlSpacingVertical /></Tooltip>} prop="rowGap" value={s.rowGap} onChange={onPropertyChange} min={0} {...tokenProps("rowGap")} />
+                  <NumberInput label={<Tooltip content="Horizontal gap between columns" side="top" sideOffset={14}><AlSpacingHorizontal /></Tooltip>} prop="columnGap" value={s.columnGap} onChange={onPropertyChange} min={0} {...tokenProps("columnGap")} {...changeProps("columnGap")} />
+                  <NumberInput label={<Tooltip content="Vertical gap between rows" side="top" sideOffset={14}><AlSpacingVertical /></Tooltip>} prop="rowGap" value={s.rowGap} onChange={onPropertyChange} min={0} {...tokenProps("rowGap")} {...changeProps("rowGap")} />
                 </div>
               </Field>
             </div>
@@ -897,10 +916,10 @@ export function PropertyPanel({
             <>
               <div className="retune-row">
                 <div onPointerEnter={() => onPropertyHover?.("paddingLeft")} onPointerLeave={() => onPropertyHover?.(null)} style={{ flex: 1 }}>
-                  <NumberInput label={<Tooltip content="Padding left" side="top" sideOffset={14}><AlPaddingLeft /></Tooltip>} prop="paddingLeft" value={s.paddingLeft} onChange={onPropertyChange} min={0} {...tokenProps("paddingLeft")} />
+                  <NumberInput label={<Tooltip content="Padding left" side="top" sideOffset={14}><AlPaddingLeft /></Tooltip>} prop="paddingLeft" value={s.paddingLeft} onChange={onPropertyChange} min={0} {...tokenProps("paddingLeft")} {...changeProps("paddingLeft")} />
                 </div>
                 <div onPointerEnter={() => onPropertyHover?.("paddingTop")} onPointerLeave={() => onPropertyHover?.(null)} style={{ flex: 1 }}>
-                  <NumberInput label={<Tooltip content="Padding top" side="top" sideOffset={14}><AlPaddingTop /></Tooltip>} prop="paddingTop" value={s.paddingTop} onChange={onPropertyChange} min={0} {...tokenProps("paddingTop")} />
+                  <NumberInput label={<Tooltip content="Padding top" side="top" sideOffset={14}><AlPaddingTop /></Tooltip>} prop="paddingTop" value={s.paddingTop} onChange={onPropertyChange} min={0} {...tokenProps("paddingTop")} {...changeProps("paddingTop")} />
                 </div>
                 <Tooltip content="Collapse to axes" side="top">
                   <button className="retune-split-btn active" onClick={() => setPaddingExpanded(false)}>
@@ -910,10 +929,10 @@ export function PropertyPanel({
               </div>
               <div className="retune-row">
                 <div onPointerEnter={() => onPropertyHover?.("paddingRight")} onPointerLeave={() => onPropertyHover?.(null)} style={{ flex: 1 }}>
-                  <NumberInput label={<Tooltip content="Padding right" side="top" sideOffset={14}><AlPaddingRight /></Tooltip>} prop="paddingRight" value={s.paddingRight} onChange={onPropertyChange} min={0} {...tokenProps("paddingRight")} />
+                  <NumberInput label={<Tooltip content="Padding right" side="top" sideOffset={14}><AlPaddingRight /></Tooltip>} prop="paddingRight" value={s.paddingRight} onChange={onPropertyChange} min={0} {...tokenProps("paddingRight")} {...changeProps("paddingRight")} />
                 </div>
                 <div onPointerEnter={() => onPropertyHover?.("paddingBottom")} onPointerLeave={() => onPropertyHover?.(null)} style={{ flex: 1 }}>
-                  <NumberInput label={<Tooltip content="Padding bottom" side="top" sideOffset={14}><AlPaddingBottom /></Tooltip>} prop="paddingBottom" value={s.paddingBottom} onChange={onPropertyChange} min={0} {...tokenProps("paddingBottom")} />
+                  <NumberInput label={<Tooltip content="Padding bottom" side="top" sideOffset={14}><AlPaddingBottom /></Tooltip>} prop="paddingBottom" value={s.paddingBottom} onChange={onPropertyChange} min={0} {...tokenProps("paddingBottom")} {...changeProps("paddingBottom")} />
                 </div>
                 <div style={{ width: 32 }} />
               </div>
@@ -928,6 +947,7 @@ export function PropertyPanel({
                   onChange={onPropertyChange}
                   min={0}
                   {...shorthandTokenProps(["paddingLeft", "paddingRight"])}
+                  {...shorthandChangeProps(["paddingLeft", "paddingRight"])}
                 />
               </div>
               <div style={{ flex: 1 }} onPointerEnter={() => onPropertyHover?.("paddingBlock")} onPointerLeave={() => onPropertyHover?.(null)}>
@@ -938,6 +958,7 @@ export function PropertyPanel({
                   onChange={onPropertyChange}
                   min={0}
                   {...shorthandTokenProps(["paddingTop", "paddingBottom"])}
+                  {...shorthandChangeProps(["paddingTop", "paddingBottom"])}
                 />
               </div>
               <Tooltip content="Edit individual sides" side="top">
@@ -953,10 +974,10 @@ export function PropertyPanel({
             <>
               <div className="retune-row">
                 <div onPointerEnter={() => onPropertyHover?.("marginLeft")} onPointerLeave={() => onPropertyHover?.(null)} style={{ flex: 1 }}>
-                  <NumberInput label={<Tooltip content="Margin left" side="top" sideOffset={14}><AlPaddingLeft /></Tooltip>} prop="marginLeft" value={s.marginLeft} onChange={onPropertyChange} {...tokenProps("marginLeft")} />
+                  <NumberInput label={<Tooltip content="Margin left" side="top" sideOffset={14}><AlPaddingLeft /></Tooltip>} prop="marginLeft" value={s.marginLeft} onChange={onPropertyChange} {...tokenProps("marginLeft")} {...changeProps("marginLeft")} />
                 </div>
                 <div onPointerEnter={() => onPropertyHover?.("marginTop")} onPointerLeave={() => onPropertyHover?.(null)} style={{ flex: 1 }}>
-                  <NumberInput label={<Tooltip content="Margin top" side="top" sideOffset={14}><AlPaddingTop /></Tooltip>} prop="marginTop" value={s.marginTop} onChange={onPropertyChange} {...tokenProps("marginTop")} />
+                  <NumberInput label={<Tooltip content="Margin top" side="top" sideOffset={14}><AlPaddingTop /></Tooltip>} prop="marginTop" value={s.marginTop} onChange={onPropertyChange} {...tokenProps("marginTop")} {...changeProps("marginTop")} />
                 </div>
                 <Tooltip content="Collapse to axes" side="top">
                   <button className="retune-split-btn active" onClick={() => setMarginExpanded(false)}>
@@ -966,10 +987,10 @@ export function PropertyPanel({
               </div>
               <div className="retune-row">
                 <div onPointerEnter={() => onPropertyHover?.("marginRight")} onPointerLeave={() => onPropertyHover?.(null)} style={{ flex: 1 }}>
-                  <NumberInput label={<Tooltip content="Margin right" side="top" sideOffset={14}><AlPaddingRight /></Tooltip>} prop="marginRight" value={s.marginRight} onChange={onPropertyChange} {...tokenProps("marginRight")} />
+                  <NumberInput label={<Tooltip content="Margin right" side="top" sideOffset={14}><AlPaddingRight /></Tooltip>} prop="marginRight" value={s.marginRight} onChange={onPropertyChange} {...tokenProps("marginRight")} {...changeProps("marginRight")} />
                 </div>
                 <div onPointerEnter={() => onPropertyHover?.("marginBottom")} onPointerLeave={() => onPropertyHover?.(null)} style={{ flex: 1 }}>
-                  <NumberInput label={<Tooltip content="Margin bottom" side="top" sideOffset={14}><AlPaddingBottom /></Tooltip>} prop="marginBottom" value={s.marginBottom} onChange={onPropertyChange} {...tokenProps("marginBottom")} />
+                  <NumberInput label={<Tooltip content="Margin bottom" side="top" sideOffset={14}><AlPaddingBottom /></Tooltip>} prop="marginBottom" value={s.marginBottom} onChange={onPropertyChange} {...tokenProps("marginBottom")} {...changeProps("marginBottom")} />
                 </div>
                 <div style={{ width: 32 }} />
               </div>
@@ -983,6 +1004,7 @@ export function PropertyPanel({
                   values={[s.marginLeft, s.marginRight]}
                   onChange={onPropertyChange}
                   {...shorthandTokenProps(["marginLeft", "marginRight"])}
+                  {...shorthandChangeProps(["marginLeft", "marginRight"])}
                 />
               </div>
               <div style={{ flex: 1 }} onPointerEnter={() => onPropertyHover?.("marginBlock")} onPointerLeave={() => onPropertyHover?.(null)}>
@@ -992,6 +1014,7 @@ export function PropertyPanel({
                   values={[s.marginTop, s.marginBottom]}
                   onChange={onPropertyChange}
                   {...shorthandTokenProps(["marginTop", "marginBottom"])}
+                  {...shorthandChangeProps(["marginTop", "marginBottom"])}
                 />
               </div>
               <Tooltip content="Edit individual sides" side="top">
@@ -1085,6 +1108,7 @@ export function PropertyPanel({
                   onPropertyChange(prop, val);
                 }
               }}
+              {...changeProps("width")}
             />
           </Field>
           <Field label="Height">
@@ -1100,6 +1124,7 @@ export function PropertyPanel({
                   onPropertyChange(prop, val);
                 }
               }}
+              {...changeProps("height")}
             />
           </Field>
         </Row>
@@ -1110,13 +1135,13 @@ export function PropertyPanel({
                 <NumberInput prop="minWidth" value={s.minWidth === "0px" || s.minWidth === "auto" ? "" : s.minWidth} placeholder="–" onChange={(p, v) => {
                   if (!v) onPropertyChange(p, "0px");
                   else onPropertyChange(p, v);
-                }} />
+                }} {...changeProps("minWidth")} />
               </Field>
               <Field label="Min H">
                 <NumberInput prop="minHeight" value={s.minHeight === "0px" || s.minHeight === "auto" ? "" : s.minHeight} placeholder="–" onChange={(p, v) => {
                   if (!v) onPropertyChange(p, "0px");
                   else onPropertyChange(p, v);
-                }} />
+                }} {...changeProps("minHeight")} />
               </Field>
               <Tooltip content="Remove min size" side="top">
                 <button className="retune-split-btn" onClick={() => {
@@ -1137,13 +1162,13 @@ export function PropertyPanel({
                 <NumberInput prop="maxWidth" value={s.maxWidth === "none" ? "" : s.maxWidth} placeholder="–" onChange={(p, v) => {
                   if (!v) onPropertyChange(p, "none");
                   else onPropertyChange(p, v);
-                }} />
+                }} {...changeProps("maxWidth")} />
               </Field>
               <Field label="Max H">
                 <NumberInput prop="maxHeight" value={s.maxHeight === "none" ? "" : s.maxHeight} placeholder="–" onChange={(p, v) => {
                   if (!v) onPropertyChange(p, "none");
                   else onPropertyChange(p, v);
-                }} />
+                }} {...changeProps("maxHeight")} />
               </Field>
               <Tooltip content="Remove max size" side="top">
                 <button className="retune-split-btn" onClick={() => {
@@ -1169,23 +1194,23 @@ export function PropertyPanel({
           </Row>
           <Row>
             <Field label="Size">
-              <NumberInput prop="fontSize" value={s.fontSize} onChange={onPropertyChange} min={1} {...tokenProps("fontSize")} />
+              <NumberInput prop="fontSize" value={s.fontSize} onChange={onPropertyChange} min={1} {...tokenProps("fontSize")} {...changeProps("fontSize")} />
             </Field>
             <Field label="Weight">
-              <ComboInput prop="fontWeight" value={s.fontWeight} options={FONT_WEIGHT_OPTIONS} onChange={onPropertyChange} {...tokenProps("fontWeight")} />
+              <ComboInput prop="fontWeight" value={s.fontWeight} options={FONT_WEIGHT_OPTIONS} onChange={onPropertyChange} {...tokenProps("fontWeight")} {...changeProps("fontWeight")} />
             </Field>
           </Row>
           <Row>
             <Field label="Line height">
-              <ComboInput prop="lineHeight" value={s.lineHeight} options={LINE_HEIGHT_OPTIONS} onChange={onPropertyChange} />
+              <ComboInput prop="lineHeight" value={s.lineHeight} options={LINE_HEIGHT_OPTIONS} onChange={onPropertyChange} {...changeProps("lineHeight")} />
             </Field>
             <Field label="Letter spacing">
-              <ComboInput prop="letterSpacing" value={s.letterSpacing} options={LETTER_SPACING_OPTIONS} onChange={onPropertyChange} />
+              <ComboInput prop="letterSpacing" value={s.letterSpacing} options={LETTER_SPACING_OPTIONS} onChange={onPropertyChange} {...changeProps("letterSpacing")} />
             </Field>
           </Row>
           <Row>
             <Field label="Color">
-              <ColorInput prop="color" value={s.color} onChange={onPropertyChange} {...tokenProps("color")} />
+              <ColorInput prop="color" value={s.color} onChange={onPropertyChange} {...tokenProps("color")} {...changeProps("color")} />
             </Field>
           </Row>
           <Row>
@@ -1285,6 +1310,7 @@ export function PropertyPanel({
                               );
                               applyChanges(changes);
                             }}
+                            {...changeProps("lineClamp")}
                           />
                         </Field>
                       )}
@@ -1315,18 +1341,18 @@ export function PropertyPanel({
       <Section label="Appearance">
         <Row>
           <Field label="Opacity">
-            <NumberInput prop="opacity" value={s.opacity} onChange={onPropertyChange} min={0} max={1} step={0.01} {...tokenProps("opacity")} />
+            <NumberInput prop="opacity" value={s.opacity} onChange={onPropertyChange} min={0} max={1} step={0.01} {...tokenProps("opacity")} {...changeProps("opacity")} />
           </Field>
           <Field label="Z index">
-            <NumberInput prop="zIndex" value={s.zIndex} onChange={onPropertyChange} />
+            <NumberInput prop="zIndex" value={s.zIndex} onChange={onPropertyChange} {...changeProps("zIndex")} />
           </Field>
         </Row>
         <RowGroup label="Corner radius">
           {radiusExpanded ? (
             <>
               <div className="retune-row">
-                <NumberInput label={<Tooltip content="Top left corner radius" side="top" sideOffset={14}><RadiusTopLeft /></Tooltip>} prop="borderTopLeftRadius" value={s.borderTopLeftRadius} onChange={onPropertyChange} min={0} {...tokenProps("borderTopLeftRadius")} />
-                <NumberInput label={<Tooltip content="Top right corner radius" side="top" sideOffset={14}><RadiusTopRight /></Tooltip>} prop="borderTopRightRadius" value={s.borderTopRightRadius} onChange={onPropertyChange} min={0} {...tokenProps("borderTopRightRadius")} />
+                <NumberInput label={<Tooltip content="Top left corner radius" side="top" sideOffset={14}><RadiusTopLeft /></Tooltip>} prop="borderTopLeftRadius" value={s.borderTopLeftRadius} onChange={onPropertyChange} min={0} {...tokenProps("borderTopLeftRadius")} {...changeProps("borderTopLeftRadius")} />
+                <NumberInput label={<Tooltip content="Top right corner radius" side="top" sideOffset={14}><RadiusTopRight /></Tooltip>} prop="borderTopRightRadius" value={s.borderTopRightRadius} onChange={onPropertyChange} min={0} {...tokenProps("borderTopRightRadius")} {...changeProps("borderTopRightRadius")} />
                 <Tooltip content="Collapse to single" side="top">
                   <button className="retune-split-btn active" onClick={() => setRadiusExpanded(false)}>
                     <AlPaddingSides />
@@ -1334,8 +1360,8 @@ export function PropertyPanel({
                 </Tooltip>
               </div>
               <div className="retune-row">
-                <NumberInput label={<Tooltip content="Bottom left corner radius" side="top" sideOffset={14}><RadiusBottomLeft /></Tooltip>} prop="borderBottomLeftRadius" value={s.borderBottomLeftRadius} onChange={onPropertyChange} min={0} {...tokenProps("borderBottomLeftRadius")} />
-                <NumberInput label={<Tooltip content="Bottom right corner radius" side="top" sideOffset={14}><RadiusBottomRight /></Tooltip>} prop="borderBottomRightRadius" value={s.borderBottomRightRadius} onChange={onPropertyChange} min={0} {...tokenProps("borderBottomRightRadius")} />
+                <NumberInput label={<Tooltip content="Bottom left corner radius" side="top" sideOffset={14}><RadiusBottomLeft /></Tooltip>} prop="borderBottomLeftRadius" value={s.borderBottomLeftRadius} onChange={onPropertyChange} min={0} {...tokenProps("borderBottomLeftRadius")} {...changeProps("borderBottomLeftRadius")} />
+                <NumberInput label={<Tooltip content="Bottom right corner radius" side="top" sideOffset={14}><RadiusBottomRight /></Tooltip>} prop="borderBottomRightRadius" value={s.borderBottomRightRadius} onChange={onPropertyChange} min={0} {...tokenProps("borderBottomRightRadius")} {...changeProps("borderBottomRightRadius")} />
                 <div style={{ width: 32 }} />
               </div>
             </>
@@ -1348,6 +1374,7 @@ export function PropertyPanel({
                 onChange={onPropertyChange}
                 min={0}
                 {...shorthandTokenProps(["borderTopLeftRadius", "borderTopRightRadius", "borderBottomRightRadius", "borderBottomLeftRadius"])}
+                {...shorthandChangeProps(["borderTopLeftRadius", "borderTopRightRadius", "borderBottomRightRadius", "borderBottomLeftRadius"])}
               />
               <Tooltip content="Edit individual corners" side="top">
                 <button className="retune-split-btn" onClick={() => setRadiusExpanded(true)}>
@@ -1388,7 +1415,7 @@ export function PropertyPanel({
             </Row>
             {fillMode === "solid" ? (
               <Row>
-                <ColorInput prop="backgroundColor" value={s.backgroundColor} onChange={onPropertyChange} {...tokenProps("backgroundColor")} />
+                <ColorInput prop="backgroundColor" value={s.backgroundColor} onChange={onPropertyChange} {...tokenProps("backgroundColor")} {...changeProps("backgroundColor")} />
               </Row>
             ) : (
               <GradientEditor gradient={gradient} onChange={handleGradientChange} />
@@ -1412,7 +1439,7 @@ export function PropertyPanel({
           <>
             <Row>
               <Field label="Color">
-                <ColorInput prop="borderColor" value={activeBorderColor} onChange={onPropertyChange} {...tokenProps("borderColor")} />
+                <ColorInput prop="borderColor" value={activeBorderColor} onChange={onPropertyChange} {...tokenProps("borderColor")} {...changeProps("borderColor")} />
               </Field>
             </Row>
             <RowGroup label={borderExpanded ? undefined : "Width"}>
@@ -1423,13 +1450,13 @@ export function PropertyPanel({
                       <NumberInput prop="borderTopWidth" value={s.borderTopWidth} onChange={(p, v) => {
                         onPropertyChange(p, v);
                         if (parseFloat(v) > 0 && s.borderTopStyle === "none") onPropertyChange("borderTopStyle", "solid");
-                      }} min={0} />
+                      }} min={0} {...changeProps("borderTopWidth")} />
                     </Field>
                     <Field label="Right">
                       <NumberInput prop="borderRightWidth" value={s.borderRightWidth} onChange={(p, v) => {
                         onPropertyChange(p, v);
                         if (parseFloat(v) > 0 && s.borderRightStyle === "none") onPropertyChange("borderRightStyle", "solid");
-                      }} min={0} />
+                      }} min={0} {...changeProps("borderRightWidth")} />
                     </Field>
                     <Tooltip content="Collapse to shorthand" side="top">
                       <button className="retune-split-btn active" onClick={() => setBorderExpanded(false)}>
@@ -1442,13 +1469,13 @@ export function PropertyPanel({
                       <NumberInput prop="borderBottomWidth" value={s.borderBottomWidth} onChange={(p, v) => {
                         onPropertyChange(p, v);
                         if (parseFloat(v) > 0 && s.borderBottomStyle === "none") onPropertyChange("borderBottomStyle", "solid");
-                      }} min={0} />
+                      }} min={0} {...changeProps("borderBottomWidth")} />
                     </Field>
                     <Field label="Left">
                       <NumberInput prop="borderLeftWidth" value={s.borderLeftWidth} onChange={(p, v) => {
                         onPropertyChange(p, v);
                         if (parseFloat(v) > 0 && s.borderLeftStyle === "none") onPropertyChange("borderLeftStyle", "solid");
-                      }} min={0} />
+                      }} min={0} {...changeProps("borderLeftWidth")} />
                     </Field>
                     <div style={{ width: 32 }} />
                   </div>
@@ -1461,6 +1488,7 @@ export function PropertyPanel({
                     onChange={onPropertyChange}
                     min={0}
                     {...shorthandTokenProps(["borderTopWidth", "borderRightWidth", "borderBottomWidth", "borderLeftWidth"])}
+                    {...shorthandChangeProps(["borderTopWidth", "borderRightWidth", "borderBottomWidth", "borderLeftWidth"])}
                   />
                   <Tooltip content="Edit individual sides" side="top">
                     <button className="retune-split-btn" onClick={() => setBorderExpanded(true)}>
@@ -1501,6 +1529,7 @@ export function PropertyPanel({
                     prop="shadowColor"
                     value={shadow.color}
                     onChange={(_p, val) => handleShadowFieldChange("color", val)}
+                    {...changeProps("shadowColor")}
                   />
                 </Field>
               </Row>
@@ -1510,6 +1539,7 @@ export function PropertyPanel({
                     prop="shadowOffsetX"
                     value={`${shadow.offsetX}px`}
                     onChange={(_p, val) => handleShadowFieldChange("offsetX", parseFloat(val) || 0)}
+                    {...changeProps("shadowOffsetX")}
                   />
                 </Field>
                 <Field label="Y offset">
@@ -1517,6 +1547,7 @@ export function PropertyPanel({
                     prop="shadowOffsetY"
                     value={`${shadow.offsetY}px`}
                     onChange={(_p, val) => handleShadowFieldChange("offsetY", parseFloat(val) || 0)}
+                    {...changeProps("shadowOffsetY")}
                   />
                 </Field>
               </Row>
@@ -1527,6 +1558,7 @@ export function PropertyPanel({
                     value={`${shadow.blur}px`}
                     onChange={(_p, val) => handleShadowFieldChange("blur", Math.max(0, parseFloat(val) || 0))}
                     min={0}
+                    {...changeProps("shadowBlur")}
                   />
                 </Field>
                 <Field label="Spread">
@@ -1534,6 +1566,7 @@ export function PropertyPanel({
                     prop="shadowSpread"
                     value={`${shadow.spread}px`}
                     onChange={(_p, val) => handleShadowFieldChange("spread", parseFloat(val) || 0)}
+                    {...changeProps("shadowSpread")}
                   />
                 </Field>
               </Row>
