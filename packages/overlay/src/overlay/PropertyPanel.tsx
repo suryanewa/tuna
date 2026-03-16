@@ -1352,10 +1352,10 @@ export function PropertyPanel({
           </Row>
           <Row>
             <Field label="Line height">
-              <ComboInput prop="lineHeight" value={s.lineHeight} options={LINE_HEIGHT_OPTIONS} onChange={onPropertyChange} {...changeProps("lineHeight")} />
+              <ComboInput prop="lineHeight" value={s.lineHeight} options={LINE_HEIGHT_OPTIONS} onChange={onPropertyChange} {...tokenProps("lineHeight")} {...changeProps("lineHeight")} />
             </Field>
             <Field label="Letter spacing">
-              <ComboInput prop="letterSpacing" value={s.letterSpacing} options={LETTER_SPACING_OPTIONS} onChange={onPropertyChange} {...changeProps("letterSpacing")} />
+              <ComboInput prop="letterSpacing" value={s.letterSpacing} options={LETTER_SPACING_OPTIONS} onChange={onPropertyChange} {...tokenProps("letterSpacing")} {...changeProps("letterSpacing")} />
             </Field>
           </Row>
           <Row>

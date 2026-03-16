@@ -4,28 +4,52 @@
  * a searchable dropdown with font previews.
  */
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { DropdownMenu, type DropdownMenuOption } from "./dropdown-menu";
 import { calcMenuPosition, type MenuPosition } from "./menu-position";
 import { ChevronDown } from "./icons";
 import { useScrollLock } from "./use-scroll-lock";
 
-const COMMON_FONTS = [
-  "Inter",
-  "Arial",
-  "Helvetica",
-  "Georgia",
-  "Times New Roman",
-  "Courier New",
-  "Verdana",
-  "Trebuchet MS",
-  "Palatino",
-  "Garamond",
+const FALLBACK_FONTS = [
   "system-ui",
   "sans-serif",
   "serif",
   "monospace",
 ];
+
+/** Scan stylesheets to find font families used in the project */
+function detectProjectFonts(): string[] {
+  const fonts = new Set<string>();
+  try {
+    for (const sheet of document.styleSheets) {
+      try {
+        for (const rule of sheet.cssRules) {
+          if (!(rule instanceof CSSStyleRule)) continue;
+          const ff = rule.style.getPropertyValue("font-family");
+          if (!ff) continue;
+          // Extract individual font names from the stack
+          for (const part of ff.split(",")) {
+            const name = part.trim().replace(/^["']|["']$/g, "");
+            if (name && !FALLBACK_FONTS.includes(name)) {
+              fonts.add(name);
+            }
+          }
+        }
+      } catch { /* cross-origin sheet */ }
+    }
+  } catch { /* stylesheet access not supported */ }
+  return Array.from(fonts).sort();
+}
+
+let projectFontsCache: string[] | null = null;
+function getProjectFonts(): string[] {
+  if (!projectFontsCache) {
+    projectFontsCache = detectProjectFonts();
+    // Refresh after 10s (same as token cache)
+    setTimeout(() => { projectFontsCache = null; }, 10000);
+  }
+  return projectFontsCache;
+}
 
 /** Extract the primary font name from a CSS font-family stack */
 function extractPrimaryFont(fontFamily: string): string {
@@ -59,14 +83,30 @@ export function FontInput({ prop, value, onChange }: FontInputProps) {
     setLocalValue(extractPrimaryFont(value || ""));
   }
 
-  const filteredFonts = filter
-    ? COMMON_FONTS.filter((f) => f.toLowerCase().includes(filter.toLowerCase()))
-    : COMMON_FONTS;
+  // Build font list: project fonts first, then fallbacks
+  const allFonts = useMemo(() => {
+    const project = getProjectFonts();
+    // Deduplicate: project fonts + fallbacks, preserving order
+    const seen = new Set(project.map(f => f.toLowerCase()));
+    const fallbacks = FALLBACK_FONTS.filter(f => !seen.has(f.toLowerCase()));
+    return [...project, ...fallbacks];
+  }, []);
 
-  const menuOptions: DropdownMenuOption[] = filteredFonts.map((f) => ({
-    value: f,
-    label: f,
-  }));
+  const filteredFonts = filter
+    ? allFonts.filter((f) => f.toLowerCase().includes(filter.toLowerCase()))
+    : allFonts;
+
+  const projectFontCount = getProjectFonts().length;
+  const menuOptions: DropdownMenuOption[] = filteredFonts.map((f, i) => {
+    // Add heading before fallback section (only when not filtering)
+    const isFirstFallback = !filter && i === projectFontCount && projectFontCount > 0;
+    return {
+      value: f,
+      label: f,
+      ...(isFirstFallback ? { separatorBefore: true, headingBefore: "Generic" } : {}),
+      ...(!filter && i === 0 && projectFontCount > 0 ? { headingBefore: "Project fonts" } : {}),
+    };
+  });
 
   const openDropdown = useCallback(() => {
     const el = containerRef.current;
