@@ -1002,10 +1002,12 @@
 }
 
 .retune-prop:hover:not(.retune-prop-variable-applied) { background: #e7e5e4; }
-.retune-prop:focus-within:not(.retune-prop-variable-applied) {
-  background: #f5f5f4;
+.retune-prop:focus-within {
   outline: 1px solid rgba(0, 0, 0, 0.1);
   outline-offset: -1px;
+}
+.retune-prop:focus-within:not(.retune-prop-variable-applied) {
+  background: #f5f5f4;
 }
 
 .retune-prop-label {
@@ -1979,11 +1981,9 @@
   outline: 1px solid rgba(0, 0, 0, 0.1);
   outline-offset: -1px;
 }
-.retune-combo-variable-applied:hover { background: rgba(110, 17, 176, 0.15); }
 .retune-combo-variable-applied:focus {
-  outline: 1px solid #6E11B0;
+  outline: 1px solid #D6D3D1;
   outline-offset: -1px;
-  background: rgba(110, 17, 176, 0.1);
 }
 .retune-combo-input::selection { background: #bfdbfe; }
 
@@ -2254,67 +2254,77 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0;
-  transition: opacity 0.15s ease;
+  color: transparent;
+  transition: color 0.15s ease;
   cursor: pointer;
   z-index: 2;
-  color: rgba(0,0,0,0.45);
-}
-.retune-variable-action:hover:not(.retune-variable-unlink) {
-  color: rgba(0,0,0,0.7);
 }
 /* Show on parent hover */
-.retune-prop:hover .retune-variable-action,
-.retune-color-hex-section:hover .retune-variable-action {
-  opacity: 1;
+.retune-prop:hover .retune-variable-action:not(.retune-variable-unlink),
+.retune-color-hex-section:hover .retune-variable-action:not(.retune-variable-unlink) {
+  color: rgba(0, 0, 0, 0.6);
+}
+.retune-variable-action:hover:not(.retune-variable-unlink) {
+  color: rgba(0, 0, 0, 0.9) !important;
 }
 /* Unlink icon: purple color, 80% opacity at rest, full on hover */
 .retune-variable-unlink {
-  color: #6E11B0;
+  color: rgba(0, 0, 0, 0.9);
 }
 .retune-prop-variable-applied .retune-variable-unlink,
 .retune-combo:has(.retune-combo-variable-applied) .retune-variable-unlink,
 .retune-color-variable-applied .retune-variable-unlink {
-  opacity: 0;
+  color: transparent;
 }
 .retune-prop-variable-applied:hover .retune-variable-unlink,
 .retune-combo:has(.retune-combo-variable-applied):hover .retune-variable-unlink,
 .retune-color-variable-applied:hover .retune-variable-unlink {
-  opacity: 0.8;
+  color: rgba(0, 0, 0, 0.6);
 }
 .retune-variable-unlink:hover {
-  opacity: 1 !important;
+  color: rgba(0, 0, 0, 0.9) !important;
 }
 
-/* ── Variable Applied State (purple styling) ── */
+/* ── Variable Applied State (white bg, bordered) ── */
 .retune-prop-variable-applied {
-  background: rgba(110, 17, 176, 0.1);
+  background: #fff;
+  outline: 1px solid #E7E5E4;
+  outline-offset: -1px;
+}
+.retune-prop-variable-applied:hover {
+  outline-color: #D6D3D1;
 }
 .retune-prop-variable-applied .retune-prop-input,
 .retune-prop-variable-applied .retune-prop-label {
-  color: #6E11B0;
   cursor: pointer;
 }
 .retune-combo-variable-applied {
-  background: rgba(110, 17, 176, 0.1);
-  color: #6E11B0;
+  background: #fff;
+  outline: 1px solid #E7E5E4;
+  outline-offset: -1px;
   cursor: pointer;
   border-radius: 8px;
 }
+.retune-combo-variable-applied:hover {
+  outline-color: #D6D3D1;
+}
 .retune-combo:has(.retune-combo-variable-applied) .retune-combo-label {
-  color: #6E11B0;
   cursor: pointer;
 }
 .retune-combo:has(.retune-combo-variable-applied) .retune-combo-trigger {
   display: none;
 }
 .retune-color-variable-applied {
-  background: rgba(110, 17, 176, 0.1);
+  background: #fff;
+  outline: 1px solid #E7E5E4;
+  outline-offset: -1px;
   /* When variable applied, opacity section is hidden — hex section takes full width with full rounding */
   border-radius: 8px;
 }
+.retune-color-variable-applied:hover {
+  outline-color: #D6D3D1;
+}
 .retune-color-variable-applied .retune-color-hex-input {
-  color: #6E11B0;
   cursor: pointer;
 }
 
@@ -2429,22 +2439,16 @@
 }
 
 .retune-token-dialog-item-active {
-  background: rgba(110, 17, 176, 0.1);
-}
-.retune-token-dialog-item-active .retune-token-dialog-name {
-  color: #6E11B0;
-}
-.retune-token-dialog-item-active .retune-token-dialog-value {
-  color: rgba(110, 17, 176, 0.7);
+  background: #f5f5f4;
 }
 .retune-token-dialog-item-active:hover {
-  background: rgba(110, 17, 176, 0.15);
+  background: #f5f5f4;
 }
 .retune-token-dialog-item-highlighted {
   background: rgba(0,0,0,0.04);
 }
 .retune-token-dialog-item-active.retune-token-dialog-item-highlighted {
-  background: rgba(110, 17, 176, 0.15);
+  background: #f5f5f4;
 }
 
 .retune-token-dialog-active-dot {
