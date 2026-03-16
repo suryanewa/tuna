@@ -640,8 +640,8 @@ function RetuneInner(props: RetuneConfig) {
     setChangeRevision((r) => r + 1);
   }, []);
 
-  // Get current token associations for the selected element
-  const selectedTokenAssociations = useMemo(() => {
+  // Get current variable associations for the selected element
+  const selectedVariableAssociations = useMemo(() => {
     const tracker = trackerRef.current;
     if (!tracker || !selectedElement) return {};
     const selector = activeSelector ?? selectedElement.selector;
@@ -1167,7 +1167,7 @@ function RetuneInner(props: RetuneConfig) {
                 onTokenSwap={handleTokenSwap}
                 onTokenAssociate={handleTokenAssociate}
                 onTokenUnlink={handleTokenUnlink}
-                tokenAssociations={selectedTokenAssociations}
+                variableAssociations={selectedVariableAssociations}
                 unlinkedTokens={selectedUnlinkedTokens}
                 changedProperties={selectedChangedProperties}
                 onPropertyReset={handlePropertyReset}

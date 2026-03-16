@@ -128,8 +128,8 @@ export interface ElementChange {
   nearbySiblings?: string | null;
   /** Element position and dimensions */
   position?: { x: number; y: number; width: number; height: number };
-  /** Token associations from the UI (user-applied tokens) */
-  tokenAssociations?: Record<string, { className: string; values: Record<string, string> }>;
-  /** Properties explicitly detached from their design token/variable: property → current value */
+  /** Variable associations from the UI (user-applied design variables) */
+  variableAssociations?: Record<string, { className: string; values: Record<string, string> }>;
+  /** Properties explicitly detached from their design variable: property → current value */
   unlinkedProperties?: Array<{ property: string; value: string }>;
 }

@@ -305,4 +305,95 @@ describe("ChangeTracker", () => {
       expect(tracker.isPropertyChanged(sel, "color")).toBe(true);
     });
   });
+
+  // ─── Undo/redo token association restoration ───────────────────
+
+  describe("undo restores token associations for value changes", () => {
+    it("undo restores previous token association after value change", () => {
+      trackElement();
+      const tokenA = { className: "var(--spacing-3)", values: { padding: "12px" } };
+      tracker.setTokenAssociation(sel, ["padding"], tokenA);
+      // Force new undo group
+      (tracker as any).lastChange = null;
+      // Change value (simulating a token swap to tokenB)
+      tracker.recordChange(sel, "padding", "16px");
+      const tokenB = { className: "var(--spacing-4)", values: { padding: "16px" } };
+      tracker.setTokenAssociation(sel, ["padding"], tokenB);
+      expect(tracker.getTokenAssociation(sel, "padding")).toEqual(tokenB);
+
+      // Undo the value change — should restore tokenA
+      tracker.popUndo();
+      expect(tracker.getTokenAssociation(sel, "padding")).toEqual(tokenA);
+    });
+
+    it("undo clears association when none existed before the change", () => {
+      trackElement();
+      // No association initially
+      tracker.recordChange(sel, "padding", "16px");
+      const tokenA = { className: "var(--spacing-4)", values: { padding: "16px" } };
+      tracker.setTokenAssociation(sel, ["padding"], tokenA);
+
+      tracker.popUndo();
+      expect(tracker.getTokenAssociation(sel, "padding")).toBeUndefined();
+    });
+
+    it("redo restores token association after undo", () => {
+      trackElement();
+      const tokenA = { className: "var(--spacing-3)", values: { padding: "12px" } };
+      tracker.setTokenAssociation(sel, ["padding"], tokenA);
+      (tracker as any).lastChange = null;
+      tracker.recordChange(sel, "padding", "16px");
+      const tokenB = { className: "var(--spacing-4)", values: { padding: "16px" } };
+      tracker.setTokenAssociation(sel, ["padding"], tokenB);
+
+      tracker.popUndo(); // restores tokenA
+      expect(tracker.getTokenAssociation(sel, "padding")).toEqual(tokenA);
+
+      tracker.popRedo(); // restores tokenB
+      expect(tracker.getTokenAssociation(sel, "padding")).toEqual(tokenB);
+    });
+
+    it("undo restores unlinked state when change was made after unlink", () => {
+      trackElement();
+      tracker.recordUnlink(sel, ["padding"]);
+      expect(tracker.isTokenUnlinked(sel, "padding")).toBe(true);
+
+      // Force new undo group
+      (tracker as any).lastChange = null;
+      // Real flow: recordChange runs first (snapshots prevUnlinked=true),
+      // then relinkToken clears the unlinked state
+      tracker.recordChange(sel, "padding", "16px");
+      tracker.relinkToken(sel, ["padding"]);
+      expect(tracker.isTokenUnlinked(sel, "padding")).toBe(false);
+
+      // Undo the value change — should restore the unlinked state
+      tracker.popUndo();
+      expect(tracker.isTokenUnlinked(sel, "padding")).toBe(true);
+    });
+  });
+
+  // ─── variableAssociations in getPendingChanges output ──────────
+
+  describe("variableAssociations in output", () => {
+    it("includes variableAssociations in getPendingChanges when set", () => {
+      trackElement();
+      tracker.recordChange(sel, "padding", "16px");
+      const tokenRef = { className: "var(--spacing-4)", values: { padding: "16px" } };
+      tracker.setTokenAssociation(sel, ["padding"], tokenRef);
+
+      const changes = tracker.getPendingChanges();
+      expect(changes.length).toBe(1);
+      expect(changes[0].variableAssociations).toBeDefined();
+      expect(changes[0].variableAssociations!["padding"]).toEqual(tokenRef);
+    });
+
+    it("omits variableAssociations when none are set", () => {
+      trackElement();
+      tracker.recordChange(sel, "padding", "16px");
+
+      const changes = tracker.getPendingChanges();
+      expect(changes.length).toBe(1);
+      expect(changes[0].variableAssociations).toBeUndefined();
+    });
+  });
 });

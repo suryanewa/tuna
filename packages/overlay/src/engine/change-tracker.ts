@@ -19,7 +19,7 @@ interface TrackedElement {
   originalStyles: Record<string, string>;
   currentStyles: Record<string, string>;
   /** Value-only token associations: camelCase property → token ref */
-  tokenAssociations?: Record<string, TrackedTokenRef>;
+  variableAssociations?: Record<string, TrackedTokenRef>;
   /** Properties explicitly unlinked from their class-based token */
   unlinkedTokens?: Set<string>;
   sourceFile?: { fileName: string; lineNumber: number; columnNumber?: number } | null;
@@ -113,7 +113,7 @@ export class ChangeTracker {
 
     // Snapshot token state so undo can restore it
     const camelProp = property.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
-    const prevTokenAssoc = tracked.tokenAssociations?.[camelProp] ?? null;
+    const prevTokenAssoc = tracked.variableAssociations?.[camelProp] ?? null;
     const prevUnlinked = tracked.unlinkedTokens?.has(camelProp) ?? false;
 
     const now = Date.now();
@@ -180,15 +180,15 @@ export class ChangeTracker {
         tracked.unlinkedTokens?.delete(entry.property);
         // Restore saved token association if any
         if (entry.tokenRef) {
-          if (!tracked.tokenAssociations) tracked.tokenAssociations = {};
-          tracked.tokenAssociations[entry.property] = entry.tokenRef;
+          if (!tracked.variableAssociations) tracked.variableAssociations = {};
+          tracked.variableAssociations[entry.property] = entry.tokenRef;
         }
         this.redoStack.push({ selector: entry.selector, property: entry.property, value: "", group: redoGroup, action: "unlink", tokenRef: entry.tokenRef });
       } else {
         const currentValue = tracked.currentStyles[entry.property] || "";
         const camelProp = entry.property.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
         // Save current token state for redo
-        const currentAssoc = tracked.tokenAssociations?.[camelProp] ?? null;
+        const currentAssoc = tracked.variableAssociations?.[camelProp] ?? null;
         const currentUnlinked = tracked.unlinkedTokens?.has(camelProp) ?? false;
         this.redoStack.push({ selector: entry.selector, property: entry.property, value: currentValue, group: redoGroup, prevTokenAssoc: currentAssoc, prevUnlinked: currentUnlinked });
         tracked.currentStyles[entry.property] = entry.value;
@@ -196,10 +196,10 @@ export class ChangeTracker {
         // Restore previous token association state
         if (entry.prevTokenAssoc !== undefined) {
           if (entry.prevTokenAssoc) {
-            if (!tracked.tokenAssociations) tracked.tokenAssociations = {};
-            tracked.tokenAssociations[camelProp] = entry.prevTokenAssoc;
+            if (!tracked.variableAssociations) tracked.variableAssociations = {};
+            tracked.variableAssociations[camelProp] = entry.prevTokenAssoc;
           } else {
-            if (tracked.tokenAssociations) delete tracked.tokenAssociations[camelProp];
+            if (tracked.variableAssociations) delete tracked.variableAssociations[camelProp];
           }
         }
         // Restore previous unlinked state
@@ -242,15 +242,15 @@ export class ChangeTracker {
         if (!tracked.unlinkedTokens) tracked.unlinkedTokens = new Set();
         tracked.unlinkedTokens.add(entry.property);
         // Clear token association again
-        if (tracked.tokenAssociations) {
-          delete tracked.tokenAssociations[entry.property];
+        if (tracked.variableAssociations) {
+          delete tracked.variableAssociations[entry.property];
         }
         this.undoStack.push({ selector: entry.selector, property: entry.property, value: "", group: undoGroup, action: "unlink", tokenRef: entry.tokenRef });
       } else {
         const currentValue = tracked.currentStyles[entry.property] || "";
         const camelProp = entry.property.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
         // Save current token state for undo
-        const currentAssoc = tracked.tokenAssociations?.[camelProp] ?? null;
+        const currentAssoc = tracked.variableAssociations?.[camelProp] ?? null;
         const currentUnlinked = tracked.unlinkedTokens?.has(camelProp) ?? false;
         this.undoStack.push({ selector: entry.selector, property: entry.property, value: currentValue, group: undoGroup, prevTokenAssoc: currentAssoc, prevUnlinked: currentUnlinked });
         tracked.currentStyles[entry.property] = entry.value;
@@ -258,10 +258,10 @@ export class ChangeTracker {
         // Restore token association state from redo entry
         if (entry.prevTokenAssoc !== undefined) {
           if (entry.prevTokenAssoc) {
-            if (!tracked.tokenAssociations) tracked.tokenAssociations = {};
-            tracked.tokenAssociations[camelProp] = entry.prevTokenAssoc;
+            if (!tracked.variableAssociations) tracked.variableAssociations = {};
+            tracked.variableAssociations[camelProp] = entry.prevTokenAssoc;
           } else {
-            if (tracked.tokenAssociations) delete tracked.tokenAssociations[camelProp];
+            if (tracked.variableAssociations) delete tracked.variableAssociations[camelProp];
           }
         }
         // Restore unlinked state from redo entry
@@ -326,8 +326,8 @@ export class ChangeTracker {
           nearbySiblings: tracked.nearbySiblings,
           position: tracked.position,
         };
-        if (tracked.tokenAssociations && Object.keys(tracked.tokenAssociations).length > 0) {
-          change.tokenAssociations = tracked.tokenAssociations;
+        if (tracked.variableAssociations && Object.keys(tracked.variableAssociations).length > 0) {
+          change.variableAssociations = tracked.variableAssociations;
         }
         if (unlinked.length > 0) {
           change.unlinkedProperties = unlinked;
@@ -366,18 +366,18 @@ export class ChangeTracker {
     }
 
     // Migrate token associations for properties that were actually migrated
-    if (from.tokenAssociations) {
-      if (!to.tokenAssociations) to.tokenAssociations = {};
+    if (from.variableAssociations) {
+      if (!to.variableAssociations) to.variableAssociations = {};
       for (const { property } of migrated) {
         const camelProp = property.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
-        if (from.tokenAssociations[camelProp]) {
-          to.tokenAssociations[camelProp] = from.tokenAssociations[camelProp];
-          delete from.tokenAssociations[camelProp];
+        if (from.variableAssociations[camelProp]) {
+          to.variableAssociations[camelProp] = from.variableAssociations[camelProp];
+          delete from.variableAssociations[camelProp];
         }
         // Also check kebab-case key
-        if (from.tokenAssociations[property]) {
-          to.tokenAssociations[property] = from.tokenAssociations[property];
-          delete from.tokenAssociations[property];
+        if (from.variableAssociations[property]) {
+          to.variableAssociations[property] = from.variableAssociations[property];
+          delete from.variableAssociations[property];
         }
       }
     }
@@ -393,18 +393,18 @@ export class ChangeTracker {
   setTokenAssociation(selector: string, properties: string[], token: TrackedTokenRef) {
     const tracked = this.tracked.get(selector);
     if (!tracked) return;
-    if (!tracked.tokenAssociations) tracked.tokenAssociations = {};
+    if (!tracked.variableAssociations) tracked.variableAssociations = {};
     for (const prop of properties) {
-      tracked.tokenAssociations[prop] = token;
+      tracked.variableAssociations[prop] = token;
     }
   }
 
   /** Remove token association for specific properties */
   clearTokenAssociation(selector: string, properties: string[]) {
     const tracked = this.tracked.get(selector);
-    if (!tracked?.tokenAssociations) return;
+    if (!tracked?.variableAssociations) return;
     for (const prop of properties) {
-      delete tracked.tokenAssociations[prop];
+      delete tracked.variableAssociations[prop];
     }
   }
 
@@ -413,9 +413,9 @@ export class ChangeTracker {
     const tracked = this.tracked.get(selector);
     if (!tracked) return;
     // Clear value-only associations
-    if (tracked.tokenAssociations) {
+    if (tracked.variableAssociations) {
       for (const prop of properties) {
-        delete tracked.tokenAssociations[prop];
+        delete tracked.variableAssociations[prop];
       }
     }
     // Track as unlinked (suppresses class-based token detection)
@@ -433,7 +433,7 @@ export class ChangeTracker {
     // Save current token associations before clearing (for undo restore)
     const savedRefs: Record<string, TrackedTokenRef | undefined> = {};
     for (const prop of properties) {
-      savedRefs[prop] = tracked.tokenAssociations?.[prop];
+      savedRefs[prop] = tracked.variableAssociations?.[prop];
     }
 
     // Perform the unlink
@@ -476,12 +476,12 @@ export class ChangeTracker {
 
   /** Get token association for a property, if any */
   getTokenAssociation(selector: string, property: string): TrackedTokenRef | undefined {
-    return this.tracked.get(selector)?.tokenAssociations?.[property];
+    return this.tracked.get(selector)?.variableAssociations?.[property];
   }
 
   /** Get all token associations for a selector */
   getTokenAssociations(selector: string): Record<string, TrackedTokenRef> | undefined {
-    return this.tracked.get(selector)?.tokenAssociations;
+    return this.tracked.get(selector)?.variableAssociations;
   }
 
   /** Check if a single property differs from its original value or has been unlinked */
@@ -536,10 +536,10 @@ export class ChangeTracker {
     this.redoStack = []; // Standard: clear redo on new action
 
     // Clear token association and unlinked state for this property
-    if (tracked.tokenAssociations) {
+    if (tracked.variableAssociations) {
       const camelProp = property.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
-      delete tracked.tokenAssociations[camelProp];
-      delete tracked.tokenAssociations[property];
+      delete tracked.variableAssociations[camelProp];
+      delete tracked.variableAssociations[property];
     }
     if (tracked.unlinkedTokens) {
       tracked.unlinkedTokens.delete(property);

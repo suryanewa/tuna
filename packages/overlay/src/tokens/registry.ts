@@ -169,13 +169,17 @@ function scanRules(
 
     if (Object.keys(values).length === 0) continue;
 
-    // Determine category from the first categorizable property
+    // Determine category — all properties must belong to the same category.
+    // Multi-category classes (e.g., font-size + color) are component styles, not tokens.
     let category: TokenCategory | null = null;
+    let multiCategory = false;
     for (const prop of Object.keys(values)) {
-      category = getCategoryForProperty(prop);
-      if (category) break;
+      const cat = getCategoryForProperty(prop);
+      if (!cat) continue;
+      if (!category) { category = cat; }
+      else if (cat !== category) { multiCategory = true; break; }
     }
-    if (!category) continue;
+    if (!category || multiCategory) continue;
 
     const token: UtilityToken = { className, values, layerName };
     classLookup.set(className, token);

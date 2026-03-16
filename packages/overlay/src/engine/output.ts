@@ -212,10 +212,10 @@ function formatSingleChange(change: ElementChange, fidelity: Fidelity, tokenMap:
   const enriched = enrichPropertyChanges(collapsed, tokenMap, change.selector);
 
   // Override recommended with user's explicit token choice (from token picker)
-  if (change.tokenAssociations) {
+  if (change.variableAssociations) {
     for (const prop of enriched) {
       const camelProp = prop.property.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
-      const assoc = change.tokenAssociations[camelProp];
+      const assoc = change.variableAssociations[camelProp];
       if (assoc) {
         const isVar = assoc.className.startsWith("var(");
         prop.recommended = {

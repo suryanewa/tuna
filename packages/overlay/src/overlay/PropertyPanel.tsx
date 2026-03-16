@@ -162,7 +162,7 @@ export function PropertyPanel({
   onTokenSwap,
   onTokenAssociate,
   onTokenUnlink,
-  tokenAssociations = {},
+  variableAssociations = {},
   unlinkedTokens,
   changedProperties,
   onPropertyReset,
@@ -188,7 +188,7 @@ export function PropertyPanel({
   /** Clear token association for properties */
   onTokenUnlink?: (properties: string[]) => void;
   /** Current value-only token associations from change tracker */
-  tokenAssociations?: Record<string, { className: string; values: Record<string, string> }>;
+  variableAssociations?: Record<string, { className: string; values: Record<string, string> }>;
   /** Properties explicitly unlinked from their token */
   unlinkedTokens?: Set<string>;
   /** Properties that have been changed from their original value */
@@ -222,19 +222,19 @@ export function PropertyPanel({
     if (unlinkedTokens?.has(camelProp)) return undefined;
     const kebab = camelProp.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`);
     // Check persisted associations first (user's explicit choice takes priority)
-    const assoc = tokenAssociations[camelProp];
+    const assoc = variableAssociations[camelProp];
     if (assoc) return { token: assoc, property: kebab };
     // Then element-scanned matches (class-based + CSS variable detection)
     const match = tokenMatches.get(kebab);
     if (match && !isRawUtility(match.token)) return match;
     return undefined;
-  }, [tokenMatches, tokenAssociations, unlinkedTokens]);
+  }, [tokenMatches, variableAssociations, unlinkedTokens]);
 
   // Handle token swap: swap classes on the element.
   // If the old token's class is on the element, do a class swap.
   // If not (value-only apply), just update values without touching classes.
   // `fallbackProperties` provides the affected CSS properties when the token was
-  // auto-detected from stylesheets (no entry in tokenAssociations).
+  // auto-detected from stylesheets (no entry in variableAssociations).
   const handleTokenSelect = useCallback((oldToken: import("../tokens/types").UtilityToken, newToken: import("../tokens/types").UtilityToken, fallbackProperties?: string[]) => {
     const el = element.element;
     if (!el) return;
@@ -251,7 +251,7 @@ export function PropertyPanel({
     } else {
       // Value-only swap: find which properties had the old token applied
       const affectedProps: string[] = [];
-      for (const [prop, ref] of Object.entries(tokenAssociations)) {
+      for (const [prop, ref] of Object.entries(variableAssociations)) {
         if (ref.className === oldToken.className) {
           affectedProps.push(prop);
         }
@@ -267,7 +267,7 @@ export function PropertyPanel({
       }
       onTokenAssociate?.(affectedProps, { className: newToken.className, values: newToken.values });
     }
-  }, [element.element, onTokenSwap, onPropertyChange, tokenAssociations, onTokenAssociate]);
+  }, [element.element, onTokenSwap, onPropertyChange, variableAssociations, onTokenAssociate]);
 
   // Handle applying a token value from scratch (no existing token on element).
   // This is a value pick — we set the token's representative value on the specific
