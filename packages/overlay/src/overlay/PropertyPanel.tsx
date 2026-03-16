@@ -676,6 +676,22 @@ export function PropertyPanel({
 
           const computeBridges = computeBridgesForLevel;
 
+          // Capture pill colors AFTER React paints so we have them for the NEXT transition.
+          // On the render where activeLevelIndex changes, the ref still holds the
+          // previous render's colors — exactly what the animation needs.
+          const pillColorsRef = useRef<Map<number, { bg: string; color: string }>>(new Map());
+          useEffect(() => {
+            const f = fieldRef.current;
+            if (!f) return;
+            const colors = new Map<number, { bg: string; color: string }>();
+            f.querySelectorAll<HTMLElement>('[data-level-index]').forEach(pill => {
+              const idx = parseInt(pill.dataset.levelIndex || '0', 10);
+              const style = getComputedStyle(pill);
+              colors.set(idx, { bg: style.backgroundColor, color: style.color });
+            });
+            pillColorsRef.current = colors;
+          });
+
           // Animate bridge connections/disconnections on level change
           useEffect(() => {
             const prev = prevLevelRef.current;
@@ -698,72 +714,82 @@ export function PropertyPanel({
 
             const field = fieldRef.current;
             if (!field) { setBridgeVisible(newBridges); return; }
-            const pills = field.querySelectorAll<HTMLElement>('.retune-selector-tag');
 
             const DURATION = 220;
             const EASING = 'cubic-bezier(0.77, 0, 0.175, 1)';
-            const STRETCH = 5; // px extra padding per side
+            const EXTEND = 4; // px shadow extends into gap
 
-            // Animate appearing bridges: pills stretch → touch → shrink, then show bridge
-            for (const bridgeIdx of appearing) {
-              const leftPill = pills[bridgeIdx];
-              const rightPill = pills[bridgeIdx + 1];
-              if (!leftPill || !rightPill) continue;
+            const getPill = (idx: number) => field.querySelector<HTMLElement>(`[data-level-index="${idx}"]`);
 
-              const leftPad = parseFloat(getComputedStyle(leftPill).paddingRight) || 8;
-              const rightPad = parseFloat(getComputedStyle(rightPill).paddingLeft) || 8;
-
-              leftPill.animate([
-                { paddingRight: `${leftPad}px` },
-                { paddingRight: `${leftPad + STRETCH}px` },
-                { paddingRight: `${leftPad}px` },
-              ], { duration: DURATION, easing: EASING });
-
-              rightPill.animate([
-                { paddingLeft: `${rightPad}px` },
-                { paddingLeft: `${rightPad + STRETCH}px` },
-                { paddingLeft: `${rightPad}px` },
-              ], { duration: DURATION, easing: EASING });
+            // Determine which sides each pill stretches toward
+            const allBridges = [...appearing, ...disappearing];
+            const pillSides = new Map<number, Set<'left' | 'right'>>();
+            for (const bridgeIdx of allBridges) {
+              if (!pillSides.has(bridgeIdx)) pillSides.set(bridgeIdx, new Set());
+              pillSides.get(bridgeIdx)!.add('right');
+              if (!pillSides.has(bridgeIdx + 1)) pillSides.set(bridgeIdx + 1, new Set());
+              pillSides.get(bridgeIdx + 1)!.add('left');
             }
 
-            // Animate disappearing bridges: remove bridge, pills stretch → shrink
+            // Freeze pill colors to their pre-change appearance using inline style,
+            // then release at the midpoint so the CSS class color takes over.
+            const snapshotColors = pillColorsRef.current;
+            const frozenPills: HTMLElement[] = [];
+            for (const [pillIdx] of pillSides) {
+              const pill = getPill(pillIdx);
+              if (!pill) continue;
+              const old = snapshotColors.get(pillIdx);
+              if (old) {
+                pill.style.backgroundColor = old.bg;
+                pill.style.color = old.color;
+                frozenPills.push(pill);
+              }
+            }
+
+            // Hide disappearing bridges with opacity
             for (const bridgeIdx of disappearing) {
-              const leftPill = pills[bridgeIdx];
-              const rightPill = pills[bridgeIdx + 1];
-              if (!leftPill || !rightPill) continue;
+              const leftPill = getPill(bridgeIdx);
+              if (!leftPill) continue;
+              const bridge = leftPill.nextElementSibling as HTMLElement | null;
+              if (bridge?.classList.contains('retune-selector-bridge')) {
+                bridge.style.opacity = '0';
+              }
+            }
 
-              const leftPad = parseFloat(getComputedStyle(leftPill).paddingRight) || 8;
-              const rightPad = parseFloat(getComputedStyle(rightPill).paddingLeft) || 8;
+            // Animate box-shadows + border-radius on the real pills.
+            // Shadows extend toward neighbor; connecting-side radius flattens to 0.
+            for (const [pillIdx, sides] of pillSides) {
+              const pill = getPill(pillIdx);
+              if (!pill) continue;
+              const bg = snapshotColors.get(pillIdx)?.bg || '#f5f5f4';
 
-              leftPill.animate([
-                { paddingRight: `${leftPad}px` },
-                { paddingRight: `${leftPad + STRETCH}px` },
-                { paddingRight: `${leftPad}px` },
-              ], { duration: DURATION, easing: EASING });
+              const shadows: string[] = [];
+              if (sides.has('right')) shadows.push(`${EXTEND}px 0 0 0 ${bg}`);
+              if (sides.has('left')) shadows.push(`-${EXTEND}px 0 0 0 ${bg}`);
+              const peakShadow = shadows.join(', ');
+              const zeroShadows = shadows.map(() => `0px 0 0 0 ${bg}`).join(', ');
 
-              rightPill.animate([
-                { paddingLeft: `${rightPad}px` },
-                { paddingLeft: `${rightPad + STRETCH}px` },
-                { paddingLeft: `${rightPad}px` },
+              // Border-radius: TL TR BR BL — flatten the connecting side(s)
+              const R = '8px';
+              const Z = '0px';
+              const peakRadius = `${sides.has('left') ? Z : R} ${sides.has('right') ? Z : R} ${sides.has('right') ? Z : R} ${sides.has('left') ? Z : R}`;
+
+              pill.animate([
+                { boxShadow: zeroShadows, borderRadius: `${R} ${R} ${R} ${R}` },
+                { boxShadow: peakShadow, borderRadius: peakRadius },
+                { boxShadow: zeroShadows, borderRadius: `${R} ${R} ${R} ${R}` },
               ], { duration: DURATION, easing: EASING });
             }
 
-            // Remove disappearing bridges immediately
-            if (disappearing.length > 0) {
-              const interim = new Set(oldBridges);
-              disappearing.forEach(b => interim.delete(b));
-              // Keep existing bridges that aren't disappearing, don't add appearing ones yet
-              setBridgeVisible(interim);
-            }
-
-            // Show appearing bridges at the midpoint (when pills are touching)
-            if (appearing.length > 0) {
-              setTimeout(() => {
-                setBridgeVisible(newBridges);
-              }, DURATION / 2);
-            } else {
+            // At the midpoint: release frozen colors + update bridges
+            setTimeout(() => {
+              for (const pill of frozenPills) {
+                pill.style.removeProperty('background-color');
+                pill.style.removeProperty('color');
+              }
               setBridgeVisible(newBridges);
-            }
+            }, DURATION / 2);
+
           }, [activeLevelIndex, scopeLevels]);
 
           return (
@@ -781,6 +807,7 @@ export function PropertyPanel({
                       )}
                       <button
                         className={`retune-selector-tag${isActive ? " active" : ""}${isIncluded ? " included" : ""}`}
+                        data-level-index={index}
                         onClick={() => onScopeLevelChange(index)}
                       >
                         <span className="retune-selector-tag-name" title={level.label}>
