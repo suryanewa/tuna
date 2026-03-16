@@ -392,6 +392,10 @@
   background: #DBEAFE;
   color: #1C60BA;
 }
+.retune-selector-tag.included:hover,
+.retune-selector-tag.active:hover {
+  background: #BFDBFE;
+}
 
 .retune-selector-tag-count {
   display: flex;
@@ -1032,7 +1036,7 @@
 }
 
 .retune-prop:hover:not(.retune-prop-variable-applied) { background: #e7e5e4; }
-.retune-prop:focus-within {
+.retune-prop:focus-within:not(.retune-prop-variable-applied) {
   outline: 1px solid rgba(0, 0, 0, 0.1);
   outline-offset: -1px;
 }

@@ -165,6 +165,20 @@ function formatSingleChange(change: ElementChange, fidelity: Fidelity, tokenMap:
     : "";
   lines.push(`**Selector:** \`${baseSelector}\`${selectorSuffix}`);
 
+  // For compound selectors (.btn.btn-ghost), break down the class chain
+  // so the AI knows which classes to look for in the source code
+  const compoundClasses = baseSelector.match(/\.[a-zA-Z0-9_-]+/g);
+  if (compoundClasses && compoundClasses.length > 1) {
+    const classBreakdown = compoundClasses.map(c => {
+      const cls = c.slice(1); // strip leading dot
+      try {
+        const count = document.querySelectorAll(c).length;
+        return `\`.${cls}\` (${count})`;
+      } catch { return `\`.${cls}\``; }
+    });
+    lines.push(`**Target classes:** ${classBreakdown.join(" → ")} — apply changes where all these classes are present`);
+  }
+
   // Element ID
   if (fidelity === "full" && change.elementId) {
     lines.push(`**ID:** \`${change.elementId}\``);
@@ -237,7 +251,8 @@ function formatSingleChange(change: ElementChange, fidelity: Fidelity, tokenMap:
     lines.push("|----------|--------|-------|--------|-------|");
 
     for (const prop of enriched) {
-      const kebab = camelToKebab(prop.property);
+      // Class swap properties use "class:oldName" format — don't camelToKebab those
+      const kebab = prop.property.startsWith("class:") ? prop.property : camelToKebab(prop.property);
       const tokenStr = formatRecommended(prop);
       const sourceStr = formatEnrichedSource(prop);
       lines.push(`| \`${kebab}\` | \`${prop.from}\` | \`${prop.to}\` | ${sourceStr} | ${tokenStr} |`);

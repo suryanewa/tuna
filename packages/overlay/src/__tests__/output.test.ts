@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { collapseShorthands, parsePseudoState } from "../engine/output";
+import { collapseShorthands, parsePseudoState, describeSelectorScope } from "../engine/output";
 import type { PropertyChange } from "../types";
 
 function makeChange(property: string, from: string, to: string): PropertyChange {
@@ -155,5 +155,43 @@ describe("parsePseudoState", () => {
     const result = parsePseudoState(".btn::before");
     expect(result.base).toBe(".btn::before");
     expect(result.pseudoState).toBeNull();
+  });
+
+  it("handles compound selector with pseudo-state", () => {
+    const result = parsePseudoState(".btn.btn-primary:hover");
+    expect(result.base).toBe(".btn.btn-primary");
+    expect(result.pseudoState).toBe("hover");
+  });
+});
+
+describe("describeSelectorScope", () => {
+  it("returns class-scoped for single class selector", () => {
+    const result = describeSelectorScope(".btn");
+    expect(result).toMatch(/class-scoped/);
+  });
+
+  it("returns class-scoped for compound class selector", () => {
+    const result = describeSelectorScope(".btn.btn-primary");
+    expect(result).toMatch(/class-scoped/);
+  });
+
+  it("returns id-scoped for id selector", () => {
+    const result = describeSelectorScope("#main");
+    expect(result).toBe("id-scoped, unique");
+  });
+
+  it("returns element-specific for path selector with >", () => {
+    const result = describeSelectorScope("main > section > .btn");
+    expect(result).toBe("element-specific");
+  });
+
+  it("handles compound selector with pseudo-state", () => {
+    const result = describeSelectorScope(".btn.btn-primary:hover");
+    expect(result).toMatch(/class-scoped/);
+  });
+
+  it("returns null for plain tag selector", () => {
+    const result = describeSelectorScope("button");
+    expect(result).toBeNull();
   });
 });
