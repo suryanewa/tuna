@@ -593,12 +593,12 @@ export function getSelectorCandidates(element: Element): SelectorCandidate[] {
     } catch { /* skip */ }
   }
 
-  // Sort: semantic before ambiguous before utility, then by count ascending (most specific first)
+  // Sort: semantic before ambiguous before utility, then by count descending (broadest scope first)
   const verdictPriority: Record<string, number> = { semantic: 0, ambiguous: 1, utility: 2 };
   candidates.sort((a, b) => {
     const vp = verdictPriority[a.verdict] - verdictPriority[b.verdict];
     if (vp !== 0) return vp;
-    return a.count - b.count;
+    return b.count - a.count;
   });
 
   return candidates;

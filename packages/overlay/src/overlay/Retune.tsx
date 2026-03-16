@@ -94,6 +94,12 @@ function AnimatedPanel({ visible, children }: { visible: boolean; children: Reac
 
 const MIN_VIEWPORT_WIDTH = 768;
 
+/** Build a compound CSS selector from toggled class names, sorted for determinism. */
+function buildCompoundSelector(classes: Set<string>): string | null {
+  if (classes.size === 0) return null;
+  return Array.from(classes).sort().map(c => `.${c}`).join('');
+}
+
 export function Retune(props: RetuneConfig = {}) {
   const isDev = typeof process !== "undefined" && process.env?.NODE_ENV === "development";
   if (!isDev && !props.force) return null;
@@ -139,8 +145,13 @@ function RetuneInner(props: RetuneConfig) {
 
   // Selector candidates for the selected element (class-based selectors with match counts)
   const [selectorCandidates, setSelectorCandidates] = useState<SelectorCandidate[]>([]);
-  // The active selector: null = element-specific, or a class-based selector string
-  const [activeSelector, setActiveSelector] = useState<string | null>(null);
+  // Compound selector builder: user toggles class chips to compose selectors
+  const [isElementMode, setIsElementMode] = useState(false);
+  const [toggledClasses, setToggledClasses] = useState<Set<string>>(new Set());
+  const toggledClassesRef = useRef<Set<string>>(new Set());
+  toggledClassesRef.current = toggledClasses;
+  // Derived activeSelector — all existing code reading this still works unchanged
+  const activeSelector = isElementMode ? null : buildCompoundSelector(toggledClasses);
   const activeSelectorRef = useRef<string | null>(null);
   activeSelectorRef.current = activeSelector;
 
@@ -276,13 +287,17 @@ function RetuneInner(props: RetuneConfig) {
         setSelectorCandidates(candidates);
         // Default to the first non-utility candidate (skip utility classes)
         const meaningful = candidates.filter(c => c.verdict !== "utility");
-        const defaultSelector = meaningful.length > 0 ? meaningful[0].selector : null;
-        activeSelectorRef.current = defaultSelector;
-        setActiveSelector(defaultSelector);
+        const defaultClass = meaningful.length > 0 ? meaningful[0].selector.replace(/^\./, '') : null;
+        const newToggled = defaultClass ? new Set([defaultClass]) : new Set<string>();
+        toggledClassesRef.current = newToggled;
+        setToggledClasses(newToggled);
+        setIsElementMode(!defaultClass);
+        const newActiveSelector = buildCompoundSelector(newToggled);
+        activeSelectorRef.current = newActiveSelector;
 
         // Apply scoped styles if a class selector is the default
-        if (defaultSelector) {
-          inspected.computedStyles = getScopedStyles(element, defaultSelector);
+        if (newActiveSelector) {
+          inspected.computedStyles = getScopedStyles(element, newActiveSelector);
         }
 
         // Overlay preview changes so re-selecting a previously edited element
@@ -653,6 +668,14 @@ function RetuneInner(props: RetuneConfig) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedElement, activeSelector, changeRevision]);
 
+  // Compound selector match count for the UI badge
+  const compoundMatchCount = useMemo(() => {
+    if (isElementMode || toggledClasses.size === 0) return 1;
+    const sel = buildCompoundSelector(toggledClasses);
+    if (!sel) return 1;
+    try { return document.querySelectorAll(sel).length; } catch { return 0; }
+  }, [toggledClasses, isElementMode]);
+
   // Tree: select element programmatically via picker
   const handleTreeSelect = useCallback((el: Element) => {
     const picker = pickerRef.current;
@@ -871,6 +894,10 @@ function RetuneInner(props: RetuneConfig) {
     if (forcedStateRef.current) clearForcedInlineStyles();
     preview.clearAll();
     tracker.clear();
+    // Reset compound selector state
+    setToggledClasses(new Set());
+    toggledClassesRef.current = new Set();
+    setIsElementMode(false);
     syncTrackerState();
     setChangeRevision((r) => r + 1);
     // Re-track the currently selected element so future changes are recorded
@@ -887,51 +914,81 @@ function RetuneInner(props: RetuneConfig) {
     refreshSelectedElement();
   }, [syncTrackerState, refreshSelectedElement, clearForcedInlineStyles]);
 
-  const handleSelectorChange = useCallback((newSelector: string | null) => {
+  /** Migrate preview + tracker changes between selectors, including pseudo-state variants. */
+  const migrateSelector = useCallback((fromSelector: string, toSelector: string) => {
     const preview = previewRef.current;
     const tracker = trackerRef.current;
+    if (!preview || !tracker || fromSelector === toSelector) return;
+
+    preview.migrateChanges(fromSelector, toSelector);
+    tracker.migrateChanges(fromSelector, toSelector);
+
+    const pseudoStates: ForcedState[] = [":hover", ":focus", ":active"];
+    for (const ps of pseudoStates) {
+      preview.migrateChanges(fromSelector + ps, toSelector + ps);
+      tracker.migrateChanges(fromSelector + ps, toSelector + ps);
+    }
+
+    if (forcedStylesRef.current.selector === fromSelector) {
+      forcedStylesRef.current.selector = toSelector;
+    }
+
+    syncTrackerState();
+    setChangeRevision((r) => r + 1);
+  }, [syncTrackerState]);
+
+  /** Toggle a class on/off in the compound selector builder. */
+  const handleClassToggle = useCallback((className: string, enabled: boolean) => {
+    const tracker = trackerRef.current;
     const el = selectedElementRef.current;
-    if (!preview || !tracker || !el) {
-      activeSelectorRef.current = newSelector;
-      setActiveSelector(newSelector);
-      return;
-    }
+    if (!tracker || !el) return;
 
-    const fromSelector = activeSelectorRef.current ?? el.selector;
-    const toSelector = newSelector ?? el.selector;
+    const oldToggled = toggledClassesRef.current;
+    const oldSelector = (isElementMode ? null : buildCompoundSelector(oldToggled)) ?? el.selector;
 
-    if (fromSelector !== toSelector) {
-      preview.migrateChanges(fromSelector, toSelector);
-      tracker.migrateChanges(fromSelector, toSelector);
+    const newToggled = new Set(oldToggled);
+    if (enabled) newToggled.add(className);
+    else newToggled.delete(className);
 
-      // Also migrate pseudo-state variants (:hover, :focus, :active)
-      const pseudoStates: ForcedState[] = [":hover", ":focus", ":active"];
-      for (const ps of pseudoStates) {
-        preview.migrateChanges(fromSelector + ps, toSelector + ps);
-        tracker.migrateChanges(fromSelector + ps, toSelector + ps);
-      }
+    const newElementMode = newToggled.size === 0;
+    const newSelector = newElementMode ? el.selector : buildCompoundSelector(newToggled)!;
 
-      // Update forcedStylesRef.selector so cleanup tracking stays correct
-      if (forcedStylesRef.current.selector === fromSelector) {
-        forcedStylesRef.current.selector = toSelector;
-      }
+    // Track the new compound selector BEFORE migration (tracker.migrateChanges
+    // requires both from/to selectors to exist in the tracked map)
+    tracker.track(
+      newSelector, el.tagName, el.textContent, el.classes,
+      el.reactComponents, el.computedStyles, el.sourceFile,
+      el.stylingApproach, el.inlineStyles, el.elementId,
+      el.accessibleName, el.parentContext, el.childSummary,
+      el.domPath, el.nearbySiblings, el.position,
+    );
 
-      syncTrackerState();
-      setChangeRevision((r) => r + 1);
-    }
+    migrateSelector(oldSelector, newSelector);
 
-    // Update ref before refresh so scoped styles use the new selector
-    activeSelectorRef.current = newSelector;
-    setActiveSelector(newSelector);
+    toggledClassesRef.current = newToggled;
+    setToggledClasses(newToggled);
+    setIsElementMode(newElementMode);
 
-    // If a pseudo-state is forced, rebuild inline styles for the new selector context
-    // so the DOM element reflects the correct pseudo-state values after migration.
-    if (forcedStateRef.current) {
-      syncForcedInlineStyles();
-    }
-
+    if (forcedStateRef.current) syncForcedInlineStyles();
     refreshSelectedElement();
-  }, [syncTrackerState, refreshSelectedElement, syncForcedInlineStyles]);
+  }, [isElementMode, migrateSelector, syncForcedInlineStyles, refreshSelectedElement]);
+
+  /** Switch to "This element" mode (element-specific path selector). */
+  const handleElementModeSelect = useCallback(() => {
+    const el = selectedElementRef.current;
+    if (!el) return;
+
+    const oldToggled = toggledClassesRef.current;
+    const oldSelector = (isElementMode ? null : buildCompoundSelector(oldToggled)) ?? el.selector;
+
+    migrateSelector(oldSelector, el.selector);
+
+    setIsElementMode(true);
+    // Keep toggledClasses so user can toggle back to class mode easily
+
+    if (forcedStateRef.current) syncForcedInlineStyles();
+    refreshSelectedElement();
+  }, [isElementMode, migrateSelector, syncForcedInlineStyles, refreshSelectedElement]);
 
   const handleCopy = useCallback(() => {
     const tracker = trackerRef.current;
@@ -1116,7 +1173,11 @@ function RetuneInner(props: RetuneConfig) {
                 onPropertyReset={handlePropertyReset}
                 selectorCandidates={selectorCandidates}
                 activeSelector={activeSelector}
-                onSelectorChange={handleSelectorChange}
+                toggledClasses={toggledClasses}
+                isElementMode={isElementMode}
+                compoundMatchCount={compoundMatchCount}
+                onClassToggle={handleClassToggle}
+                onElementModeSelect={handleElementModeSelect}
                 styleSources={styleSources}
                 forcedState={forcedState}
                 onForcedStateChange={handleForcedStateChange}

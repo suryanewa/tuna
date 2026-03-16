@@ -168,7 +168,11 @@ export function PropertyPanel({
   onPropertyReset,
   selectorCandidates = [],
   activeSelector = null,
-  onSelectorChange,
+  toggledClasses = new Set<string>(),
+  isElementMode = false,
+  compoundMatchCount = 1,
+  onClassToggle,
+  onElementModeSelect,
   styleSources = {},
   forcedState = null,
   onForcedStateChange,
@@ -193,7 +197,11 @@ export function PropertyPanel({
   onPropertyReset?: (property: string) => void;
   selectorCandidates?: SelectorCandidate[];
   activeSelector?: string | null;
-  onSelectorChange?: (selector: string | null) => void;
+  toggledClasses?: Set<string>;
+  isElementMode?: boolean;
+  compoundMatchCount?: number;
+  onClassToggle?: (className: string, enabled: boolean) => void;
+  onElementModeSelect?: () => void;
   styleSources?: Record<string, StyleSource>;
   forcedState?: ForcedState;
   onForcedStateChange?: (state: ForcedState) => void;
@@ -664,32 +672,36 @@ export function PropertyPanel({
             </div>
           </RowGroup>
         )}
-        {selectorCandidates.length > 0 && onSelectorChange && (() => {
+        {selectorCandidates.length > 0 && onClassToggle && (() => {
           const meaningful = selectorCandidates.filter(c => c.verdict !== "utility");
           if (meaningful.length === 0) return null;
           return (
-            <RowGroup label="Selector">
+            <RowGroup label="Scope">
               <div className="retune-selector-field">
                 <button
-                  className={`retune-selector-tag${activeSelector === null ? " active" : ""}`}
-                  onClick={() => onSelectorChange(null)}
+                  className={`retune-selector-tag${isElementMode ? " active" : ""}`}
+                  onClick={() => onElementModeSelect?.()}
                 >
                   <span className="retune-selector-tag-name">This element</span>
                 </button>
-                {meaningful.map((candidate) => (
-                  <button
-                    key={candidate.selector}
-                    className={`retune-selector-tag${activeSelector === candidate.selector ? " active" : ""}`}
-                    onClick={() => onSelectorChange(candidate.selector)}
-                  >
-                    <span className="retune-selector-tag-name" title={candidate.selector.replace(/^\./, "")}>
-                      {middleTruncate(candidate.selector.replace(/^\./, ""), 24)}
-                    </span>
-                    {candidate.count > 1 && (
-                      <span className="retune-selector-tag-count">{candidate.count}</span>
-                    )}
-                  </button>
-                ))}
+                {meaningful.map((candidate) => {
+                  const cls = candidate.selector.replace(/^\./, '');
+                  const isToggled = toggledClasses.has(cls);
+                  return (
+                    <button
+                      key={candidate.selector}
+                      className={`retune-selector-tag${isToggled && !isElementMode ? " active" : ""}${isElementMode ? " dimmed" : ""}`}
+                      onClick={() => onClassToggle(cls, isElementMode ? true : !isToggled)}
+                    >
+                      <span className="retune-selector-tag-name" title={cls}>
+                        {middleTruncate(cls, 24)}
+                      </span>
+                    </button>
+                  );
+                })}
+                {!isElementMode && toggledClasses.size > 0 && (
+                  <span className="retune-selector-compound-count">{compoundMatchCount}</span>
+                )}
               </div>
             </RowGroup>
           );
