@@ -3,7 +3,7 @@
  * editable properties for the selected element.
  */
 
-import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo, Fragment } from "react";
 import type { InspectedElement } from "../types";
 import type { BoxModelProperty } from "../ui/box-model-overlay";
 import { Section, Row, RowGroup, Field } from "../ui/section";
@@ -151,6 +151,7 @@ const LIST_STYLE_OPTIONS: SegmentedOption[] = [
 type ForcedState = ":hover" | ":focus" | ":active" | null;
 
 type SelectorCandidate = { selector: string; count: number; verdict: "semantic" | "utility" | "ambiguous" };
+type ScopeLevel = { label: string; selector: string | null; count: number };
 type StyleSource = { selector: string; value: string };
 
 export function PropertyPanel({
@@ -168,11 +169,9 @@ export function PropertyPanel({
   onPropertyReset,
   selectorCandidates = [],
   activeSelector = null,
-  toggledClasses = new Set<string>(),
-  isElementMode = false,
-  compoundMatchCount = 1,
-  onClassToggle,
-  onElementModeSelect,
+  scopeLevels = [] as ScopeLevel[],
+  activeLevelIndex = 0,
+  onScopeLevelChange,
   styleSources = {},
   forcedState = null,
   onForcedStateChange,
@@ -197,11 +196,9 @@ export function PropertyPanel({
   onPropertyReset?: (property: string) => void;
   selectorCandidates?: SelectorCandidate[];
   activeSelector?: string | null;
-  toggledClasses?: Set<string>;
-  isElementMode?: boolean;
-  compoundMatchCount?: number;
-  onClassToggle?: (className: string, enabled: boolean) => void;
-  onElementModeSelect?: () => void;
+  scopeLevels?: ScopeLevel[];
+  activeLevelIndex?: number;
+  onScopeLevelChange?: (index: number) => void;
   styleSources?: Record<string, StyleSource>;
   forcedState?: ForcedState;
   onForcedStateChange?: (state: ForcedState) => void;
@@ -217,7 +214,7 @@ export function PropertyPanel({
   // Helper: get token match for a camelCase prop.
   // User-set associations take priority over element-scanned matches, since the
   // user explicitly chose a token (e.g., swapping var(--spacing-4) → var(--spacing-8)).
-  const getTokenMatch = useCallback((camelProp: string): TokenMatch | undefined => {
+  const getVariableMatch = useCallback((camelProp: string): TokenMatch | undefined => {
     // Skip properties that the user explicitly unlinked
     if (unlinkedTokens?.has(camelProp)) return undefined;
     const kebab = camelProp.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`);
@@ -291,18 +288,18 @@ export function PropertyPanel({
 
   // Token props for a NumberInput
   const tokenProps = useCallback((camelProp: string) => {
-    const match = getTokenMatch(camelProp);
+    const match = getVariableMatch(camelProp);
     return {
       ...(match ? { tokenMatch: match, onTokenSelect: handleTokenSelect, onTokenUnlink: () => handleTokenUnlink(camelProp) } : {}),
       property: camelProp,
       onTokenApply: handleTokenApply,
     };
-  }, [getTokenMatch, handleTokenSelect, handleTokenApply, handleTokenUnlink]);
+  }, [getVariableMatch, handleTokenSelect, handleTokenApply, handleTokenUnlink]);
 
   // Token props for ShorthandInput — finds the first matching token among the shorthand's props
   const shorthandTokenProps = useCallback((camelProps: string[]) => {
     for (const p of camelProps) {
-      const match = getTokenMatch(p);
+      const match = getVariableMatch(p);
       if (match) return {
         tokenMatch: match, property: p, onTokenSelect: handleTokenSelect, onTokenApply: handleTokenApply,
         // Unlink ALL properties in the shorthand group so one click detaches fully
@@ -310,7 +307,7 @@ export function PropertyPanel({
       };
     }
     return { property: camelProps[0], onTokenApply: handleTokenApply };
-  }, [getTokenMatch, handleTokenSelect, handleTokenApply, onTokenUnlink]);
+  }, [getVariableMatch, handleTokenSelect, handleTokenApply, onTokenUnlink]);
 
   // Change indicator props for a single property
   const changeProps = useCallback((camelProp: string) => ({
@@ -660,52 +657,54 @@ export function PropertyPanel({
     <>
       {/* Element */}
       <Section label={element.tagName.toLowerCase()}>
+        {scopeLevels.length > 1 && onScopeLevelChange && (
+          <RowGroup label="Target">
+            <div className="retune-selector-field">
+              {scopeLevels.map((level, index) => {
+                const isActive = index === activeLevelIndex;
+                const isIncluded = index < activeLevelIndex;
+                const isElementLevel = level.selector === null;
+                const nextLevel = scopeLevels[index + 1];
+                const nextIsClassLevel = nextLevel && nextLevel.selector !== null;
+                const nextIsIncludedOrActive = (index + 1) < activeLevelIndex || (index + 1) === activeLevelIndex;
+                const showBridge = !isElementLevel && nextIsClassLevel && (isIncluded || isActive) && nextIsIncludedOrActive;
+                return (
+                  <Fragment key={level.selector ?? "__element"}>
+                    {isElementLevel && scopeLevels.length > 1 && (
+                      <span className="retune-selector-divider" />
+                    )}
+                    <button
+                      className={`retune-selector-tag${isActive ? " active" : ""}${isIncluded ? " included" : ""}`}
+                      onClick={() => onScopeLevelChange(index)}
+                    >
+                      <span className="retune-selector-tag-name" title={level.label}>
+                        {middleTruncate(level.label, 24)}
+                      </span>
+                      {level.count > 1 && (
+                        <span className="retune-selector-tag-count">{level.count}</span>
+                      )}
+                    </button>
+                    {showBridge && (
+                      <span className="retune-selector-bridge filled" />
+                    )}
+                  </Fragment>
+                );
+              })}
+            </div>
+          </RowGroup>
+        )}
         {onForcedStateChange && (
           <RowGroup label="State">
             <div className="retune-row">
               <SelectInput
                 prop="__state"
-                value={forcedState ?? "default"}
-                options={["default", ":hover", ":focus", ":active"]}
-                onChange={(_, val) => onForcedStateChange(val === "default" ? null : val as ForcedState)}
+                value={forcedState ?? "none"}
+                options={["none", ":hover", ":focus", ":active"]}
+                onChange={(_, val) => onForcedStateChange(val === "none" ? null : val as ForcedState)}
               />
             </div>
           </RowGroup>
         )}
-        {selectorCandidates.length > 0 && onClassToggle && (() => {
-          const meaningful = selectorCandidates.filter(c => c.verdict !== "utility");
-          if (meaningful.length === 0) return null;
-          return (
-            <RowGroup label="Target">
-              <div className="retune-selector-field">
-                <button
-                  className={`retune-selector-tag${isElementMode ? " active" : ""}`}
-                  onClick={() => onElementModeSelect?.()}
-                >
-                  <span className="retune-selector-tag-name">This element</span>
-                </button>
-                {meaningful.map((candidate) => {
-                  const cls = candidate.selector.replace(/^\./, '');
-                  const isToggled = toggledClasses.has(cls);
-                  return (
-                    <button
-                      key={candidate.selector}
-                      className={`retune-selector-tag${isToggled && !isElementMode ? " active" : ""}${isElementMode ? " dimmed" : ""}`}
-                      onClick={() => onClassToggle(cls, isElementMode ? true : !isToggled)}
-                    >
-                      <span className="retune-selector-tag-name" title={cls}>
-                        {middleTruncate(cls, 24)}
-                      </span>
-                    </button>
-                  );
-                })}
-                {!isElementMode && toggledClasses.size > 0 && (
-                  <span className="retune-selector-compound-count">{compoundMatchCount}</span>
-                )}
-              </div>
-            </RowGroup>
-          );
-        })()}
       </Section>
 
       {/* Position */}

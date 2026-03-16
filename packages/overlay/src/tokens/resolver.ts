@@ -93,7 +93,7 @@ function resolveVarTokens(element: Element, matches: Map<string, TokenMatch>): v
   const tryMatch = (prop: string, raw: string) => {
     if (!raw.includes("var(")) return;
     // Allow CSS variable to overwrite a raw utility match (e.g., Tailwind p-4)
-    // so the variable isn't lost when the utility gets filtered in getTokenMatch
+    // so the variable isn't lost when the utility gets filtered in getVariableMatch
     const existing = matches.get(prop);
     if (existing && !isRawUtility(existing.token)) return;
 
@@ -371,7 +371,7 @@ function getCssVarTokens(): { tokens: UtilityToken[]; byCategory: Map<TokenCateg
  * Only returns CSS variables — class-based tokens are excluded from the picker.
  * Accepts both camelCase and kebab-case property names.
  */
-export function getTokensForProperty(property: string): UtilityToken[] {
+export function getVariablesForProperty(property: string): UtilityToken[] {
   const kebab = camelToKebab(property);
   const category = getCategoryForProperty(kebab);
   if (!category) return [];
@@ -384,7 +384,7 @@ export function getTokensForProperty(property: string): UtilityToken[] {
  * Quick boolean check — are there any CSS variables for this property's category?
  * Uses the variable picker data (not class-based tokens). Accepts camelCase or kebab-case.
  */
-export function hasTokensForProperty(property: string): boolean {
+export function hasVariablesForProperty(property: string): boolean {
   const kebab = camelToKebab(property);
   const category = getCategoryForProperty(kebab);
   if (!category) return false;

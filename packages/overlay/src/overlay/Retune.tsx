@@ -94,10 +94,32 @@ function AnimatedPanel({ visible, children }: { visible: boolean; children: Reac
 
 const MIN_VIEWPORT_WIDTH = 768;
 
-/** Build a compound CSS selector from toggled class names, sorted for determinism. */
-function buildCompoundSelector(classes: Set<string>): string | null {
-  if (classes.size === 0) return null;
-  return Array.from(classes).sort().map(c => `.${c}`).join('');
+/** A pre-computed scope level in the target rail. */
+interface ScopeLevel {
+  label: string;           // Display name: class name or "This element"
+  selector: string | null; // Compound CSS selector, null = element-specific path
+  count: number;           // querySelectorAll match count
+}
+
+/** Build scope levels from candidates (sorted broadest-first).
+ *  Each level accumulates classes into a compound selector. */
+function buildScopeLevels(candidates: SelectorCandidate[]): ScopeLevel[] {
+  const meaningful = candidates.filter(c => c.verdict !== "utility");
+  if (meaningful.length === 0) {
+    return [{ label: "This element", selector: null, count: 1 }];
+  }
+  const levels: ScopeLevel[] = [];
+  const parts: string[] = [];
+  for (const candidate of meaningful) {
+    const className = candidate.selector.replace(/^\./, '');
+    parts.push(className);
+    const compound = parts.slice().sort().map(c => `.${c}`).join('');
+    let count: number;
+    try { count = document.querySelectorAll(compound).length; } catch { count = 0; }
+    levels.push({ label: className, selector: compound, count });
+  }
+  levels.push({ label: "This element", selector: null, count: 1 });
+  return levels;
 }
 
 export function Retune(props: RetuneConfig = {}) {
@@ -145,13 +167,15 @@ function RetuneInner(props: RetuneConfig) {
 
   // Selector candidates for the selected element (class-based selectors with match counts)
   const [selectorCandidates, setSelectorCandidates] = useState<SelectorCandidate[]>([]);
-  // Compound selector builder: user toggles class chips to compose selectors
-  const [isElementMode, setIsElementMode] = useState(false);
-  const [toggledClasses, setToggledClasses] = useState<Set<string>>(new Set());
-  const toggledClassesRef = useRef<Set<string>>(new Set());
-  toggledClassesRef.current = toggledClasses;
+  // Scope rail: pre-computed levels from broadest to "This element"
+  const [scopeLevels, setScopeLevels] = useState<ScopeLevel[]>([]);
+  const [activeLevelIndex, setActiveLevelIndex] = useState(0);
+  const activeLevelIndexRef = useRef(0);
+  activeLevelIndexRef.current = activeLevelIndex;
+  const scopeLevelsRef = useRef<ScopeLevel[]>([]);
+  scopeLevelsRef.current = scopeLevels;
   // Derived activeSelector — all existing code reading this still works unchanged
-  const activeSelector = isElementMode ? null : buildCompoundSelector(toggledClasses);
+  const activeSelector = scopeLevels[activeLevelIndex]?.selector ?? null;
   const activeSelectorRef = useRef<string | null>(null);
   activeSelectorRef.current = activeSelector;
 
@@ -285,14 +309,14 @@ function RetuneInner(props: RetuneConfig) {
         setStyleSources(getStyleSources(element));
         const candidates = getSelectorCandidates(element);
         setSelectorCandidates(candidates);
-        // Default to the first non-utility candidate (skip utility classes)
-        const meaningful = candidates.filter(c => c.verdict !== "utility");
-        const defaultClass = meaningful.length > 0 ? meaningful[0].selector.replace(/^\./, '') : null;
-        const newToggled = defaultClass ? new Set([defaultClass]) : new Set<string>();
-        toggledClassesRef.current = newToggled;
-        setToggledClasses(newToggled);
-        setIsElementMode(!defaultClass);
-        const newActiveSelector = buildCompoundSelector(newToggled);
+        // Build scope levels and default to the narrowest class level
+        const levels = buildScopeLevels(candidates);
+        setScopeLevels(levels);
+        scopeLevelsRef.current = levels;
+        const defaultIndex = levels.length >= 2 ? levels.length - 2 : 0;
+        setActiveLevelIndex(defaultIndex);
+        activeLevelIndexRef.current = defaultIndex;
+        const newActiveSelector = levels[defaultIndex]?.selector ?? null;
         activeSelectorRef.current = newActiveSelector;
 
         // Apply scoped styles if a class selector is the default
@@ -338,26 +362,28 @@ function RetuneInner(props: RetuneConfig) {
           inspected.position,
         );
 
-        // Also track selector candidates so changes are recorded correctly
-        for (const candidate of candidates) {
-          tracker.track(
-            candidate.selector,
-            inspected.tagName,
-            inspected.textContent,
-            inspected.classes,
-            inspected.reactComponents,
-            inspected.computedStyles,
-            inspected.sourceFile,
-            inspected.stylingApproach,
-            inspected.inlineStyles,
-            inspected.elementId,
-            inspected.accessibleName,
-            inspected.parentContext,
-            inspected.childSummary,
-            inspected.domPath,
-            inspected.nearbySiblings,
-            inspected.position,
-          );
+        // Track all scope level selectors so migration works correctly
+        for (const level of levels) {
+          if (level.selector) {
+            tracker.track(
+              level.selector,
+              inspected.tagName,
+              inspected.textContent,
+              inspected.classes,
+              inspected.reactComponents,
+              inspected.computedStyles,
+              inspected.sourceFile,
+              inspected.stylingApproach,
+              inspected.inlineStyles,
+              inspected.elementId,
+              inspected.accessibleName,
+              inspected.parentContext,
+              inspected.childSummary,
+              inspected.domPath,
+              inspected.nearbySiblings,
+              inspected.position,
+            );
+          }
         }
       },
       onCancel: () => {
@@ -668,14 +694,6 @@ function RetuneInner(props: RetuneConfig) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedElement, activeSelector, changeRevision]);
 
-  // Compound selector match count for the UI badge
-  const compoundMatchCount = useMemo(() => {
-    if (isElementMode || toggledClasses.size === 0) return 1;
-    const sel = buildCompoundSelector(toggledClasses);
-    if (!sel) return 1;
-    try { return document.querySelectorAll(sel).length; } catch { return 0; }
-  }, [toggledClasses, isElementMode]);
-
   // Tree: select element programmatically via picker
   const handleTreeSelect = useCallback((el: Element) => {
     const picker = pickerRef.current;
@@ -895,9 +913,11 @@ function RetuneInner(props: RetuneConfig) {
     preview.clearAll();
     tracker.clear();
     // Reset compound selector state
-    setToggledClasses(new Set());
-    toggledClassesRef.current = new Set();
-    setIsElementMode(false);
+    // Reset to default scope level (narrowest class level)
+    const levels = scopeLevelsRef.current;
+    const defaultIdx = levels.length >= 2 ? levels.length - 2 : 0;
+    setActiveLevelIndex(defaultIdx);
+    activeLevelIndexRef.current = defaultIdx;
     syncTrackerState();
     setChangeRevision((r) => r + 1);
     // Re-track the currently selected element so future changes are recorded
@@ -937,24 +957,20 @@ function RetuneInner(props: RetuneConfig) {
     setChangeRevision((r) => r + 1);
   }, [syncTrackerState]);
 
-  /** Toggle a class on/off in the compound selector builder. */
-  const handleClassToggle = useCallback((className: string, enabled: boolean) => {
+  /** Select a scope level from the target rail. */
+  const handleScopeLevelChange = useCallback((index: number) => {
     const tracker = trackerRef.current;
     const el = selectedElementRef.current;
-    if (!tracker || !el) return;
+    const levels = scopeLevelsRef.current;
+    if (!tracker || !el || index < 0 || index >= levels.length) return;
 
-    const oldToggled = toggledClassesRef.current;
-    const oldSelector = (isElementMode ? null : buildCompoundSelector(oldToggled)) ?? el.selector;
+    const oldIndex = activeLevelIndexRef.current;
+    if (index === oldIndex) return;
 
-    const newToggled = new Set(oldToggled);
-    if (enabled) newToggled.add(className);
-    else newToggled.delete(className);
+    const oldSelector = levels[oldIndex]?.selector ?? el.selector;
+    const newSelector = levels[index]?.selector ?? el.selector;
 
-    const newElementMode = newToggled.size === 0;
-    const newSelector = newElementMode ? el.selector : buildCompoundSelector(newToggled)!;
-
-    // Track the new compound selector BEFORE migration (tracker.migrateChanges
-    // requires both from/to selectors to exist in the tracked map)
+    // Track the new selector BEFORE migration
     tracker.track(
       newSelector, el.tagName, el.textContent, el.classes,
       el.reactComponents, el.computedStyles, el.sourceFile,
@@ -965,30 +981,12 @@ function RetuneInner(props: RetuneConfig) {
 
     migrateSelector(oldSelector, newSelector);
 
-    toggledClassesRef.current = newToggled;
-    setToggledClasses(newToggled);
-    setIsElementMode(newElementMode);
+    activeLevelIndexRef.current = index;
+    setActiveLevelIndex(index);
 
     if (forcedStateRef.current) syncForcedInlineStyles();
     refreshSelectedElement();
-  }, [isElementMode, migrateSelector, syncForcedInlineStyles, refreshSelectedElement]);
-
-  /** Switch to "This element" mode (element-specific path selector). */
-  const handleElementModeSelect = useCallback(() => {
-    const el = selectedElementRef.current;
-    if (!el) return;
-
-    const oldToggled = toggledClassesRef.current;
-    const oldSelector = (isElementMode ? null : buildCompoundSelector(oldToggled)) ?? el.selector;
-
-    migrateSelector(oldSelector, el.selector);
-
-    setIsElementMode(true);
-    // Keep toggledClasses so user can toggle back to class mode easily
-
-    if (forcedStateRef.current) syncForcedInlineStyles();
-    refreshSelectedElement();
-  }, [isElementMode, migrateSelector, syncForcedInlineStyles, refreshSelectedElement]);
+  }, [migrateSelector, syncForcedInlineStyles, refreshSelectedElement]);
 
   const handleCopy = useCallback(() => {
     const tracker = trackerRef.current;
@@ -1173,11 +1171,9 @@ function RetuneInner(props: RetuneConfig) {
                 onPropertyReset={handlePropertyReset}
                 selectorCandidates={selectorCandidates}
                 activeSelector={activeSelector}
-                toggledClasses={toggledClasses}
-                isElementMode={isElementMode}
-                compoundMatchCount={compoundMatchCount}
-                onClassToggle={handleClassToggle}
-                onElementModeSelect={handleElementModeSelect}
+                scopeLevels={scopeLevels}
+                activeLevelIndex={activeLevelIndex}
+                onScopeLevelChange={handleScopeLevelChange}
                 styleSources={styleSources}
                 forcedState={forcedState}
                 onForcedStateChange={handleForcedStateChange}

@@ -14,7 +14,7 @@ import { roundCssValue, inferCssUnit } from "./round-css-value";
 import { ChevronDown } from "./icons";
 import { useScrollLock } from "./use-scroll-lock";
 import type { TokenMatch, UtilityToken } from "../tokens/types";
-import { hasTokensForProperty } from "../tokens/resolver";
+import { hasVariablesForProperty } from "../tokens/resolver";
 import { ChangeIndicator } from "./change-indicator";
 import { TokenDialog } from "./token-dialog";
 import { claimDialog, releaseDialog } from "./dialog-singleton";
@@ -60,7 +60,7 @@ export function ComboInput({ label, prop, value, options, onChange, tokenMatch, 
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerAnchor, setPickerAnchor] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
   const stableCloseRef = useRef(() => setPickerOpen(false));
-  const hasAvailable = useMemo(() => hasTokensForProperty(property || prop), [property, prop]);
+  const hasAvailable = useMemo(() => hasVariablesForProperty(property || prop), [property, prop]);
 
   // "Add variable" option appended to dropdown when variables are available
   const ADD_VARIABLE_VALUE = "__add_variable__";

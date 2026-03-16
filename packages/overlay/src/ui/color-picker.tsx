@@ -21,7 +21,7 @@ import {
 import { FloatingDialog } from "./floating-dialog";
 import { Tooltip } from "./tooltip";
 import type { UtilityToken } from "../tokens/types";
-import { getTokensForProperty } from "../tokens/resolver";
+import { getVariablesForProperty } from "../tokens/resolver";
 import { getCategoryForProperty } from "../tokens/categories";
 
 /** Format variable name for display: strip var(-- ) → "color-brand" */
@@ -79,7 +79,7 @@ export function ColorPicker({
   const dragCleanupRef = useRef<(() => void) | null>(null);
 
   // ── Token tab support ─────────────────────────────────────────────
-  const allTokens = useMemo(() => property ? getTokensForProperty(property) : [], [property]);
+  const allTokens = useMemo(() => property ? getVariablesForProperty(property) : [], [property]);
   const category = property
     ? getCategoryForProperty(property.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`))
     : null;

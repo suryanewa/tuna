@@ -11,8 +11,10 @@ import {
   scoreNamePattern,
 } from "../selector/identifier";
 
-/** Maximum authored properties for a rule to be considered a utility token */
-const MAX_UTILITY_PROPS = 3;
+/** Maximum authored properties for a rule to be considered a utility token.
+ *  Design tokens are atomic (one value). Shorthand properties like `padding`
+ *  expand to longhands but count as 1 authored property via countAuthoredProperties. */
+const MAX_UTILITY_PROPS = 1;
 
 /** Cache: avoid rebuilding when stylesheets haven't changed */
 let cachedRegistry: TokenRegistry | null = null;

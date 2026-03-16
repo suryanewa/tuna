@@ -16,7 +16,7 @@
 import { useState, useCallback, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import type { TokenMatch, UtilityToken } from "../tokens/types";
-import { hasTokensForProperty } from "../tokens/resolver";
+import { hasVariablesForProperty } from "../tokens/resolver";
 import { TokenDialog } from "./token-dialog";
 import { claimDialog, releaseDialog } from "./dialog-singleton";
 import { Tooltip } from "./tooltip";
@@ -65,7 +65,7 @@ export function VariableAction({ match, property, relatedProperties, onTokenSele
   // Stable close function for the dialog singleton
   const stableCloseRef = useRef(() => setPickerOpen(false));
 
-  const hasAvailable = useMemo(() => hasTokensForProperty(property), [property]);
+  const hasAvailable = useMemo(() => hasVariablesForProperty(property), [property]);
   const isActive = !!match;
 
   // Refs for native handler access

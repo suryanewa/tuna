@@ -84,7 +84,7 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: radial-gradient(circle at center, #fff 1px, #3b82f6 1px);
+  background: radial-gradient(circle at center, #fff 1px, #0D99FF 1px);
   pointer-events: none;
 }
 
@@ -209,7 +209,7 @@
 .retune-edit-count {
   font-size: 13px;
   font-weight: 500;
-  background: #3b82f6;
+  background: #0D99FF;
   color: #fff;
   min-width: 32px;
   height: 32px;
@@ -242,7 +242,7 @@
 .retune-panel-body {
   flex: 1;
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: clip;
   scrollbar-width: none;
 }
 
@@ -314,11 +314,25 @@
 }
 
 /* ── Selector field (Webflow-style class tags) ── */
+.retune-row-group:has(.retune-selector-field) {
+  padding-left: 0;
+  padding-right: 0;
+}
+.retune-row-group:has(.retune-selector-field) > .retune-group-label-inline {
+  padding-left: 16px;
+}
+
 .retune-selector-field {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0 16px;
 }
+/* Remove gap around bridge connectors — the bridge IS the connection */
+.retune-selector-bridge { margin: 0 -8px; }
+.retune-selector-field::-webkit-scrollbar { display: none; }
 
 .retune-selector-tag {
   display: flex;
@@ -344,6 +358,7 @@
   background: #e7e5e4;
 }
 
+.retune-selector-tag.included,
 .retune-selector-tag.active {
   background: #DBEAFE;
   color: #1C60BA;
@@ -364,6 +379,7 @@
   border-radius: 4px;
 }
 
+.retune-selector-tag.included .retune-selector-tag-count,
 .retune-selector-tag.active .retune-selector-tag-count {
   color: #1C60BA;
 }
@@ -372,29 +388,41 @@
   font-family: InterVariable, Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
-.retune-selector-tag.dimmed {
-  opacity: 0.45;
+.retune-selector-bridge {
+  width: 8px;
+  height: 16px;
+  flex-shrink: 0;
+  position: relative;
+  background: #f5f5f4;
 }
-
-.retune-selector-tag.dimmed:hover {
-  opacity: 0.7;
-  background: #e7e5e4;
-}
-
-.retune-selector-compound-count {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: InterVariable, Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: -0.005em;
-  line-height: 16px;
+.retune-selector-bridge.filled {
   background: #DBEAFE;
-  color: #1C60BA;
-  padding: 2px 6px;
-  border-radius: 4px;
-  min-width: 18px;
+}
+.retune-selector-bridge::before,
+.retune-selector-bridge::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 5px;
+  background: #fff;
+}
+.retune-selector-bridge::before {
+  top: 0;
+  border-radius: 0 0 4px 4px;
+}
+.retune-selector-bridge::after {
+  bottom: 0;
+  border-radius: 4px 4px 0 0;
+}
+
+.retune-selector-divider {
+  width: 1px;
+  height: 20px;
+  background: #E7E5E4;
+  flex-shrink: 0;
+  align-self: center;
+  margin: 0 8px;
 }
 
 /* ── Tab bar ── */
@@ -1045,7 +1073,7 @@
 }
 
 .retune-prop-input:first-child { padding-left: 12px; }
-.retune-prop-input::selection { background: #bfdbfe; }
+.retune-prop-input::selection { background: #bfdbfe; color: #1c1917; }
 .retune-prop-input:focus { outline: none; }
 
 /* ── Color Input (split: [swatch|hex] [opacity%]) ── */
@@ -1103,7 +1131,7 @@
   outline: 1px solid rgba(0, 0, 0, 0.1);
   outline-offset: -1px;
 }
-.retune-color-hex-input::selection { background: #bfdbfe; }
+.retune-color-hex-input::selection { background: #bfdbfe; color: #1c1917; }
 
 .retune-color-opacity-section {
   display: flex;
@@ -1443,7 +1471,7 @@
   box-shadow: 0 0 0 1.5px rgba(59, 130, 246, 0.5);
 }
 
-.retune-cp-input::selection { background: #bfdbfe; }
+.retune-cp-input::selection { background: #bfdbfe; color: #1c1917; }
 
 /* ── Gradient Editor ── */
 .retune-gradient-editor {
@@ -1926,7 +1954,7 @@
   padding: 0 8px;
 }
 
-.retune-text-input-field::selection { background: #bfdbfe; }
+.retune-text-input-field::selection { background: #bfdbfe; color: #1c1917; }
 .retune-text-input-field:focus { outline: none; }
 
 /* ── ComboInput ── */
@@ -1976,8 +2004,7 @@
 }
 
 .retune-combo-input:hover { background: #e7e5e4; }
-.retune-combo-input:focus { outline: none; }
-.retune-combo:focus-within {
+.retune-combo-input:focus {
   outline: 1px solid rgba(0, 0, 0, 0.1);
   outline-offset: -1px;
 }
@@ -1985,7 +2012,7 @@
   outline: 1px solid #D6D3D1;
   outline-offset: -1px;
 }
-.retune-combo-input::selection { background: #bfdbfe; }
+.retune-combo-input::selection { background: #bfdbfe; color: #1c1917; }
 
 .retune-combo-trigger {
   width: 32px;
@@ -2239,7 +2266,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #3b82f6;
+  background: #0D99FF;
   box-shadow: 0 0 0 3px #fff;
   pointer-events: none;
 }

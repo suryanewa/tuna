@@ -10,7 +10,7 @@
 
 import { useEffect, useRef, useMemo, useState, useCallback } from "react";
 import type { UtilityToken } from "../tokens/types";
-import { getTokensForProperty } from "../tokens/resolver";
+import { getVariablesForProperty } from "../tokens/resolver";
 import { getCategoryForProperty } from "../tokens/categories";
 import { FloatingDialog } from "./floating-dialog";
 import { Tooltip } from "./tooltip";
@@ -55,7 +55,7 @@ export function TokenDialog({ property, currentToken, onSelect, onUnlink, onClos
   const [search, setSearch] = useState("");
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
-  const allTokens = useMemo(() => getTokensForProperty(property), [property]);
+  const allTokens = useMemo(() => getVariablesForProperty(property), [property]);
   const category = getCategoryForProperty(property.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`));
   const isColor = category === "colors";
 

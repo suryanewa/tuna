@@ -29,57 +29,57 @@ vi.mock("./registry", () => ({
   })),
 }));
 
-import { getTokensForProperty, hasTokensForProperty, resolveTokensForElement } from "./resolver";
+import { getVariablesForProperty, hasVariablesForProperty, resolveTokensForElement } from "./resolver";
 
-describe("Variable picker — getTokensForProperty", () => {
+describe("Variable picker — getVariablesForProperty", () => {
   it("returns only CSS variables for spacing (no class tokens)", () => {
-    const tokens = getTokensForProperty("padding");
+    const tokens = getVariablesForProperty("padding");
     expect(tokens.length).toBe(3); // --spacing-1, --spacing-2, --spacing-4
     expect(tokens.every(t => t.className.startsWith("var("))).toBe(true);
   });
 
   it("returns CSS variables for colors", () => {
-    const tokens = getTokensForProperty("color");
+    const tokens = getVariablesForProperty("color");
     expect(tokens.length).toBeGreaterThan(0);
     expect(tokens.map(t => t.className)).toContain("var(--color-brand)");
     expect(tokens.map(t => t.className)).toContain("var(--color-text)");
   });
 
   it("returns CSS variables for borders (radius)", () => {
-    const tokens = getTokensForProperty("borderRadius");
+    const tokens = getVariablesForProperty("borderRadius");
     expect(tokens.map(t => t.className)).toContain("var(--radius-md)");
     expect(tokens.map(t => t.className)).toContain("var(--radius-lg)");
   });
 
   it("returns CSS variables for typography", () => {
-    const tokens = getTokensForProperty("fontSize");
+    const tokens = getVariablesForProperty("fontSize");
     expect(tokens.map(t => t.className)).toContain("var(--font-sm)");
   });
 
   it("returns CSS variables for effects", () => {
-    const tokens = getTokensForProperty("boxShadow");
+    const tokens = getVariablesForProperty("boxShadow");
     expect(tokens.map(t => t.className)).toContain("var(--shadow-md)");
   });
 
   it("returns CSS variables for sizing", () => {
-    const tokens = getTokensForProperty("width");
+    const tokens = getVariablesForProperty("width");
     expect(tokens.map(t => t.className)).toContain("var(--size-lg)");
   });
 
   it("returns empty for uncategorized properties", () => {
-    expect(getTokensForProperty("zIndex").length).toBe(0);
+    expect(getVariablesForProperty("zIndex").length).toBe(0);
   });
 });
 
-describe("hasTokensForProperty — only checks CSS variables", () => {
+describe("hasVariablesForProperty — only checks CSS variables", () => {
   it("returns true when CSS variables exist for the category", () => {
-    expect(hasTokensForProperty("padding")).toBe(true);
-    expect(hasTokensForProperty("color")).toBe(true);
-    expect(hasTokensForProperty("borderRadius")).toBe(true);
+    expect(hasVariablesForProperty("padding")).toBe(true);
+    expect(hasVariablesForProperty("color")).toBe(true);
+    expect(hasVariablesForProperty("borderRadius")).toBe(true);
   });
 
   it("returns false for uncategorized properties", () => {
-    expect(hasTokensForProperty("zIndex")).toBe(false);
+    expect(hasVariablesForProperty("zIndex")).toBe(false);
   });
 });
 
