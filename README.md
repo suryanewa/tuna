@@ -52,21 +52,39 @@ Controls appear based on the selected element:
 | Image | object-fit, aspect-ratio, border-radius |
 | Positioned | position offsets, z-index |
 
+### CSS Variable Detection
+
+Retune scans your project's stylesheets at runtime and detects CSS custom properties (`--spacing-4`, `--color-brand`, etc.). It categorizes them by analyzing which CSS properties actually use each variable — not by guessing from names. When editing a property, the variable picker shows only relevant variables (e.g., font-size variables when editing font-size).
+
+Variables can be applied, swapped, and unlinked directly from property inputs, gradient stop colors, and section-level actions for fill and shadow.
+
+### Target Scoping
+
+When you select an element with multiple classes (e.g., `.btn.btn-ghost`), Retune shows pre-computed scope levels so you can choose how broadly your changes apply — from the base class (all buttons) to the specific compound selector (just ghost buttons) to "This element" (path selector). The panel only shows properties owned by the selected scope.
+
+### Gradient Editor
+
+Full inline gradient editor with linear, radial, and conic support. Includes a visual stop bar for dragging color stops, angle control, reverse/rotate actions, and per-stop change tracking. Gradient stop colors support the variable picker for applying color tokens.
+
 ### Pseudo-State Editing
 
 Toggle between `:hover`, `:focus`, and `:active` states to inspect and edit styles that only apply in those states — without needing to hold the mouse in place.
 
-### Class Selector Picker
+### Font Picker
 
-When you select an element, Retune shows its CSS classes as clickable tags. Pick "This element" to scope changes to just that element, or pick a class to apply changes everywhere that class is used. Each tag shows how many elements share the class.
-
-### Styling Approach Detection
-
-Retune analyzes your stylesheets at runtime to detect whether you're using utility CSS (Tailwind, UnoCSS, etc.) or semantic CSS (CSS Modules, plain CSS). This context helps your AI agent write changes in the right format. No hardcoded framework patterns — it works by analyzing rule complexity in `document.styleSheets`.
+Browse and apply fonts from your project's stylesheets, system fonts (via Local Font Access API), and generic CSS families. Filter by category (serif, sans-serif, monospace, etc.).
 
 ### Scrub-to-Adjust
 
 Click and drag on any numeric value to scrub it up or down. Hold Shift for 10x increments, Alt for 0.1x precision.
+
+### Change Tracking
+
+Every property change shows a visual indicator. Click it to reset to the original value. Undo/redo support across all changes. The output includes precise before/after diffs for each property.
+
+### Styling Approach Detection
+
+Retune analyzes your stylesheets at runtime to detect whether you're using utility CSS (Tailwind, UnoCSS, etc.) or semantic CSS (CSS Modules, plain CSS). This context helps your AI agent write changes in the right format.
 
 ## AI Integration (MCP Server)
 
@@ -93,6 +111,10 @@ Retune includes a built-in MCP server. Configure your AI tool to use it:
 | `retune_watch_changes` | Wait for new changes (blocks up to 30s) |
 | `retune_clear_changes` | Clear pending changes after applying them |
 | `retune_status` | Check overlay connection status |
+
+### Claude Code Skill
+
+Retune ships with a built-in skill (`retune-visual-changes`) that teaches Claude Code how to apply visual changes to source code. It handles value resolution (design tokens, utility classes, CSS variables, raw values), respects your project's styling conventions, and routes changes to the correct files. The skill activates automatically when Retune output is detected.
 
 ## Configuration
 
@@ -138,4 +160,4 @@ npm run dev    # Watch mode
 
 ## License
 
-MIT
+[PolyForm Shield 1.0.0](LICENSE)
