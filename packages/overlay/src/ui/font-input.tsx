@@ -97,7 +97,9 @@ export function FontInput({ prop, value, onChange, isChanged, onReset }: FontInp
   const listRef = useRef<HTMLDivElement>(null);
   const stableCloseRef = useRef(() => setPickerOpen(false));
 
-  // Auto-load system fonts if permission already granted
+  const [fontPermissionDenied, setFontPermissionDenied] = useState(false);
+
+  // Auto-load system fonts if permission already granted, or detect denied
   useEffect(() => {
     if (systemFonts !== null) return;
     if (!('queryLocalFonts' in window)) return;
@@ -105,6 +107,9 @@ export function FontInput({ prop, value, onChange, isChanged, onReset }: FontInp
       navigator.permissions.query({ name: "local-fonts" as PermissionName }).then(result => {
         if (result.state === "granted") {
           queryLocalFonts().then(fonts => setSystemFonts(fonts));
+        } else if (result.state === "denied") {
+          setSystemFonts([]);
+          setFontPermissionDenied(true);
         }
       }).catch(() => {}); // permission query not supported
     } catch {}
@@ -174,8 +179,14 @@ export function FontInput({ prop, value, onChange, isChanged, onReset }: FontInp
   // Load system fonts on demand
   const loadSystemFonts = useCallback(async () => {
     if (systemFonts !== null) return; // already loaded or attempted
-    const fonts = await queryLocalFonts();
-    setSystemFonts(fonts);
+    try {
+      const fonts = await queryLocalFonts();
+      setSystemFonts(fonts);
+    } catch {
+      // Permission denied or API error — mark as empty so button doesn't loop
+      setSystemFonts([]);
+      setFontPermissionDenied(true);
+    }
   }, [systemFonts]);
 
   // Native click handler for font items (Shadow DOM compatible)
@@ -333,16 +344,22 @@ export function FontInput({ prop, value, onChange, isChanged, onReset }: FontInp
               <div className="retune-font-empty">No fonts found</div>
             )}
 
-            {/* Load system fonts button (shown at end when not yet loaded) */}
-            {systemFonts === null && (fontCategory === "all" || fontCategory === "system") && (
-              <div className="retune-font-system-prompt">
-                <button
-                  className="retune-font-system-btn"
-                  data-font-name="__load_system"
-                >
-                  Load system fonts
-                </button>
-              </div>
+            {/* Load system fonts button or denied message */}
+            {(fontCategory === "all" || fontCategory === "system") && (
+              systemFonts === null ? (
+                <div className="retune-font-system-prompt">
+                  <button
+                    className="retune-font-system-btn"
+                    data-font-name="__load_system"
+                  >
+                    Load system fonts
+                  </button>
+                </div>
+              ) : fontPermissionDenied ? (
+                <div className="retune-font-system-prompt">
+                  <p className="retune-font-denied">Font access denied. Allow in site settings to try again.</p>
+                </div>
+              ) : null
             )}
           </div>
         </FloatingDialog>,

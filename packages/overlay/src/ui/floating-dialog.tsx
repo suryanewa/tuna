@@ -143,10 +143,11 @@ export function FloatingDialog({
   const spaceAbove = anchorRect.top - gap;
   const flipUp = spaceBelow < maxHeightProp && spaceAbove > spaceBelow;
   const maxHeight = Math.min(maxHeightProp, flipUp ? spaceAbove : spaceBelow);
+  const clampedMinHeight = Math.min(minHeight, maxHeight);
 
   const posStyle: React.CSSProperties = flipUp
-    ? { position: "fixed", bottom: window.innerHeight - anchorRect.top + gap, left, width: panelWidth, maxHeight, minHeight }
-    : { position: "fixed", top: anchorRect.top + anchorRect.height + gap, left, width: panelWidth, maxHeight, minHeight };
+    ? { position: "fixed", bottom: window.innerHeight - anchorRect.top + gap, left, width: panelWidth, maxHeight, minHeight: clampedMinHeight }
+    : { position: "fixed", top: anchorRect.top + anchorRect.height + gap, left, width: panelWidth, maxHeight, minHeight: clampedMinHeight };
 
   // Header: title or tabs
   const isTabs = !!tabs;
