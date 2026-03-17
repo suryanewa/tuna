@@ -170,11 +170,11 @@ export function TokenDialog({ property, currentToken, onSelect, onUnlink, onClos
       search={{ value: search, onChange: setSearch, placeholder: "Search", onKeyDown: handleSearchKeyDown }}
       headerActions={unlinkButton}
       onHeaderAction={handleHeaderAction}
-      minHeight={300}
+      minHeight={400}
     >
-      <div ref={listRef} className="retune-token-dialog-list">
+      <div ref={listRef} className="retune-variable-dialog-list">
         {filtered.length === 0 && (
-          <div className="retune-token-dialog-empty">No variables found</div>
+          <div className="retune-variable-dialog-empty">No variables found</div>
         )}
         {filtered.map((token, i) => {
           const isActive = currentToken?.className === token.className;
@@ -182,17 +182,17 @@ export function TokenDialog({ property, currentToken, onSelect, onUnlink, onClos
           return (
             <div
               key={token.className}
-              className={`retune-token-dialog-item${isActive ? " retune-token-dialog-item-active" : ""}${isHighlighted ? " retune-token-dialog-item-highlighted" : ""}`}
+              className={`retune-variable-dialog-item${isActive ? " retune-variable-dialog-item-active" : ""}${isHighlighted ? " retune-variable-dialog-item-highlighted" : ""}`}
               data-token-index={i}
             >
               {isColor && (
                 <span
-                  className="retune-token-dialog-swatch"
+                  className="retune-variable-dialog-swatch"
                   style={{ backgroundColor: getSwatchColor(token) || "transparent" }}
                 />
               )}
-              <span className="retune-token-dialog-name">{formatName(token.className)}</span>
-              <span className="retune-token-dialog-value">{formatValue(token)}</span>
+              <span className="retune-variable-dialog-name">{formatName(token.className)}</span>
+              <span className="retune-variable-dialog-value">{formatValue(token)}</span>
             </div>
           );
         })}

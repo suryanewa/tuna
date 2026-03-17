@@ -502,9 +502,9 @@ export function ColorPicker({
   );
 
   const tokenContent = (
-    <div ref={tokenListRef} className="retune-token-dialog-list">
+    <div ref={tokenListRef} className="retune-variable-dialog-list">
       {filteredTokens.length === 0 && (
-        <div className="retune-token-dialog-empty">No variables found</div>
+        <div className="retune-variable-dialog-empty">No variables found</div>
       )}
       {filteredTokens.map((token, i) => {
         const isActive = currentToken?.className === token.className;
@@ -512,14 +512,14 @@ export function ColorPicker({
         return (
           <div
             key={token.className}
-            className={`retune-token-dialog-item${isActive ? " retune-token-dialog-item-active" : ""}${isHighlighted ? " retune-token-dialog-item-highlighted" : ""}`}
+            className={`retune-variable-dialog-item${isActive ? " retune-variable-dialog-item-active" : ""}${isHighlighted ? " retune-variable-dialog-item-highlighted" : ""}`}
             data-token-index={i}
           >
             <span
-              className="retune-token-dialog-swatch"
+              className="retune-variable-dialog-swatch"
               style={{ backgroundColor: getSwatchColor(token) || "transparent" }}
             />
-            <span className="retune-token-dialog-name">{formatVarName(token.className)}</span>
+            <span className="retune-variable-dialog-name">{formatVarName(token.className)}</span>
           </div>
         );
       })}
@@ -540,7 +540,7 @@ export function ColorPicker({
         search={activeTab === "tokens" ? { value: tokenSearch, onChange: setTokenSearch, placeholder: "Search", onKeyDown: handleTokenSearchKeyDown } : undefined}
         headerActions={unlinkButton}
         onHeaderAction={handleHeaderAction}
-        minHeight={activeTab === "tokens" ? 300 : undefined}
+        minHeight={activeTab === "custom" ? undefined : 400}
       >
         {activeTab === "tokens" ? tokenContent : pickerContent}
       </FloatingDialog>

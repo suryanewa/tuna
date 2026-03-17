@@ -57,7 +57,7 @@ export function FloatingDialog({
   title, tabs, activeTab, onTabChange,
   onClose, anchorRect, search, children,
   headerActions, onHeaderAction,
-  maxHeight: maxHeightProp = 400, minHeight, className,
+  maxHeight: maxHeightProp = 400, minHeight = 400, className,
 }: FloatingDialogProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);

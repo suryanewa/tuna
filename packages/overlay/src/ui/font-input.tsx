@@ -1,14 +1,14 @@
 /**
- * FontInput — font family picker with dropdown of common fonts.
- * Extracts the primary font name from CSS font stacks and shows
- * a searchable dropdown with font previews.
+ * FontInput — font family picker using FloatingDialog.
+ * Shows project fonts (from stylesheets), system fonts (via Local Font Access API),
+ * and generic fallbacks. Each font rendered in its own typeface.
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { DropdownMenu, type DropdownMenuOption } from "./dropdown-menu";
-import { calcMenuPosition, type MenuPosition } from "./menu-position";
+import { createPortal } from "react-dom";
+import { FloatingDialog } from "./floating-dialog";
 import { ChevronDown } from "./icons";
-import { useScrollLock } from "./use-scroll-lock";
+import { claimDialog, releaseDialog } from "./dialog-singleton";
 
 const FALLBACK_FONTS = [
   "system-ui",
@@ -27,7 +27,6 @@ function detectProjectFonts(): string[] {
           if (!(rule instanceof CSSStyleRule)) continue;
           const ff = rule.style.getPropertyValue("font-family");
           if (!ff) continue;
-          // Extract individual font names from the stack
           for (const part of ff.split(",")) {
             const name = part.trim().replace(/^["']|["']$/g, "");
             if (name && !FALLBACK_FONTS.includes(name)) {
@@ -45,16 +44,29 @@ let projectFontsCache: string[] | null = null;
 function getProjectFonts(): string[] {
   if (!projectFontsCache) {
     projectFontsCache = detectProjectFonts();
-    // Refresh after 10s (same as token cache)
     setTimeout(() => { projectFontsCache = null; }, 10000);
   }
   return projectFontsCache;
 }
 
+/** Query local system fonts via the Local Font Access API */
+async function queryLocalFonts(): Promise<string[]> {
+  try {
+    if (!('queryLocalFonts' in window)) return [];
+    const fonts = await (window as any).queryLocalFonts();
+    const families = new Set<string>();
+    for (const font of fonts) {
+      families.add(font.family);
+    }
+    return Array.from(families).sort();
+  } catch {
+    return [];
+  }
+}
+
 /** Extract the primary font name from a CSS font-family stack */
 function extractPrimaryFont(fontFamily: string): string {
   if (!fontFamily) return "";
-  // Split on comma, take the first, strip quotes and whitespace
   const first = fontFamily.split(",")[0].trim();
   return first.replace(/^["']|["']$/g, "");
 }
@@ -68,13 +80,14 @@ export interface FontInputProps {
 export function FontInput({ prop, value, onChange }: FontInputProps) {
   const primaryFont = extractPrimaryFont(value || "");
   const [localValue, setLocalValue] = useState(primaryFont);
-  const [open, setOpen] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [anchorRect, setAnchorRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
+  const [search, setSearch] = useState("");
+  const [systemFonts, setSystemFonts] = useState<string[] | null>(null);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const [menuPos, setMenuPos] = useState<MenuPosition | null>(null);
-  const [filter, setFilter] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  useScrollLock(open);
+  const listRef = useRef<HTMLDivElement>(null);
+  const stableCloseRef = useRef(() => setPickerOpen(false));
 
   // Sync from parent
   const [prevValue, setPrevValue] = useState(value);
@@ -83,162 +96,218 @@ export function FontInput({ prop, value, onChange }: FontInputProps) {
     setLocalValue(extractPrimaryFont(value || ""));
   }
 
-  // Build font list: project fonts first, then fallbacks
-  const allFonts = useMemo(() => {
-    const project = getProjectFonts();
-    // Deduplicate: project fonts + fallbacks, preserving order
-    const seen = new Set(project.map(f => f.toLowerCase()));
-    const fallbacks = FALLBACK_FONTS.filter(f => !seen.has(f.toLowerCase()));
-    return [...project, ...fallbacks];
-  }, []);
+  // Build font sections
+  const projectFonts = useMemo(() => getProjectFonts(), []);
 
-  const filteredFonts = filter
-    ? allFonts.filter((f) => f.toLowerCase().includes(filter.toLowerCase()))
-    : allFonts;
+  const filteredProject = search
+    ? projectFonts.filter(f => f.toLowerCase().includes(search.toLowerCase()))
+    : projectFonts;
 
-  const projectFontCount = getProjectFonts().length;
-  const menuOptions: DropdownMenuOption[] = filteredFonts.map((f, i) => {
-    // Add heading before fallback section (only when not filtering)
-    const isFirstFallback = !filter && i === projectFontCount && projectFontCount > 0;
-    return {
-      value: f,
-      label: f,
-      ...(isFirstFallback ? { separatorBefore: true, headingBefore: "Generic" } : {}),
-      ...(!filter && i === 0 && projectFontCount > 0 ? { headingBefore: "Project fonts" } : {}),
-    };
-  });
+  const filteredSystem = search && systemFonts
+    ? systemFonts.filter(f => f.toLowerCase().includes(search.toLowerCase()) && !projectFonts.some(p => p.toLowerCase() === f.toLowerCase()))
+    : (systemFonts || []).filter(f => !projectFonts.some(p => p.toLowerCase() === f.toLowerCase()));
 
-  const openDropdown = useCallback(() => {
+  const filteredFallbacks = search
+    ? FALLBACK_FONTS.filter(f => f.toLowerCase().includes(search.toLowerCase()))
+    : FALLBACK_FONTS;
+
+  // All fonts flat for keyboard navigation
+  const allFiltered = [...filteredProject, ...filteredSystem, ...filteredFallbacks];
+
+  // Open the picker
+  const openPicker = useCallback(() => {
     const el = containerRef.current;
     if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const selectedIndex = Math.max(0, filteredFonts.indexOf(localValue));
-    const pos = calcMenuPosition(rect, selectedIndex, filteredFonts.length);
-    setMenuPos(pos);
-    setOpen(true);
-    setHighlightedIndex(selectedIndex);
-    setFilter("");
-  }, [filteredFonts, localValue]);
-
-  const closeDropdown = useCallback(() => {
-    setOpen(false);
+    if (pickerOpen) {
+      releaseDialog(stableCloseRef.current);
+      setPickerOpen(false);
+      return;
+    }
+    const row = el.closest(".retune-row");
+    const rect = row ? row.getBoundingClientRect() : el.getBoundingClientRect();
+    setAnchorRect({ top: rect.top, left: rect.left, width: rect.width, height: rect.height });
+    setPickerOpen(true);
+    setSearch("");
     setHighlightedIndex(-1);
-    setMenuPos(null);
-    setFilter("");
+    claimDialog(stableCloseRef.current);
+  }, [pickerOpen]);
+
+  const closePicker = useCallback(() => {
+    releaseDialog(stableCloseRef.current);
+    setPickerOpen(false);
+    setSearch("");
   }, []);
 
-  // Close on outside click
+  const handleSelect = useCallback((fontName: string) => {
+    setLocalValue(fontName);
+    onChange(prop, fontName);
+    closePicker();
+  }, [prop, onChange, closePicker]);
+
+  // Load system fonts on demand
+  const loadSystemFonts = useCallback(async () => {
+    if (systemFonts !== null) return; // already loaded or attempted
+    const fonts = await queryLocalFonts();
+    setSystemFonts(fonts);
+  }, [systemFonts]);
+
+  // Native click handler for font items (Shadow DOM compatible)
   useEffect(() => {
-    if (!open) return;
-    const handlePointerDown = (e: PointerEvent) => {
-      const container = containerRef.current;
-      if (!container) return;
-      const path = e.composedPath();
-      if (!path.includes(container)) {
-        closeDropdown();
-      }
+    const list = listRef.current;
+    if (!list) return;
+    const handleClick = (e: PointerEvent) => {
+      const target = e.target as HTMLElement;
+      const item = target.closest<HTMLElement>("[data-font-name]");
+      if (!item) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const name = item.dataset.fontName;
+      if (name === "__load_system") { loadSystemFonts(); return; }
+      if (name) handleSelect(name);
     };
-    const root = containerRef.current?.getRootNode() as ShadowRoot | Document;
-    root.addEventListener("pointerdown", handlePointerDown as EventListener);
-    return () => root.removeEventListener("pointerdown", handlePointerDown as EventListener);
-  }, [open, closeDropdown]);
+    list.addEventListener("pointerdown", handleClick);
+    return () => list.removeEventListener("pointerdown", handleClick);
+  }, [pickerOpen, handleSelect, loadSystemFonts]);
 
-  const handleSelect = (option: DropdownMenuOption) => {
-    setLocalValue(option.value);
-    onChange(prop, option.value);
-    closeDropdown();
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setLocalValue(val);
-    if (open) {
-      setFilter(val);
-      setHighlightedIndex(0);
-    }
-  };
-
-  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-    e.target.select();
-    if (!open) openDropdown();
-  };
-
-  const handleBlur = () => {
-    if (localValue && localValue !== primaryFont) {
-      onChange(prop, localValue);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
+  // Keyboard navigation
+  const handleSearchKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    const count = allFiltered.length;
+    if (count === 0) return;
+    if (e.key === "ArrowDown") {
       e.preventDefault();
-      if (open && highlightedIndex >= 0 && highlightedIndex < menuOptions.length) {
-        handleSelect(menuOptions[highlightedIndex]);
-      } else {
-        onChange(prop, localValue);
-        closeDropdown();
-        (e.target as HTMLInputElement).blur();
-      }
-      return;
-    }
-
-    if (e.key === "Escape") {
-      closeDropdown();
-      return;
-    }
-
-    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      setHighlightedIndex(prev => (prev + 1) % count);
+    } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      if (!open) {
-        openDropdown();
-        return;
-      }
-      if (e.key === "ArrowDown") {
-        setHighlightedIndex((prev) => prev < menuOptions.length - 1 ? prev + 1 : prev);
-      } else {
-        setHighlightedIndex((prev) => prev > 0 ? prev - 1 : prev);
+      setHighlightedIndex(prev => (prev <= 0 ? count - 1 : prev - 1));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (highlightedIndex >= 0 && highlightedIndex < count) {
+        handleSelect(allFiltered[highlightedIndex]);
       }
     }
-  };
+  }, [allFiltered, highlightedIndex, handleSelect]);
+
+  // Auto-scroll highlighted item
+  useEffect(() => {
+    if (highlightedIndex < 0) return;
+    const list = listRef.current;
+    if (!list) return;
+    const item = list.querySelector(`[data-font-index="${highlightedIndex}"]`);
+    if (item) item.scrollIntoView({ block: "nearest" });
+  }, [highlightedIndex]);
+
+
+  // Find portal target for the floating dialog
+  const portalTarget = containerRef.current?.getRootNode() instanceof ShadowRoot
+    ? (containerRef.current.getRootNode() as ShadowRoot).querySelector("[data-retune-container]") as HTMLElement
+    : null;
+
+  // Track flat index for highlighting
+  let flatIndex = 0;
 
   return (
     <div className="retune-font-input" ref={containerRef}>
-      <input
-        ref={inputRef}
-        className="retune-font-input-field"
-        value={localValue}
-        onChange={handleInputChange}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
-        onKeyDown={handleKeyDown}
-        spellCheck={false}
-      />
       <button
         type="button"
-        className="retune-combo-trigger"
-        onClick={() => { open ? closeDropdown() : openDropdown(); }}
-        aria-label="Toggle fonts"
+        className="retune-font-input-trigger"
+        onClick={openPicker}
       >
+        <span className="retune-font-input-value" style={{ fontFamily: primaryFont || undefined }}>{primaryFont || "–"}</span>
         <ChevronDown />
       </button>
-      {open && menuPos && (
-        <div
-          className="retune-combo-dropdown-anchor"
-          style={{ top: menuPos.top, left: menuPos.left, width: menuPos.width }}
+      {pickerOpen && anchorRect && portalTarget && createPortal(
+        <FloatingDialog
+          title="Fonts"
+          onClose={closePicker}
+          anchorRect={anchorRect}
+          search={{
+            value: search,
+            onChange: setSearch,
+            placeholder: "Search fonts...",
+            onKeyDown: handleSearchKeyDown,
+          }}
+          maxHeight={400}
+          minHeight={400}
         >
-          <DropdownMenu
-            options={menuOptions}
-            value={localValue}
-            highlightedIndex={highlightedIndex}
-            onSelect={handleSelect}
-            onHighlight={setHighlightedIndex}
-            initialScrollTop={menuPos.scrollTop}
-            showCheckmark
-            renderLabel={(option) => (
-              <span style={{ fontFamily: option.value }}>{option.label}</span>
+          <div ref={listRef} className="retune-font-list">
+            {/* Project fonts */}
+            {filteredProject.length > 0 && (
+              <>
+                <div className="retune-font-section-title">Project fonts</div>
+                {filteredProject.map(font => {
+                  const idx = flatIndex++;
+                  return (
+                    <div
+                      key={font}
+                      className={`retune-font-item${font === primaryFont ? " retune-font-item-active" : ""}${idx === highlightedIndex ? " retune-font-item-highlighted" : ""}`}
+                      data-font-name={font} title={font}
+                      data-font-index={idx}
+                      style={{ fontFamily: font }}
+                    >
+                      {font}
+                    </div>
+                  );
+                })}
+              </>
             )}
-          />
-        </div>
+
+            {/* System fonts */}
+            {systemFonts === null ? (
+              <div className="retune-font-system-prompt">
+                <button
+                  className="retune-font-system-btn"
+                  data-font-name="__load_system"
+                >
+                  Show system fonts
+                </button>
+              </div>
+            ) : filteredSystem.length > 0 ? (
+              <>
+                <div className="retune-font-section-title">System fonts</div>
+                {filteredSystem.map(font => {
+                  const idx = flatIndex++;
+                  return (
+                    <div
+                      key={font}
+                      className={`retune-font-item${font === primaryFont ? " retune-font-item-active" : ""}${idx === highlightedIndex ? " retune-font-item-highlighted" : ""}`}
+                      data-font-name={font} title={font}
+                      data-font-index={idx}
+                      style={{ fontFamily: font }}
+                    >
+                      {font}
+                    </div>
+                  );
+                })}
+              </>
+            ) : null}
+
+            {/* Fallback fonts */}
+            {filteredFallbacks.length > 0 && (
+              <>
+                <div className="retune-font-section-title">Generic</div>
+                {filteredFallbacks.map(font => {
+                  const idx = flatIndex++;
+                  return (
+                    <div
+                      key={font}
+                      className={`retune-font-item${font === primaryFont ? " retune-font-item-active" : ""}${idx === highlightedIndex ? " retune-font-item-highlighted" : ""}`}
+                      data-font-name={font} title={font}
+                      data-font-index={idx}
+                      style={{ fontFamily: font }}
+                    >
+                      {font}
+                    </div>
+                  );
+                })}
+              </>
+            )}
+
+            {allFiltered.length === 0 && (
+              <div className="retune-font-empty">No fonts found</div>
+            )}
+          </div>
+        </FloatingDialog>,
+        portalTarget,
       )}
     </div>
   );
