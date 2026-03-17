@@ -320,15 +320,27 @@ export function isTailwindUtility(className: string): boolean {
 
 // ── CSS custom property categorization ──
 
-/** Cached CSS variable tokens */
+/** Cached CSS variable tokens (invalidated when stylesheet count changes) */
 let cssVarTokensCache: { tokens: DesignVariable[]; byCategory: Map<VariableCategory, DesignVariable[]> } | null = null;
+let cssVarSheetCount = -1;
+
+/** Force CSS variable token cache to rebuild on next call */
+export function invalidateCssVarTokens(): void {
+  cssVarTokensCache = null;
+  cssVarSheetCount = -1;
+}
 
 /** Pattern-based category detection for CSS custom property names */
 const VAR_CATEGORY_PATTERNS: Array<{ pattern: RegExp; category: VariableCategory }> = [
   { pattern: /^--(spacing|space|gap|pad|margin)/i, category: "spacing" },
   { pattern: /^--(size|width|height)/i, category: "sizing" },
   { pattern: /^--(color|bg|text-color|border-color|foreground|background|accent|muted|destructive|primary|secondary)/i, category: "colors" },
-  { pattern: /^--(font|text|leading|tracking|letter)/i, category: "typography" },
+  { pattern: /^--(font-size|text-(?:xs|sm|base|lg|xl|\d))/i, category: "font-size" },
+  { pattern: /^--(font-weight|font-(?:thin|extralight|light|normal|medium|semibold|bold|extrabold|black))/i, category: "font-weight" },
+  { pattern: /^--(leading|line-height)/i, category: "line-height" },
+  { pattern: /^--(tracking|letter-spacing|letter)/i, category: "letter-spacing" },
+  { pattern: /^--(font-family|font-(?:sans|serif|mono|display|body|heading))/i, category: "font-family" },
+  { pattern: /^--(font|text)/i, category: "font-size" },
   { pattern: /^--(radius|border-width|border-radius|rounded)/i, category: "borders" },
   { pattern: /^--(shadow|opacity)/i, category: "effects" },
 ];
@@ -340,8 +352,16 @@ function categoryFromValue(value: string): VariableCategory | null {
   if (v.startsWith("#") || v.startsWith("rgb") || v.startsWith("hsl") || v.startsWith("oklch") || v.startsWith("oklab")) {
     return "colors";
   }
-  // Pixel/rem values that are small likely spacing/sizing
+  // Font-weight: pure numbers 100-900
   const num = parseFloat(v);
+  if (!isNaN(num) && /^\d{3}$/.test(v)) {
+    return "font-weight";
+  }
+  // Font-family: contains commas or known font keywords
+  if (v.includes(",") || /^(sans-serif|serif|monospace|system-ui|ui-sans-serif|ui-serif|ui-monospace)/.test(v)) {
+    return "font-family";
+  }
+  // Pixel/rem values that are small likely spacing/sizing
   if (!isNaN(num) && (v.endsWith("px") || v.endsWith("rem") || v.endsWith("em"))) {
     return "spacing"; // Could be spacing or sizing, default to spacing
   }
@@ -358,11 +378,98 @@ function categorizeVariable(token: DesignToken): VariableCategory | null {
   return categoryFromValue(token.value);
 }
 
+// ── Usage-based categorization (scans stylesheets for var() references) ──
+
+/**
+ * Scan all stylesheet rules to build a map of CSS variable name → Set<CSS property>.
+ * e.g., if a rule says `font-size: var(--text-lg)`, records "--text-lg" → {"font-size"}.
+ * This is the definitive source for categorizing variables.
+ */
+function buildVariableUsageMap(): Map<string, Set<string>> {
+  const usageMap = new Map<string, Set<string>>();
+
+  function scanRuleList(rules: CSSRuleList) {
+    for (let i = 0; i < rules.length; i++) {
+      const rule = rules[i];
+      if (rule instanceof CSSGroupingRule ||
+          (typeof CSSLayerBlockRule !== "undefined" && rule instanceof CSSLayerBlockRule)) {
+        scanRuleList((rule as CSSGroupingRule).cssRules);
+        continue;
+      }
+      if (!(rule instanceof CSSStyleRule)) continue;
+      // Fast pre-filter: skip rules with no var() references
+      if (!rule.cssText.includes("var(")) continue;
+
+      // Longhands from style.item() — preferred, most accurate
+      for (let j = 0; j < rule.style.length; j++) {
+        const prop = rule.style.item(j);
+        if (prop.startsWith("--")) continue;
+        const raw = rule.style.getPropertyValue(prop);
+        extractVarUsages(prop, raw, usageMap);
+      }
+      // Shorthands that browsers don't enumerate via style.item()
+      for (const shorthand of Object.keys(SHORTHAND_LONGHANDS)) {
+        const raw = rule.style.getPropertyValue(shorthand);
+        if (raw && raw.includes("var(")) {
+          // Map to longhands, not the shorthand itself (avoids ambiguity)
+          for (const lh of SHORTHAND_LONGHANDS[shorthand]) {
+            extractVarUsages(lh, raw, usageMap);
+          }
+        }
+      }
+    }
+  }
+
+  try {
+    for (const sheet of document.styleSheets) {
+      try { scanRuleList(sheet.cssRules); } catch { /* cross-origin */ }
+    }
+  } catch { /* no access */ }
+  return usageMap;
+}
+
+/** Extract var(--name) references from a CSS value and record which property uses them */
+function extractVarUsages(prop: string, raw: string, map: Map<string, Set<string>>) {
+  if (!raw.includes("var(")) return;
+  VAR_REF_RE.lastIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = VAR_REF_RE.exec(raw)) !== null) {
+    const varName = m[1];
+    if (!map.has(varName)) map.set(varName, new Set());
+    map.get(varName)!.add(prop);
+  }
+}
+
+/** Categorize a variable by which CSS properties actually use it (majority vote) */
+function categorizeFromUsage(
+  varName: string,
+  usageMap: Map<string, Set<string>>,
+): VariableCategory | null {
+  const props = usageMap.get(varName);
+  if (!props || props.size === 0) return null;
+
+  const counts = new Map<VariableCategory, number>();
+  for (const prop of props) {
+    const cat = getCategoryForProperty(prop);
+    if (cat) counts.set(cat, (counts.get(cat) ?? 0) + 1);
+  }
+  if (counts.size === 0) return null;
+
+  let best: VariableCategory | null = null;
+  let bestCount = 0;
+  for (const [cat, count] of counts) {
+    if (count > bestCount) { best = cat; bestCount = count; }
+  }
+  return best;
+}
+
 /** Get CSS custom properties as DesignVariable format, grouped by category */
 function getCssVarTokens(): { tokens: DesignVariable[]; byCategory: Map<VariableCategory, DesignVariable[]> } {
-  if (cssVarTokensCache) return cssVarTokensCache;
+  const sheetCount = typeof document !== "undefined" ? document.styleSheets.length : 0;
+  if (cssVarTokensCache && cssVarSheetCount === sheetCount) return cssVarTokensCache;
 
   const tokenMap = scanDesignTokens();
+  const usageMap = buildVariableUsageMap();
   const tokens: DesignVariable[] = [];
   const byCategory = new Map<VariableCategory, DesignVariable[]>();
   const seen = new Set<string>();
@@ -372,7 +479,8 @@ function getCssVarTokens(): { tokens: DesignVariable[]; byCategory: Map<Variable
     if (seen.has(dt.name)) continue;
     seen.add(dt.name);
 
-    const category = categorizeVariable(dt);
+    // Usage-based first (definitive), name/value pattern fallback second
+    const category = categorizeFromUsage(dt.name, usageMap) ?? categorizeVariable(dt);
     if (!category) continue;
 
     const ut: DesignVariable = {
@@ -385,8 +493,7 @@ function getCssVarTokens(): { tokens: DesignVariable[]; byCategory: Map<Variable
   }
 
   cssVarTokensCache = { tokens, byCategory };
-  // Clear cache after 10s so re-scans pick up changes
-  setTimeout(() => { cssVarTokensCache = null; }, 10000);
+  cssVarSheetCount = sheetCount;
 
   return cssVarTokensCache;
 }

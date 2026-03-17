@@ -13,7 +13,11 @@ export type VariableCategory =
   | "spacing"
   | "sizing"
   | "colors"
-  | "typography"
+  | "font-size"
+  | "font-weight"
+  | "line-height"
+  | "letter-spacing"
+  | "font-family"
   | "borders"
   | "effects"
   | "layout";

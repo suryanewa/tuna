@@ -21,10 +21,12 @@ const PROPERTY_CATEGORY: Record<string, VariableCategory> = {
   "border-bottom-color": "colors", "border-left-color": "colors",
   "outline-color": "colors",
 
-  // Typography
-  "font-size": "typography", "font-weight": "typography",
-  "line-height": "typography", "letter-spacing": "typography",
-  "font-family": "typography",
+  // Typography (per-property categories)
+  "font-size": "font-size",
+  "font-weight": "font-weight",
+  "line-height": "line-height",
+  "letter-spacing": "letter-spacing",
+  "font-family": "font-family",
 
   // Borders
   "border-radius": "borders",
@@ -33,6 +35,10 @@ const PROPERTY_CATEGORY: Record<string, VariableCategory> = {
   "border-width": "borders",
   "border-top-width": "borders", "border-right-width": "borders",
   "border-bottom-width": "borders", "border-left-width": "borders",
+
+  // Shorthands (for usage-map categorization of var() references)
+  "background": "colors",
+  "border": "borders",
 
   // Effects
   "box-shadow": "effects", "opacity": "effects",

@@ -37,12 +37,12 @@ describe("getCategoryForProperty", () => {
     expect(getCategoryForProperty("outline-color")).toBe("colors");
   });
 
-  it("maps typography properties", () => {
-    expect(getCategoryForProperty("font-size")).toBe("typography");
-    expect(getCategoryForProperty("font-weight")).toBe("typography");
-    expect(getCategoryForProperty("line-height")).toBe("typography");
-    expect(getCategoryForProperty("letter-spacing")).toBe("typography");
-    expect(getCategoryForProperty("font-family")).toBe("typography");
+  it("maps typography properties to per-property categories", () => {
+    expect(getCategoryForProperty("font-size")).toBe("font-size");
+    expect(getCategoryForProperty("font-weight")).toBe("font-weight");
+    expect(getCategoryForProperty("line-height")).toBe("line-height");
+    expect(getCategoryForProperty("letter-spacing")).toBe("letter-spacing");
+    expect(getCategoryForProperty("font-family")).toBe("font-family");
   });
 
   it("maps border properties", () => {
@@ -83,7 +83,7 @@ describe("getPropertiesForCategory", () => {
     const props = getPropertiesForCategory("colors");
     expect(props).toContain("color");
     expect(props).toContain("background-color");
-    expect(props).not.toContain("font-size");
+    expect(props).not.toContain("width");
   });
 
   it("returns empty array for non-existent category", () => {
@@ -94,7 +94,7 @@ describe("getPropertiesForCategory", () => {
 describe("getCategoryForCamelProp", () => {
   it("converts camelCase to kebab-case and looks up", () => {
     expect(getCategoryForCamelProp("paddingTop")).toBe("spacing");
-    expect(getCategoryForCamelProp("fontSize")).toBe("typography");
+    expect(getCategoryForCamelProp("fontSize")).toBe("font-size");
     expect(getCategoryForCamelProp("backgroundColor")).toBe("colors");
     expect(getCategoryForCamelProp("borderRadius")).toBe("borders");
   });

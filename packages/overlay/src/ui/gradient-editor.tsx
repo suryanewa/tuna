@@ -156,31 +156,30 @@ export function GradientEditor({ gradient, onChange }: GradientEditorProps) {
 
       {/* Controls row: angle + reverse + rotate */}
       <div className="retune-gradient-controls">
-        {showAngle && (
-          <input
-            className="retune-gradient-angle-input"
-            type="text"
-            value={isEditingAngle ? angleInput : `${gradient.angle}°`}
-            onFocus={(e) => {
-              setIsEditingAngle(true);
-              setAngleInput(String(gradient.angle));
-              // Select just the number on focus
-              requestAnimationFrame(() => e.target.select());
-            }}
-            onBlur={handleAngleBlur}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") e.currentTarget.blur();
-              if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-                e.preventDefault();
-                const step = e.shiftKey ? 15 : 1;
-                const delta = e.key === "ArrowUp" ? step : -step;
-                const newAngle = ((gradient.angle + delta) % 360 + 360) % 360;
-                onChange({ ...gradient, angle: newAngle });
-              }
-            }}
-            onChange={handleAngleInputChange}
-          />
-        )}
+        <input
+          className="retune-gradient-angle-input"
+          type="text"
+          value={showAngle ? (isEditingAngle ? angleInput : `${gradient.angle}°`) : "–"}
+          readOnly={!showAngle}
+          disabled={!showAngle}
+          onFocus={showAngle ? (e) => {
+            setIsEditingAngle(true);
+            setAngleInput(String(gradient.angle));
+            requestAnimationFrame(() => e.target.select());
+          } : undefined}
+          onBlur={showAngle ? handleAngleBlur : undefined}
+          onKeyDown={showAngle ? (e) => {
+            if (e.key === "Enter") e.currentTarget.blur();
+            if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+              e.preventDefault();
+              const step = e.shiftKey ? 15 : 1;
+              const delta = e.key === "ArrowUp" ? step : -step;
+              const newAngle = ((gradient.angle + delta) % 360 + 360) % 360;
+              onChange({ ...gradient, angle: newAngle });
+            }
+          } : undefined}
+          onChange={showAngle ? handleAngleInputChange : undefined}
+        />
         <div className="retune-gradient-actions">
           <Tooltip content="Reverse gradient direction">
             <button
@@ -195,6 +194,7 @@ export function GradientEditor({ gradient, onChange }: GradientEditorProps) {
             <button
               type="button"
               className="retune-gradient-action-btn"
+              disabled={!showAngle}
               onClick={handleRotate}
             >
               <Rotate />

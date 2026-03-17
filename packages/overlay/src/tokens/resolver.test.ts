@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock scanDesignTokens before importing resolver
 vi.mock("../inspector/tokens", () => ({
@@ -14,6 +14,10 @@ vi.mock("../inspector/tokens", () => ({
       { name: "--font-sm", value: "14px", source: ":root" },
       { name: "--shadow-md", value: "0 4px 6px -1px rgba(0,0,0,0.1)", source: ":root" },
       { name: "--size-lg", value: "48px", source: ":root" },
+      // Variables with non-standard names (for usage-based categorization tests)
+      { name: "--heading-size", value: "2rem", source: ":root" },
+      { name: "--brand", value: "#3b82f6", source: ":root" },
+      { name: "--lh-tight", value: "1.25", source: ":root" },
     ],
     valueToTokens: new Map(),
   })),
@@ -29,12 +33,12 @@ vi.mock("./registry", () => ({
   })),
 }));
 
-import { getVariablesForProperty, hasVariablesForProperty, resolveVariablesForElement } from "./resolver";
+import { getVariablesForProperty, hasVariablesForProperty, resolveVariablesForElement, invalidateCssVarTokens } from "./resolver";
 
 describe("Variable picker — getVariablesForProperty", () => {
   it("returns only CSS variables for spacing (no class tokens)", () => {
     const tokens = getVariablesForProperty("padding");
-    expect(tokens.length).toBe(3); // --spacing-1, --spacing-2, --spacing-4
+    expect(tokens.length).toBe(4); // --spacing-1, --spacing-2, --spacing-4, --heading-size (value fallback: "2rem" → spacing)
     expect(tokens.every(t => t.className.startsWith("var("))).toBe(true);
   });
 
@@ -231,5 +235,110 @@ describe("resolveVariablesForElement — detects var() in applied styles", () =>
     expect(matches.has("padding-right")).toBe(true);
     expect(matches.has("padding-bottom")).toBe(true);
     expect(matches.has("padding-left")).toBe(true);
+  });
+});
+
+// ── Usage-based categorization tests ──
+
+/** Helper: create a mock CSSStyleRule that passes instanceof checks */
+function mockStyleRule(selector: string, properties: Record<string, string>): CSSStyleRule {
+  const entries = Object.entries(properties);
+  const cssText = `${selector} { ${entries.map(([k, v]) => `${k}: ${v}`).join("; ")} }`;
+
+  const rule = Object.create(CSSStyleRule.prototype);
+  rule.selectorText = selector;
+  rule.cssText = cssText;
+  rule.style = {
+    length: entries.length,
+    item: (i: number) => entries[i]?.[0] ?? "",
+    getPropertyValue: (prop: string) => {
+      const entry = entries.find(([k]) => k === prop);
+      return entry ? entry[1] : "";
+    },
+  };
+  return rule as CSSStyleRule;
+}
+
+/** Helper: set up mock document.styleSheets with given rules */
+function mockStyleSheets(rules: CSSStyleRule[]) {
+  (document as any).styleSheets = [{ cssRules: rules }];
+}
+
+// Ensure DOM globals exist for usage-based tests (vitest has no DOM by default)
+if (typeof globalThis.document === "undefined") {
+  (globalThis as any).document = { styleSheets: [] };
+}
+if (typeof globalThis.CSSStyleRule === "undefined") {
+  (globalThis as any).CSSStyleRule = class CSSStyleRule {};
+  (globalThis as any).CSSGroupingRule = class CSSGroupingRule {};
+}
+
+describe("Usage-based variable categorization", () => {
+  beforeEach(() => {
+    invalidateCssVarTokens();
+  });
+
+  it("categorizes --heading-size as font-size when used in font-size property", () => {
+    mockStyleSheets([
+      mockStyleRule(".heading", { "font-size": "var(--heading-size)" }),
+    ]);
+    const vars = getVariablesForProperty("fontSize");
+    expect(vars.map(v => v.className)).toContain("var(--heading-size)");
+  });
+
+  it("categorizes --brand as colors when used in color/background-color", () => {
+    mockStyleSheets([
+      mockStyleRule(".brand-text", { color: "var(--brand)" }),
+      mockStyleRule(".brand-bg", { "background-color": "var(--brand)" }),
+    ]);
+    const vars = getVariablesForProperty("color");
+    expect(vars.map(v => v.className)).toContain("var(--brand)");
+  });
+
+  it("categorizes --lh-tight as line-height when used in line-height property", () => {
+    mockStyleSheets([
+      mockStyleRule(".tight", { "line-height": "var(--lh-tight)" }),
+    ]);
+    const vars = getVariablesForProperty("lineHeight");
+    expect(vars.map(v => v.className)).toContain("var(--lh-tight)");
+  });
+
+  it("usage-based categorization overrides name-based when they conflict", () => {
+    // --font-sm would be categorized as "font-size" by name patterns,
+    // but if it's actually used as a spacing value, usage wins
+    mockStyleSheets([
+      // No rules using --heading-size as font-size, but one using --brand in color
+      mockStyleRule(".x", { color: "var(--brand)" }),
+    ]);
+    const colorVars = getVariablesForProperty("color");
+    expect(colorVars.map(v => v.className)).toContain("var(--brand)");
+    // --brand should NOT appear in font-size
+    const fontVars = getVariablesForProperty("fontSize");
+    expect(fontVars.map(v => v.className)).not.toContain("var(--brand)");
+  });
+
+  it("falls back to name patterns when variable has no stylesheet usage", () => {
+    // --spacing-4 matches name pattern for spacing even with empty stylesheets
+    mockStyleSheets([]);
+    const vars = getVariablesForProperty("padding");
+    expect(vars.map(v => v.className)).toContain("var(--spacing-4)");
+  });
+
+  it("handles var() inside calc() expressions", () => {
+    mockStyleSheets([
+      mockStyleRule(".calc-test", { "font-size": "calc(var(--heading-size) * 1.5)" }),
+    ]);
+    const vars = getVariablesForProperty("fontSize");
+    expect(vars.map(v => v.className)).toContain("var(--heading-size)");
+  });
+
+  it("consistent category when variable used in same-category properties", () => {
+    mockStyleSheets([
+      mockStyleRule(".a", { "padding-top": "var(--spacing-4)" }),
+      mockStyleRule(".b", { gap: "var(--spacing-4)" }),
+      mockStyleRule(".c", { "margin-left": "var(--spacing-4)" }),
+    ]);
+    const vars = getVariablesForProperty("padding");
+    expect(vars.map(v => v.className)).toContain("var(--spacing-4)");
   });
 });
