@@ -7,8 +7,11 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { FloatingDialog } from "./floating-dialog";
+import { SelectInput } from "./select-input";
 import { ChevronDown } from "./icons";
+import { Tooltip } from "./tooltip";
 import { claimDialog, releaseDialog } from "./dialog-singleton";
+import { ChangeIndicator } from "./change-indicator";
 
 const FALLBACK_FONTS = [
   "system-ui",
@@ -75,9 +78,13 @@ export interface FontInputProps {
   prop: string;
   value: string | undefined;
   onChange: (prop: string, value: string) => void;
+  /** Whether this property has been changed from its original value */
+  isChanged?: boolean;
+  /** Reset this property to its original value */
+  onReset?: () => void;
 }
 
-export function FontInput({ prop, value, onChange }: FontInputProps) {
+export function FontInput({ prop, value, onChange, isChanged, onReset }: FontInputProps) {
   const primaryFont = extractPrimaryFont(value || "");
   const [localValue, setLocalValue] = useState(primaryFont);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -85,9 +92,23 @@ export function FontInput({ prop, value, onChange }: FontInputProps) {
   const [search, setSearch] = useState("");
   const [systemFonts, setSystemFonts] = useState<string[] | null>(null);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [fontCategory, setFontCategory] = useState<"all" | "project" | "system" | "generic">("all");
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const stableCloseRef = useRef(() => setPickerOpen(false));
+
+  // Auto-load system fonts if permission already granted
+  useEffect(() => {
+    if (systemFonts !== null) return;
+    if (!('queryLocalFonts' in window)) return;
+    try {
+      navigator.permissions.query({ name: "local-fonts" as PermissionName }).then(result => {
+        if (result.state === "granted") {
+          queryLocalFonts().then(fonts => setSystemFonts(fonts));
+        }
+      }).catch(() => {}); // permission query not supported
+    } catch {}
+  }, [systemFonts]);
 
   // Sync from parent
   const [prevValue, setPrevValue] = useState(value);
@@ -99,17 +120,23 @@ export function FontInput({ prop, value, onChange }: FontInputProps) {
   // Build font sections
   const projectFonts = useMemo(() => getProjectFonts(), []);
 
-  const filteredProject = search
-    ? projectFonts.filter(f => f.toLowerCase().includes(search.toLowerCase()))
-    : projectFonts;
+  // Deduplicated system fonts (exclude project fonts)
+  const deduplicatedSystem = useMemo(() =>
+    (systemFonts || []).filter(f => !projectFonts.some(p => p.toLowerCase() === f.toLowerCase())),
+    [systemFonts, projectFonts]
+  );
 
-  const filteredSystem = search && systemFonts
-    ? systemFonts.filter(f => f.toLowerCase().includes(search.toLowerCase()) && !projectFonts.some(p => p.toLowerCase() === f.toLowerCase()))
-    : (systemFonts || []).filter(f => !projectFonts.some(p => p.toLowerCase() === f.toLowerCase()));
+  // Apply search + category filter
+  const matchesSearch = (f: string) => !search || f.toLowerCase().includes(search.toLowerCase());
 
-  const filteredFallbacks = search
-    ? FALLBACK_FONTS.filter(f => f.toLowerCase().includes(search.toLowerCase()))
-    : FALLBACK_FONTS;
+  const filteredProject = (fontCategory === "all" || fontCategory === "project")
+    ? projectFonts.filter(matchesSearch) : [];
+
+  const filteredSystem = (fontCategory === "all" || fontCategory === "system")
+    ? deduplicatedSystem.filter(matchesSearch) : [];
+
+  const filteredFallbacks = (fontCategory === "all" || fontCategory === "generic")
+    ? FALLBACK_FONTS.filter(matchesSearch) : [];
 
   // All fonts flat for keyboard navigation
   const allFiltered = [...filteredProject, ...filteredSystem, ...filteredFallbacks];
@@ -207,6 +234,7 @@ export function FontInput({ prop, value, onChange }: FontInputProps) {
 
   return (
     <div className="retune-font-input" ref={containerRef}>
+      <ChangeIndicator isChanged={isChanged ?? false} onReset={onReset ?? (() => {})} />
       <button
         type="button"
         className="retune-font-input-trigger"
@@ -229,6 +257,14 @@ export function FontInput({ prop, value, onChange }: FontInputProps) {
           maxHeight={400}
           minHeight={400}
         >
+          <div className="retune-font-filter">
+            <SelectInput
+              prop="__fontCategory"
+              value={fontCategory}
+              options={["all", "project", "system", "generic"]}
+              onChange={(_, val) => setFontCategory(val as any)}
+            />
+          </div>
           <div ref={listRef} className="retune-font-list">
             {/* Project fonts */}
             {filteredProject.length > 0 && (
@@ -240,7 +276,7 @@ export function FontInput({ prop, value, onChange }: FontInputProps) {
                     <div
                       key={font}
                       className={`retune-font-item${font === primaryFont ? " retune-font-item-active" : ""}${idx === highlightedIndex ? " retune-font-item-highlighted" : ""}`}
-                      data-font-name={font} title={font}
+                      data-font-name={font}
                       data-font-index={idx}
                       style={{ fontFamily: font }}
                     >
@@ -252,13 +288,13 @@ export function FontInput({ prop, value, onChange }: FontInputProps) {
             )}
 
             {/* System fonts */}
-            {systemFonts === null ? (
+            {systemFonts === null && (fontCategory === "all" || fontCategory === "system") ? (
               <div className="retune-font-system-prompt">
                 <button
                   className="retune-font-system-btn"
                   data-font-name="__load_system"
                 >
-                  Show system fonts
+                  Load system fonts
                 </button>
               </div>
             ) : filteredSystem.length > 0 ? (
@@ -270,7 +306,7 @@ export function FontInput({ prop, value, onChange }: FontInputProps) {
                     <div
                       key={font}
                       className={`retune-font-item${font === primaryFont ? " retune-font-item-active" : ""}${idx === highlightedIndex ? " retune-font-item-highlighted" : ""}`}
-                      data-font-name={font} title={font}
+                      data-font-name={font}
                       data-font-index={idx}
                       style={{ fontFamily: font }}
                     >
@@ -291,7 +327,7 @@ export function FontInput({ prop, value, onChange }: FontInputProps) {
                     <div
                       key={font}
                       className={`retune-font-item${font === primaryFont ? " retune-font-item-active" : ""}${idx === highlightedIndex ? " retune-font-item-highlighted" : ""}`}
-                      data-font-name={font} title={font}
+                      data-font-name={font}
                       data-font-index={idx}
                       style={{ fontFamily: font }}
                     >

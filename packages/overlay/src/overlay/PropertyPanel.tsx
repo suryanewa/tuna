@@ -1353,7 +1353,7 @@ export function PropertyPanel({
         <Section label="Typography">
           <Row>
             <Field label="Font">
-              <FontInput prop="fontFamily" value={s.fontFamily} onChange={onPropertyChange} />
+              <FontInput prop="fontFamily" value={s.fontFamily} onChange={onPropertyChange} {...changeProps("fontFamily")} />
             </Field>
           </Row>
           <Row>
