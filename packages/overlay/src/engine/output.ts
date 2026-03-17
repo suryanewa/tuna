@@ -247,15 +247,14 @@ function formatSingleChange(change: ElementChange, fidelity: Fidelity, tokenMap:
     lines.push("");
     lines.push("### Changes");
     lines.push("");
-    lines.push("| Property | Before | After | Source | Token |");
-    lines.push("|----------|--------|-------|--------|-------|");
+    lines.push("| Property | Before | After | Token |");
+    lines.push("|----------|--------|-------|-------|");
 
     for (const prop of enriched) {
       // Class swap properties use "class:oldName" format — don't camelToKebab those
       const kebab = prop.property.startsWith("class:") ? prop.property : camelToKebab(prop.property);
       const tokenStr = formatRecommended(prop);
-      const sourceStr = formatEnrichedSource(prop);
-      lines.push(`| \`${kebab}\` | \`${prop.from}\` | \`${prop.to}\` | ${sourceStr} | ${tokenStr} |`);
+      lines.push(`| \`${kebab}\` | \`${prop.from}\` | \`${prop.to}\` | ${tokenStr} |`);
     }
   }
 

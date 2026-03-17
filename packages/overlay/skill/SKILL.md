@@ -1,6 +1,6 @@
 ---
 name: retune-visual-changes
-description: Apply visual changes from the Retune overlay to source code. Use this skill when receiving output from retune MCP tools (retune_get_formatted_changes, retune_get_pending_changes) OR when the user pastes structured visual change output containing "# Visual Changes", a Before/After changes table, or property diffs with Source/Token columns. Triggers on: retune, "Visual Changes", "apply these changes", style diff, design tokens, property before/after table, visual tweaks, overlay changes.
+description: Apply visual changes from the Retune overlay to source code. Use this skill when receiving output from retune MCP tools (retune_get_formatted_changes, retune_get_pending_changes) OR when the user pastes structured visual change output containing "# Visual Changes", a Before/After changes table, or property diffs with Token columns. Triggers on: retune, "Visual Changes", "apply these changes", style diff, design tokens, property before/after table, visual tweaks, overlay changes.
 ---
 
 # Applying Retune Visual Changes
@@ -30,15 +30,15 @@ When Retune output includes candidate tokens, classes, or CSS variables, use thi
 ### Changes Table
 
 ```
-| Property | Before | After | Source | Token |
-|----------|--------|-------|--------|-------|
-| `padding` | `8px` | `16px` | `.card` in styles.css | `.p-4` |
+| Property | Before | After | Token |
+|----------|--------|-------|-------|
+| `padding` | `8px` | `16px` | `.p-4` |
 ```
 
 - **Property**: The CSS property that changed (kebab-case)
 - **Before/After**: Exact computed values before and after the user's edit
-- **Source**: Where this property is currently defined (selector, stylesheet, inline)
 - **Token**: Best matching candidate, if any. `—` means no match found
+- The **Selector** line above the table tells you where to apply the change
 
 ### Resolution Context
 
