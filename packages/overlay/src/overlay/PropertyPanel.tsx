@@ -215,8 +215,8 @@ export function PropertyPanel({
   // ── Token resolution ──
   const tokenMatches = useMemo(() => {
     if (!element.element) return new Map<string, TokenMatch>();
-    return resolveTokensForElement(element.element, s);
-  }, [element.element, s]);
+    return resolveTokensForElement(element.element, s, activeSelector ?? undefined);
+  }, [element.element, s, activeSelector]);
 
   // Helper: get token match for a camelCase prop.
   // User-set associations take priority over element-scanned matches, since the

@@ -22,6 +22,8 @@ import { scanDesignTokens, type DesignToken } from "../inspector/tokens";
 export function resolveTokensForElement(
   element: Element,
   computedStyles: Record<string, string>,
+  /** Optional scope selector — when provided, only scan rules matching this scope */
+  scopeSelector?: string,
 ): Map<string, TokenMatch> {
   const registry = getTokenRegistry();
   const matches = new Map<string, TokenMatch>();
@@ -53,7 +55,7 @@ export function resolveTokensForElement(
 
   // ── 2. CSS variable detection ──
   // Check inline styles and matched stylesheet rules for var(--*) references
-  resolveVarTokens(element, matches);
+  resolveVarTokens(element, matches, scopeSelector);
 
   return matches;
 }
@@ -81,7 +83,7 @@ const SHORTHAND_LONGHANDS: Record<string, string[]> = {
  * Scan an element's applied styles for var(--*) references and add matching
  * CSS variable tokens to the matches map. Class-based matches take priority.
  */
-function resolveVarTokens(element: Element, matches: Map<string, TokenMatch>): void {
+function resolveVarTokens(element: Element, matches: Map<string, TokenMatch>, scopeSelector?: string): void {
   const htmlEl = element as HTMLElement;
 
   // Build a lookup of known CSS variable tokens: "--name" → UtilityToken
@@ -150,6 +152,9 @@ function resolveVarTokens(element: Element, matches: Map<string, TokenMatch>): v
     }
   }
 
+  // Extract scope classes for filtering (if scope provided)
+  const scopeClasses = scopeSelector?.match(/\.[a-zA-Z0-9_-]+/g) || null;
+
   // Check matched stylesheet rules for var() references
   try {
     for (const sheet of document.styleSheets) {
@@ -157,6 +162,13 @@ function resolveVarTokens(element: Element, matches: Map<string, TokenMatch>): v
         for (const rule of sheet.cssRules) {
           if (!(rule instanceof CSSStyleRule)) continue;
           if (!element.matches(rule.selectorText)) continue;
+
+          // When scoped, only process rules whose classes are a subset of the scope
+          if (scopeClasses) {
+            const ruleClasses = rule.selectorText.match(/\.[a-zA-Z0-9_-]+/g) || [];
+            if (ruleClasses.length === 0) continue; // skip universal selectors
+            if (!ruleClasses.every(rc => scopeClasses.includes(rc))) continue;
+          }
 
           for (let i = 0; i < rule.style.length; i++) {
             const prop = rule.style.item(i);
