@@ -530,8 +530,11 @@ export function getVariablesForProperty(property: string): DesignVariable[] {
   const category = getCategoryForProperty(kebab);
   if (!category) return [];
 
-  const { byCategory } = getCssVariables();
-  return byCategory.get(category) || [];
+  const cssVars = getCssVariables().byCategory.get(category) || [];
+  const registry = getVariableRegistry();
+  const classTokens = (registry.groups.get(category) || [])
+    .filter(t => Object.keys(t.values).includes(kebab));
+  return [...classTokens, ...cssVars];
 }
 
 /**
@@ -543,7 +546,9 @@ export function hasVariablesForProperty(property: string): boolean {
   const category = getCategoryForProperty(kebab);
   if (!category) return false;
   const { byCategory } = getCssVariables();
-  return (byCategory.get(category)?.length ?? 0) > 0;
+  if ((byCategory.get(category)?.length ?? 0) > 0) return true;
+  const registry = getVariableRegistry();
+  return (registry.groups.get(category) || []).some(t => Object.keys(t.values).includes(kebab));
 }
 
 /** Check if two properties are in the same shorthand family */

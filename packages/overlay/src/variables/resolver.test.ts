@@ -29,13 +29,19 @@ vi.mock("../inspector/tokens", () => ({
   })),
 }));
 
-// Mock registry to return empty (picker only shows CSS variables now)
+// Mock registry with class-based color tokens
 vi.mock("./registry", () => ({
   getVariableRegistry: vi.fn(() => ({
-    groups: new Map(),
+    groups: new Map([
+      ["colors", [
+        { className: "bg-blue-500", values: { "background-color": "#3b82f6" }, layerName: "utilities" },
+        { className: "bg-red-500", values: { "background-color": "#ef4444" }, layerName: "utilities" },
+        { className: "text-blue-500", values: { "color": "#3b82f6" }, layerName: "utilities" },
+      ]],
+    ]),
     valueLookup: new Map(),
     classLookup: new Map(),
-    framework: "unknown",
+    framework: "tailwind",
   })),
 }));
 
@@ -48,11 +54,12 @@ describe("Variable picker — getVariablesForProperty", () => {
     expect(tokens.every(t => t.className.startsWith("var("))).toBe(true);
   });
 
-  it("returns CSS variables for colors", () => {
+  it("returns CSS variables and class tokens for colors", () => {
     const tokens = getVariablesForProperty("color");
     expect(tokens.length).toBeGreaterThan(0);
     expect(tokens.map(t => t.className)).toContain("var(--color-brand)");
     expect(tokens.map(t => t.className)).toContain("var(--color-text)");
+    expect(tokens.map(t => t.className)).toContain("text-blue-500");
   });
 
   it("returns CSS variables for border-radius", () => {
@@ -407,5 +414,40 @@ describe("Framework internal filtering", () => {
     const classNames = vars.map(v => v.className);
     expect(classNames).toContain("var(--color-brand)");
     expect(classNames).toContain("var(--color-text)");
+  });
+});
+
+describe("getVariablesForProperty — includes class tokens", () => {
+  beforeEach(() => {
+    invalidateCssVariables();
+    mockStyleSheets([]);
+  });
+
+  it("includes class-based color tokens for background-color", () => {
+    const vars = getVariablesForProperty("backgroundColor");
+    expect(vars.map(v => v.className)).toContain("bg-blue-500");
+    expect(vars.map(v => v.className)).toContain("bg-red-500");
+  });
+
+  it("filters class tokens by property (bg-* for background-color, text-* for color)", () => {
+    const bgVars = getVariablesForProperty("backgroundColor");
+    const textVars = getVariablesForProperty("color");
+    expect(bgVars.map(v => v.className)).toContain("bg-blue-500");
+    expect(bgVars.map(v => v.className)).not.toContain("text-blue-500");
+    expect(textVars.map(v => v.className)).toContain("text-blue-500");
+    expect(textVars.map(v => v.className)).not.toContain("bg-blue-500");
+  });
+
+  it("returns both class tokens and CSS variables", () => {
+    const vars = getVariablesForProperty("backgroundColor");
+    const hasClassToken = vars.some(v => v.className === "bg-blue-500");
+    const hasCssVar = vars.some(v => v.className.startsWith("var("));
+    expect(hasClassToken).toBe(true);
+    expect(hasCssVar).toBe(true);
+  });
+
+  it("does not include class tokens for non-color properties", () => {
+    const vars = getVariablesForProperty("padding");
+    expect(vars.every(v => v.className.startsWith("var("))).toBe(true);
   });
 });

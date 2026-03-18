@@ -2632,6 +2632,16 @@
   text-align: center;
 }
 
+.retune-variable-dialog-group-title {
+  font-size: 11px;
+  font-weight: 450;
+  line-height: 16px;
+  letter-spacing: -0.005em;
+  color: #79716B;
+  padding: 8px 16px 8px;
+  text-transform: capitalize;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .retune-toolbar,
   .retune-toolbar-collapse-btn,

@@ -32,6 +32,40 @@ function formatVarName(className: string): string {
   return className;
 }
 
+/** Strip CSS property prefix from class name: "bg-blue-500" → "blue-500" */
+const PROPERTY_PREFIXES = ["bg-", "text-", "border-", "fill-", "stroke-", "outline-", "ring-"];
+function stripPropertyPrefix(className: string): string {
+  for (const prefix of PROPERTY_PREFIXES) {
+    if (className.startsWith(prefix)) return className.slice(prefix.length);
+  }
+  return className;
+}
+
+/** Get display name for a variable/class token */
+function getDisplayName(className: string): string {
+  if (className.startsWith("var(--") && className.endsWith(")")) return className.slice(6, -1);
+  return stripPropertyPrefix(className);
+}
+
+/** Extract ramp group + shade: "blue-500" → { group: "blue", shade: "500" } */
+function extractColorGroup(name: string): { group: string; shade: string } {
+  const m = name.match(/^(.+)-(\d+)$/);
+  if (m) return { group: m[1], shade: m[2] };
+  return { group: name, shade: "" };
+}
+
+/** Group variables by color ramp */
+function groupByRamp(items: DesignVariable[]): Map<string, DesignVariable[]> {
+  const groups = new Map<string, DesignVariable[]>();
+  for (const t of items) {
+    const displayName = getDisplayName(t.className);
+    const { group } = extractColorGroup(displayName);
+    if (!groups.has(group)) groups.set(group, []);
+    groups.get(group)!.push(t);
+  }
+  return groups;
+}
+
 export interface ColorPickerProps {
   value: string; // hex color
   alpha?: number; // 0-100
@@ -505,30 +539,69 @@ export function ColorPicker({
     </>
   );
 
-  const tokenContent = (
-    <div ref={tokenListRef} className="retune-variable-dialog-list">
-      {filteredVariables.length === 0 && (
-        <div className="retune-variable-dialog-empty">No variables found</div>
-      )}
-      {filteredVariables.map((v, i) => {
-        const isActive = currentVariable?.className === v.className;
-        const isHighlighted = i === highlightedIndex;
-        return (
-          <div
-            key={v.className}
-            className={`retune-variable-dialog-item${isActive ? " retune-variable-dialog-item-active" : ""}${isHighlighted ? " retune-variable-dialog-item-highlighted" : ""}`}
-            data-token-index={i}
-          >
-            <span
-              className="retune-variable-dialog-swatch"
-              style={{ backgroundColor: getSwatchColor(v) || "transparent" }}
-            />
-            <span className="retune-variable-dialog-name">{formatVarName(v.className)}</span>
+  const rampGroups = useMemo(() => groupByRamp(filteredVariables), [filteredVariables]);
+
+  // Separate ramps (2+ items) from standalone items, sort alphabetically
+  const { ramps, standalone } = useMemo(() => {
+    const ramps: [string, DesignVariable[]][] = [];
+    const standalone: DesignVariable[] = [];
+    for (const [name, items] of rampGroups) {
+      if (items.length > 1) {
+        items.sort((a, b) => {
+          const aShade = parseInt(extractColorGroup(getDisplayName(a.className)).shade) || 0;
+          const bShade = parseInt(extractColorGroup(getDisplayName(b.className)).shade) || 0;
+          return aShade - bShade;
+        });
+        ramps.push([name, items]);
+      }
+      else standalone.push(...items);
+    }
+    standalone.sort((a, b) => getDisplayName(a.className).localeCompare(getDisplayName(b.className)));
+    ramps.sort((a, b) => a[0].localeCompare(b[0]));
+    return { ramps, standalone };
+  }, [rampGroups]);
+
+  const tokenContent = (() => {
+    let globalIndex = 0;
+
+    const renderItem = (v: DesignVariable) => {
+      const idx = globalIndex++;
+      const isActive = currentVariable?.className === v.className;
+      const isHighlighted = idx === highlightedIndex;
+      return (
+        <div
+          key={v.className}
+          className={`retune-variable-dialog-item${isActive ? " retune-variable-dialog-item-active" : ""}${isHighlighted ? " retune-variable-dialog-item-highlighted" : ""}`}
+          data-token-index={idx}
+        >
+          <span
+            className="retune-variable-dialog-swatch"
+            style={{ backgroundColor: getSwatchColor(v) || "transparent" }}
+          />
+          <span className="retune-variable-dialog-name">{getDisplayName(v.className)}</span>
+        </div>
+      );
+    };
+
+    return (
+      <div ref={tokenListRef} className="retune-variable-dialog-list">
+        {filteredVariables.length === 0 && (
+          <div className="retune-variable-dialog-empty">No variables found</div>
+        )}
+        {/* Standalone items first (no group header) */}
+        {standalone.map(renderItem)}
+        {/* Ramp groups with headers */}
+        {ramps.map(([groupName, items]) => (
+          <div key={groupName}>
+            <div className="retune-variable-dialog-group-title">
+              {groupName.replace(/-/g, " ")}
+            </div>
+            {items.map(renderItem)}
           </div>
-        );
-      })}
-    </div>
-  );
+        ))}
+      </div>
+    );
+  })();
 
   if (hasVariables) {
     return (
