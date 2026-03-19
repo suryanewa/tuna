@@ -452,6 +452,24 @@ export function ColorPicker({
 
   const categoryLabel = "Variables";
 
+  const hasEyeDropper = typeof window !== "undefined" && "EyeDropper" in window;
+
+  const handleEyeDropper = useCallback(async () => {
+    if (!hasEyeDropper) return;
+    try {
+      const dropper = new (window as any).EyeDropper();
+      const result = await dropper.open();
+      if (result?.sRGBHex) {
+        const hex = result.sRGBHex;
+        onChange(hex);
+        // Update internal state
+        setHsva(hexToHsva(hex));
+      }
+    } catch {
+      // User cancelled or API error
+    }
+  }, [hasEyeDropper, onChange]);
+
   const handleHeaderAction = useCallback((action: string) => {
     if (action === "unlink") {
       onVariableUnlink?.();
@@ -508,6 +526,18 @@ export function ColorPicker({
               : currentHex
             }}
           />
+          {hasEyeDropper && (
+            <Tooltip content="Pick color from screen" side="bottom" delay={300}>
+              <button type="button" className="retune-cp-eyedropper" onClick={handleEyeDropper}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M2 22l1-1h3l9-9" />
+                  <path d="M3 21v-3l9-9" />
+                  <path d="M14.5 5.5l4-4a2.12 2.12 0 0 1 3 3l-4 4" />
+                  <path d="M12 8l4 4" />
+                </svg>
+              </button>
+            </Tooltip>
+          )}
         </div>
         <div className="retune-cp-slider-tracks">
           <div ref={hueRef} className="retune-cp-hue" onPointerDown={handleHuePointerDown}>

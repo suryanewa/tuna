@@ -1397,6 +1397,25 @@
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
 }
 
+.retune-cp-eyedropper {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  border: none;
+  border-radius: 50%;
+  color: #fff;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  padding: 0;
+}
+.retune-cp-preview-wrap:hover .retune-cp-eyedropper {
+  opacity: 1;
+}
+
 .retune-cp-preview-checker {
   position: absolute;
   inset: 0;
