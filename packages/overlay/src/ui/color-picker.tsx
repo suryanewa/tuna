@@ -167,9 +167,18 @@ export function ColorPicker({
     });
   }, [activeTab]);
 
+  // Wrap onClose to unlink variable if it was overridden by manual color picking
+  const wrappedOnClose = useCallback(() => {
+    if (variableOverriddenRef.current) {
+      variableOverriddenRef.current = false;
+      onVariableUnlink?.();
+    }
+    onClose();
+  }, [onClose, onVariableUnlink]);
+
   // Refs for native token handlers
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  const onCloseRef = useRef(wrappedOnClose);
+  onCloseRef.current = wrappedOnClose;
   const onVariableSelectRef = useRef(onVariableSelect);
   onVariableSelectRef.current = onVariableSelect;
   const onVariableApplyRef = useRef(onVariableApply);
@@ -275,14 +284,17 @@ export function ColorPicker({
     }
   }
 
+  // Track whether user manually overrode a variable via the custom tab
+  const variableOverriddenRef = useRef(false);
+
   const emitChange = useCallback((newHsva: HSVA) => {
     setHsva(newHsva);
     const hex = hsvaToHex(newHsva);
     lastSentRef.current = hex;
     onChange(hex);
-    // Auto-unlink variable when user manually picks a different color
-    if (currentVariable) onVariableUnlink?.();
-  }, [onChange, currentVariable, onVariableUnlink]);
+    // Mark variable as overridden (unlink happens on close to avoid unmounting the picker)
+    if (currentVariable) variableOverriddenRef.current = true;
+  }, [onChange, currentVariable]);
 
   // ── SV Picker ───────────────────────────────────────────────────────
 
@@ -652,7 +664,7 @@ export function ColorPicker({
         ]}
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        onClose={onClose}
+        onClose={wrappedOnClose}
         anchorRect={anchorRect}
         search={activeTab === "tokens" ? { value: tokenSearch, onChange: setTokenSearch, placeholder: "Search", onKeyDown: handleTokenSearchKeyDown } : undefined}
         headerActions={unlinkButton}
@@ -665,7 +677,7 @@ export function ColorPicker({
   }
 
   return (
-    <FloatingDialog title="Color" onClose={onClose} anchorRect={anchorRect}>
+    <FloatingDialog title="Color" onClose={wrappedOnClose} anchorRect={anchorRect}>
       {pickerContent}
     </FloatingDialog>
   );
