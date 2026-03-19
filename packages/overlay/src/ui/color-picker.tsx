@@ -464,8 +464,8 @@ export function ColorPicker({
       if (result?.sRGBHex) {
         const hex = result.sRGBHex;
         onChange(hex);
-        // Update internal state
         setHsva(hexToHsva(hex));
+        if (currentVariable) onVariableUnlink?.();
       }
     } catch {
       // User cancelled or API error
