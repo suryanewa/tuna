@@ -280,7 +280,9 @@ export function ColorPicker({
     const hex = hsvaToHex(newHsva);
     lastSentRef.current = hex;
     onChange(hex);
-  }, [onChange]);
+    // Auto-unlink variable when user manually picks a different color
+    if (currentVariable) onVariableUnlink?.();
+  }, [onChange, currentVariable, onVariableUnlink]);
 
   // ── SV Picker ───────────────────────────────────────────────────────
 
