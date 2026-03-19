@@ -156,6 +156,17 @@ export function ColorPicker({
     if (item) item.scrollIntoView({ block: "nearest" });
   }, [highlightedIndex]);
 
+  // Scroll to the active variable when the variables tab opens
+  useEffect(() => {
+    if (activeTab !== "tokens") return;
+    const list = tokenListRef.current;
+    if (!list) return;
+    requestAnimationFrame(() => {
+      const active = list.querySelector(".retune-variable-dialog-item-active");
+      if (active) active.scrollIntoView({ block: "center" });
+    });
+  }, [activeTab]);
+
   // Refs for native token handlers
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
