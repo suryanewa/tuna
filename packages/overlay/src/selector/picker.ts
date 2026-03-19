@@ -333,6 +333,7 @@ export function createPicker(
       // If a nested overlay (e.g. color picker) is open, let it handle Escape
       if (shadowRoot.querySelector(".retune-floating-dialog")) return;
       e.preventDefault();
+      e.stopPropagation();
       callbacks.onCancel();
     }
   }

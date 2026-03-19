@@ -56,7 +56,7 @@ export function mountOverlay(): MountResult {
   // Stop click/pointer events from leaking to the host document.
   // Without this, app-level "close on outside click" handlers (drawers, modals,
   // popovers) would fire when the user interacts with the Retune panel.
-  for (const eventType of ["click", "pointerdown", "mousedown"] as const) {
+  for (const eventType of ["click", "pointerdown", "mousedown", "focusin", "focusout"] as const) {
     host.addEventListener(eventType, (e) => {
       // Only stop events that originated INSIDE the shadow root (panel/toolbar clicks).
       // Events from the element picker pass through (composedPath starts outside).
