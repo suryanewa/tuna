@@ -561,6 +561,16 @@ export function ColorPicker({
     return { ramps, standalone };
   }, [rampGroups]);
 
+  // Build flat array in RENDER ORDER for click handler + keyboard nav indexing
+  const orderedVariables = useMemo(() => {
+    const ordered: DesignVariable[] = [...standalone];
+    for (const [, items] of ramps) ordered.push(...items);
+    return ordered;
+  }, [standalone, ramps]);
+
+  // Override the ref with render-ordered array
+  filteredVariablesRef.current = orderedVariables;
+
   const tokenContent = (() => {
     let globalIndex = 0;
 
