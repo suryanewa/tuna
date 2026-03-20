@@ -6,3 +6,6 @@ dist/
 .agents/
 .claude/
 skills-lock.json
+.DS_Store
+.mcp.json
+RELEASE_NOTES_*
