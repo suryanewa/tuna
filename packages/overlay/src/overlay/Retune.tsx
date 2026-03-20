@@ -347,6 +347,20 @@ function RetuneInner(props: RetuneConfig) {
         case "getFormattedChanges":
           return formatChanges(tracker.getPendingChanges(), params?.fidelity || fidelityRef.current);
         case "clearChanges": {
+          // Re-insert all deleted elements (try/catch for stale DOM refs after hot reload)
+          while (deleteStackRef.current.length > 0) {
+            const entry = deleteStackRef.current.pop()!;
+            try {
+              if (entry.nextSibling) {
+                entry.parent.insertBefore(entry.element, entry.nextSibling);
+              } else {
+                entry.parent.appendChild(entry.element);
+              }
+            } catch {
+              // DOM references stale after hot reload — skip
+            }
+          }
+          deleteRedoStackRef.current = [];
           // Clean up forced pseudo-state inline styles
           if (forcedStateRef.current) {
             const f = forcedStylesRef.current;
@@ -912,12 +926,84 @@ function RetuneInner(props: RetuneConfig) {
     forcedStylesRef.current = { selector, props: appliedProps };
   }, []);
 
+  // Delete stacks for undo/redo: stores removed elements so they can be re-inserted
+  const deleteStackRef = useRef<Array<{ element: Element; parent: Node; nextSibling: Node | null }>>([]);
+  const deleteRedoStackRef = useRef<Array<{ element: Element; parent: Node; nextSibling: Node | null }>>([]);
+
+  // Delete selected element
+  const handleDelete = useCallback(() => {
+    const el = selectedElementRef.current;
+    if (!el?.element) return;
+
+    const tag = el.element.tagName.toLowerCase();
+    if (tag === "body" || tag === "html" || tag === "head") return;
+    if ((el.element as HTMLElement).hasAttribute("data-retune-host")) return;
+
+    const parent = el.element.parentNode;
+    if (!parent) return;
+
+    const tracker = trackerRef.current;
+    if (tracker) {
+      const selector = activeSelectorRef.current ?? el.selector;
+      tracker.track(
+        selector, el.tagName, el.textContent, el.classes,
+        el.reactComponents, el.computedStyles, el.sourceFile,
+        el.stylingApproach, el.inlineStyles, el.elementId,
+        el.accessibleName, el.parentContext, el.childSummary,
+        el.domPath, el.nearbySiblings, el.position,
+      );
+      tracker.recordChange(selector, "__delete", "true");
+      tracker.persist();
+    }
+
+    deleteStackRef.current.push({
+      element: el.element,
+      parent,
+      nextSibling: el.element.nextSibling,
+    });
+    deleteRedoStackRef.current = []; // new action clears redo
+
+    el.element.remove();
+
+    setSelectedElement(null);
+    selectedElementRef.current = null;
+    pickerRef.current?.refreshSelection();
+    syncTrackerStateRef.current();
+    setChangeRevision((r) => r + 1);
+  }, []);
+
+  // Undo delete: re-insert the last deleted element
+  const undoDelete = useCallback(() => {
+    const entry = deleteStackRef.current.pop();
+    if (!entry) return;
+
+    if (entry.nextSibling) {
+      entry.parent.insertBefore(entry.element, entry.nextSibling);
+    } else {
+      entry.parent.appendChild(entry.element);
+    }
+
+    // Save for redo
+    deleteRedoStackRef.current.push(entry);
+
+    syncTrackerStateRef.current();
+    setChangeRevision((r) => r + 1);
+  }, []);
+
   const handleUndo = useCallback(() => {
     const tracker = trackerRef.current;
     const preview = previewRef.current;
     if (!tracker || !preview) return;
     const entries = tracker.popUndo();
-    if (entries) {
+    if (!entries) return;
+
+    // If this undo group contains a __delete, re-insert the element instead of CSS undo
+    if (entries.some(e => e.property === "__delete")) {
+      undoDelete();
+      return;
+    }
+
+    {
       // Apply preview changes only for value entries (skip metadata-only unlink entries)
       const valueEntries = entries.filter(e => !e.action);
       for (const entry of valueEntries) {
@@ -946,26 +1032,46 @@ function RetuneInner(props: RetuneConfig) {
       pickerRef.current?.refreshSelection();
       setChangeRevision((r) => r + 1);
     }
-  }, [syncForcedInlineStyles]);
+  }, [syncForcedInlineStyles, undoDelete]);
 
   const handleRedo = useCallback(() => {
     const tracker = trackerRef.current;
     const preview = previewRef.current;
     if (!tracker || !preview) return;
     const entries = tracker.popRedo();
-    if (entries) {
-      // Apply preview changes only for value entries (skip metadata-only unlink entries)
-      for (const entry of entries) {
-        if (!entry.action) {
-          preview.applyChange(entry.selector, entry.property, entry.value);
-        }
+    if (!entries) return;
+
+    // If this redo group contains a __delete, re-remove the element
+    if (entries.some(e => e.property === "__delete")) {
+      const entry = deleteRedoStackRef.current.pop();
+      if (entry) {
+        // Update position reference before removing (may have shifted)
+        deleteStackRef.current.push({
+          element: entry.element,
+          parent: entry.element.parentNode!,
+          nextSibling: entry.element.nextSibling,
+        });
+        entry.element.remove();
+        setSelectedElement(null);
+        selectedElementRef.current = null;
+        pickerRef.current?.refreshSelection();
       }
-      syncForcedInlineStyles();
       syncTrackerStateRef.current();
-      refreshSelectedElementRef.current();
-      pickerRef.current?.refreshSelection();
       setChangeRevision((r) => r + 1);
+      return;
     }
+
+    // Apply preview changes only for value entries (skip metadata-only unlink entries)
+    for (const entry of entries) {
+      if (!entry.action) {
+        preview.applyChange(entry.selector, entry.property, entry.value);
+      }
+    }
+    syncForcedInlineStyles();
+    syncTrackerStateRef.current();
+    refreshSelectedElementRef.current();
+    pickerRef.current?.refreshSelection();
+    setChangeRevision((r) => r + 1);
   }, [syncForcedInlineStyles]);
 
   // Per-property reset: revert a single property to its original value
@@ -1004,41 +1110,6 @@ function RetuneInner(props: RetuneConfig) {
     setChangeRevision((r) => r + 1);
   }, [syncForcedInlineStyles]);
 
-  // Delete selected element
-  const handleDelete = useCallback(() => {
-    const el = selectedElementRef.current;
-    if (!el?.element) return;
-
-    // Don't delete body, html, or the Retune host
-    const tag = el.element.tagName.toLowerCase();
-    if (tag === "body" || tag === "html" || tag === "head") return;
-    if ((el.element as HTMLElement).hasAttribute("data-retune-host")) return;
-
-    // Record the deletion for output
-    const tracker = trackerRef.current;
-    if (tracker) {
-      const selector = activeSelectorRef.current ?? el.selector;
-      tracker.track(
-        selector, el.tagName, el.textContent, el.classes,
-        el.reactComponents, el.computedStyles, el.sourceFile,
-        el.stylingApproach, el.inlineStyles, el.elementId,
-        el.accessibleName, el.parentContext, el.childSummary,
-        el.domPath, el.nearbySiblings, el.position,
-      );
-      tracker.recordChange(selector, "__delete", "true");
-      tracker.persist();
-    }
-
-    // Remove from DOM
-    el.element.remove();
-
-    // Clear selection
-    setSelectedElement(null);
-    selectedElementRef.current = null;
-    pickerRef.current?.refreshSelection();
-    syncTrackerStateRef.current();
-    setChangeRevision((r) => r + 1);
-  }, []);
 
   // Hotkey listener
   useEffect(() => {
@@ -1074,6 +1145,20 @@ function RetuneInner(props: RetuneConfig) {
     const tracker = trackerRef.current;
     const preview = previewRef.current;
     if (!tracker || !preview) return;
+    // Re-insert all deleted elements
+    while (deleteStackRef.current.length > 0) {
+      const entry = deleteStackRef.current.pop()!;
+      try {
+        if (entry.nextSibling) {
+          entry.parent.insertBefore(entry.element, entry.nextSibling);
+        } else {
+          entry.parent.appendChild(entry.element);
+        }
+      } catch {
+        // DOM references may be stale after hot reload — skip silently
+      }
+    }
+    deleteRedoStackRef.current = [];
     // Clean up forced pseudo-state inline styles before clearing
     if (forcedStateRef.current) clearForcedInlineStyles();
     preview.clearAll();
