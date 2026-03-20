@@ -219,6 +219,20 @@ function formatSingleChange(change: ElementChange, fidelity: Fidelity, tokenMap:
     lines.push(`**Inline styles:** \`${change.inlineStyles}\``);
   }
 
+  // Check for element deletion
+  const isDelete = change.changes.some(c => c.property === "__delete");
+  if (isDelete) {
+    lines.push("");
+    lines.push("### Action: Delete Element");
+    lines.push("");
+    lines.push("Remove this element from the source code entirely.");
+    if (change.classes.length > 0) {
+      lines.push(`**Classes:** \`${change.classes.join(" ")}\``);
+    }
+    lines.push("");
+    return lines.join("\n");
+  }
+
   // Collapse longhand groups into shorthands where possible
   const collapsed = collapseShorthands(change.changes);
 

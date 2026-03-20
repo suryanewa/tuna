@@ -1004,6 +1004,42 @@ function RetuneInner(props: RetuneConfig) {
     setChangeRevision((r) => r + 1);
   }, [syncForcedInlineStyles]);
 
+  // Delete selected element
+  const handleDelete = useCallback(() => {
+    const el = selectedElementRef.current;
+    if (!el?.element) return;
+
+    // Don't delete body, html, or the Retune host
+    const tag = el.element.tagName.toLowerCase();
+    if (tag === "body" || tag === "html" || tag === "head") return;
+    if ((el.element as HTMLElement).hasAttribute("data-retune-host")) return;
+
+    // Record the deletion for output
+    const tracker = trackerRef.current;
+    if (tracker) {
+      const selector = activeSelectorRef.current ?? el.selector;
+      tracker.track(
+        selector, el.tagName, el.textContent, el.classes,
+        el.reactComponents, el.computedStyles, el.sourceFile,
+        el.stylingApproach, el.inlineStyles, el.elementId,
+        el.accessibleName, el.parentContext, el.childSummary,
+        el.domPath, el.nearbySiblings, el.position,
+      );
+      tracker.recordChange(selector, "__delete", "true");
+      tracker.persist();
+    }
+
+    // Remove from DOM
+    el.element.remove();
+
+    // Clear selection
+    setSelectedElement(null);
+    selectedElementRef.current = null;
+    pickerRef.current?.refreshSelection();
+    syncTrackerStateRef.current();
+    setChangeRevision((r) => r + 1);
+  }, []);
+
   // Hotkey listener
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -1019,10 +1055,20 @@ function RetuneInner(props: RetuneConfig) {
         e.preventDefault();
         handleRedo();
       }
+      // Delete selected element
+      if (active && selectedElementRef.current && (e.key === "Delete" || e.key === "Backspace")) {
+        // Don't intercept if focus is in a text input inside Retune's shadow root
+        const path = e.composedPath();
+        const target = path[0] as HTMLElement;
+        if (target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable) return;
+        e.preventDefault();
+        e.stopPropagation();
+        handleDelete();
+      }
     }
     document.addEventListener("keydown", handleKeyDown, true);
     return () => document.removeEventListener("keydown", handleKeyDown, true);
-  }, [active, config.hotkey, toggleOverlay, handleUndo, handleRedo]);
+  }, [active, config.hotkey, toggleOverlay, handleUndo, handleRedo, handleDelete]);
 
   const handleReset = useCallback(() => {
     const tracker = trackerRef.current;
