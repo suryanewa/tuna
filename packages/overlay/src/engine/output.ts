@@ -233,6 +233,16 @@ function formatSingleChange(change: ElementChange, fidelity: Fidelity, tokenMap:
     return lines.join("\n");
   }
 
+  // Check for reorder
+  const reorderChange = change.changes.find(c => c.property === "__reorder");
+  if (reorderChange) {
+    lines.push("");
+    lines.push("### Action: Reorder Element");
+    lines.push("");
+    lines.push(`Moved from position ${reorderChange.from} to position ${reorderChange.to} within its parent container.`);
+    lines.push("");
+  }
+
   // Check for text content change
   const textChange = change.changes.find(c => c.property === "__text");
   if (textChange) {

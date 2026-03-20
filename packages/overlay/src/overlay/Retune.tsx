@@ -353,6 +353,17 @@ function RetuneInner(props: RetuneConfig) {
           deleteRedoStackRef.current = [];
           textStackRef.current = [];
           textRedoStackRef.current = [];
+          // Revert all reorders
+          while (reorderStackRef.current.length > 0) {
+            const entry = reorderStackRef.current.pop()!;
+            try {
+              const children = Array.from(entry.parent.children);
+              const ref = children[entry.oldIndex];
+              if (ref) entry.parent.insertBefore(entry.element, ref);
+              else entry.parent.appendChild(entry.element);
+            } catch {}
+          }
+          reorderRedoStackRef.current = [];
           // Clean up forced pseudo-state inline styles
           if (forcedStateRef.current) {
             const f = forcedStylesRef.current;
@@ -408,6 +419,27 @@ function RetuneInner(props: RetuneConfig) {
                 if (parent) {
                   deleteStackRef.current.push({ element: el, parent, nextSibling: el.nextSibling });
                   el.remove();
+                }
+              }
+            } catch {}
+          } else if (c.property === "__reorder") {
+            // Re-apply reorder: find element by selector, move to new position
+            try {
+              const el = document.querySelector(change.selector);
+              if (el?.parentElement) {
+                const parent = el.parentElement;
+                const oldIndex = Array.from(parent.children).indexOf(el);
+                const newIndex = parseInt(c.to);
+                if (!isNaN(newIndex) && oldIndex !== newIndex) {
+                  const children = Array.from(parent.children);
+                  if (newIndex >= children.length) {
+                    parent.appendChild(el);
+                  } else if (newIndex > oldIndex) {
+                    parent.insertBefore(el, children[newIndex + 1] || null);
+                  } else {
+                    parent.insertBefore(el, children[newIndex]);
+                  }
+                  reorderStackRef.current.push({ element: el, parent, oldIndex, newIndex });
                 }
               }
             } catch {}
@@ -1117,6 +1149,26 @@ function RetuneInner(props: RetuneConfig) {
       return;
     }
 
+    // If this undo group contains a __reorder, move element back
+    if (entries.some(e => e.property === "__reorder")) {
+      const entry = reorderStackRef.current.pop();
+      if (entry) {
+        const children = Array.from(entry.parent.children);
+        const ref = children[entry.oldIndex];
+        if (ref) {
+          entry.parent.insertBefore(entry.element, ref);
+        } else {
+          entry.parent.appendChild(entry.element);
+        }
+        reorderRedoStackRef.current.push(entry);
+      }
+      syncTrackerStateRef.current();
+      refreshSelectedElementRef.current();
+      pickerRef.current?.refreshSelection();
+      setChangeRevision((r) => r + 1);
+      return;
+    }
+
     // If this undo group contains a __text, restore original HTML
     if (entries.some(e => e.property === "__text")) {
       const entry = textStackRef.current.pop();
@@ -1166,6 +1218,26 @@ function RetuneInner(props: RetuneConfig) {
     if (!tracker || !preview) return;
     const entries = tracker.popRedo();
     if (!entries) return;
+
+    // If this redo group contains a __reorder, re-apply the move
+    if (entries.some(e => e.property === "__reorder")) {
+      const entry = reorderRedoStackRef.current.pop();
+      if (entry) {
+        const children = Array.from(entry.parent.children);
+        const ref = children[entry.newIndex];
+        if (ref) {
+          entry.parent.insertBefore(entry.element, ref.nextSibling ? ref.nextSibling : null);
+        } else {
+          entry.parent.appendChild(entry.element);
+        }
+        reorderStackRef.current.push(entry);
+      }
+      syncTrackerStateRef.current();
+      refreshSelectedElementRef.current();
+      pickerRef.current?.refreshSelection();
+      setChangeRevision((r) => r + 1);
+      return;
+    }
 
     // If this redo group contains a __text, re-apply edited text
     if (entries.some(e => e.property === "__text")) {
@@ -1249,6 +1321,64 @@ function RetuneInner(props: RetuneConfig) {
   }, [syncForcedInlineStyles]);
 
 
+  // Reorder stack for undo/redo
+  const reorderStackRef = useRef<Array<{ element: Element; parent: Element; oldIndex: number; newIndex: number }>>([]);
+  const reorderRedoStackRef = useRef<Array<{ element: Element; parent: Element; oldIndex: number; newIndex: number }>>([]);
+
+  /** Move selected element up or down among its siblings (for flow elements in flex/grid) */
+  const handleReorderByKey = useCallback((direction: "up" | "down") => {
+    const el = selectedElementRef.current?.element;
+    if (!el?.parentElement) return;
+
+    const parent = el.parentElement;
+
+    const children = Array.from(parent.children);
+    const index = children.indexOf(el);
+    if (index === -1) return;
+
+    const newIndex = direction === "up" ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= children.length) return;
+
+    // Store for undo
+    reorderStackRef.current.push({ element: el, parent, oldIndex: index, newIndex });
+    reorderRedoStackRef.current = [];
+
+    // Move the element in the DOM
+    if (direction === "up") {
+      parent.insertBefore(el, children[newIndex]);
+    } else {
+      const after = children[newIndex].nextSibling;
+      if (after) parent.insertBefore(el, after);
+      else parent.appendChild(el);
+    }
+
+    // Record the change — use specific element selector for accurate targeting
+    const tracker = trackerRef.current;
+    if (tracker) {
+      const elSelector = getSelector(el);
+      const inspected = selectedElementRef.current;
+      tracker.track(
+        elSelector, el.tagName.toLowerCase(), el.textContent?.slice(0, 40) || null,
+        Array.from(el.classList),
+        inspected?.reactComponents ?? [], {}, inspected?.sourceFile ?? null,
+        inspected?.stylingApproach ?? null, null, el.id || null,
+        null, null, null,
+        inspected?.domPath ?? "", null, { x: 0, y: 0, width: 0, height: 0 },
+      );
+      const tracked = (tracker as any).tracked?.get(elSelector);
+      if (tracked && !tracked.currentStyles["__reorder"]) {
+        tracked.currentStyles["__reorder"] = String(index);
+      }
+      tracker.recordChange(elSelector, "__reorder", String(newIndex));
+      tracker.persist();
+    }
+
+    syncTrackerStateRef.current();
+    refreshSelectedElementRef.current();
+    pickerRef.current?.refreshSelection();
+    setChangeRevision((r) => r + 1);
+  }, []);
+
   // Hotkey listener
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -1264,6 +1394,20 @@ function RetuneInner(props: RetuneConfig) {
         e.preventDefault();
         handleRedo();
       }
+      // Arrow key reorder for flow elements in flex/grid containers
+      if (active && selectedElementRef.current && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+        const path = e.composedPath();
+        const target = path[0] as HTMLElement;
+        if (target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable) return;
+
+        const el = selectedElementRef.current.element as HTMLElement;
+        const parent = el.parentElement;
+        if (!parent || parent.children.length < 2) return;
+        e.preventDefault();
+        e.stopPropagation();
+        handleReorderByKey(e.key === "ArrowUp" ? "up" : "down");
+      }
+
       // Delete selected element
       if (active && selectedElementRef.current && (e.key === "Delete" || e.key === "Backspace")) {
         // Don't intercept if focus is in a text input inside Retune's shadow root
@@ -1277,7 +1421,7 @@ function RetuneInner(props: RetuneConfig) {
     }
     document.addEventListener("keydown", handleKeyDown, true);
     return () => document.removeEventListener("keydown", handleKeyDown, true);
-  }, [active, config.hotkey, toggleOverlay, handleUndo, handleRedo, handleDelete]);
+  }, [active, config.hotkey, toggleOverlay, handleUndo, handleRedo, handleDelete, handleReorderByKey]);
 
   const handleReset = useCallback(() => {
     const tracker = trackerRef.current;
@@ -1303,6 +1447,17 @@ function RetuneInner(props: RetuneConfig) {
       try { entry.element.innerHTML = entry.originalHTML; } catch {}
     }
     textRedoStackRef.current = [];
+    // Revert all reorders
+    while (reorderStackRef.current.length > 0) {
+      const entry = reorderStackRef.current.pop()!;
+      try {
+        const children = Array.from(entry.parent.children);
+        const ref = children[entry.oldIndex];
+        if (ref) entry.parent.insertBefore(entry.element, ref);
+        else entry.parent.appendChild(entry.element);
+      } catch {}
+    }
+    reorderRedoStackRef.current = [];
     // Clean up forced pseudo-state inline styles before clearing
     if (forcedStateRef.current) clearForcedInlineStyles();
     preview.clearAll();
