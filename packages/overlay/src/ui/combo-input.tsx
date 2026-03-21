@@ -36,7 +36,7 @@ export interface ComboInputProps {
   /** CSS property name for token availability detection */
   property?: string;
   /** Callback when user picks a different token from the picker */
-  onVariableSelect?: (oldToken: import("../variables/types").DesignVariable, newToken: import("../variables/types").DesignVariable) => void;
+  onVariableSelect?: (oldToken: import("../variables/types").DesignVariable, newToken: import("../variables/types").DesignVariable, properties?: string[]) => void;
   /** Callback when user applies a token from scratch (no existing token) */
   onVariableApply?: (token: import("../variables/types").DesignVariable, properties: string[]) => void;
   onVariableUnlink?: () => void;
@@ -268,10 +268,11 @@ export function ComboInput({ label, prop, value, options, onChange, variableMatc
   }, []);
 
   const handleVariableSelectInternal = useCallback((variable: DesignVariable) => {
+    const props = [property || prop];
     if (variableMatch) {
-      onVariableSelect?.(variableMatch.variable, variable);
+      onVariableSelect?.(variableMatch.variable, variable, props);
     } else {
-      onVariableApply?.(variable, [property || prop]);
+      onVariableApply?.(variable, props);
     }
   }, [variableMatch, property, prop, onVariableSelect, onVariableApply]);
 

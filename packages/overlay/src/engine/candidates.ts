@@ -152,5 +152,7 @@ export function enrichPropertyChanges(
     // Invalid selector
   }
 
-  return changes.map(c => resolvePropertyCandidates(c, tokenMap, element));
+  return changes
+    .filter(c => !c.property.startsWith("__")) // skip structural properties (__delete, __text, __reorder)
+    .map(c => resolvePropertyCandidates(c, tokenMap, element));
 }

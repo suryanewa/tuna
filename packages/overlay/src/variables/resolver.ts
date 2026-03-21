@@ -110,13 +110,16 @@ function resolveVarReferences(element: Element, matches: Map<string, VariableMat
     varLookup.set(name, t);
   }
 
+  // Track specificity so higher-specificity rules override lower ones
+  const matchSpecificity = new Map<string, number>();
+
   /** Try to match a var() reference and add to matches */
-  const tryMatch = (prop: string, raw: string) => {
+  const tryMatch = (prop: string, raw: string, specificity = 0) => {
     if (!raw.includes("var(")) return;
-    // Allow CSS variable to overwrite a raw utility match (e.g., Tailwind p-4)
-    // so the variable isn't lost when the utility gets filtered in getVariableMatch
     const existing = matches.get(prop);
-    if (existing && !isRawUtility(existing.variable)) return;
+    const prevSpec = matchSpecificity.get(prop) ?? -1;
+    // Allow overwrite if: no existing match, existing is raw utility, or new rule has higher specificity
+    if (existing && !isRawUtility(existing.variable) && specificity < prevSpec) return;
 
     // Find the first var() reference that exists in our token lookup
     VAR_REF_RE.lastIndex = 0;
@@ -133,12 +136,15 @@ function resolveVarReferences(element: Element, matches: Map<string, VariableMat
     if (longhands) {
       for (const lh of longhands) {
         const lhExisting = matches.get(lh);
-        if (!lhExisting || isRawUtility(lhExisting.variable)) {
+        const lhPrevSpec = matchSpecificity.get(lh) ?? -1;
+        if (!lhExisting || isRawUtility(lhExisting.variable) || specificity >= lhPrevSpec) {
           matches.set(lh, { variable, property: lh });
+          matchSpecificity.set(lh, specificity);
         }
       }
     } else {
       matches.set(prop, { variable, property: prop });
+      matchSpecificity.set(prop, specificity);
     }
   };
 
@@ -178,23 +184,24 @@ function resolveVarReferences(element: Element, matches: Map<string, VariableMat
           if (!(rule instanceof CSSStyleRule)) continue;
           if (!element.matches(rule.selectorText)) continue;
 
-          // When scoped, only process rules whose classes are a subset of the scope
+          // When scoped, only process rules whose classes are within scope
+          const ruleClasses = rule.selectorText.match(/\.[a-zA-Z0-9_-]+/g) || [];
           if (scopeClasses) {
-            const ruleClasses = rule.selectorText.match(/\.[a-zA-Z0-9_-]+/g) || [];
             if (ruleClasses.length === 0) continue; // skip universal selectors
             if (!ruleClasses.every(rc => scopeClasses.includes(rc))) continue;
           }
 
+          const ruleSpecificity = ruleClasses.length;
           for (let i = 0; i < rule.style.length; i++) {
             const prop = rule.style.item(i);
             const raw = rule.style.getPropertyValue(prop);
-            tryMatch(prop, raw);
+            tryMatch(prop, raw, ruleSpecificity);
             tryClear(prop, raw);
           }
           // Also check shorthands in stylesheet rules
           for (const shorthand of Object.keys(SHORTHAND_LONGHANDS)) {
             const raw = rule.style.getPropertyValue(shorthand);
-            if (raw) tryMatch(shorthand, raw);
+            if (raw) tryMatch(shorthand, raw, ruleSpecificity);
           }
         }
       } catch {

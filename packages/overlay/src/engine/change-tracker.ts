@@ -100,6 +100,17 @@ export class ChangeTracker {
     }
   }
 
+  /** Set an initial value for a property if it hasn't been set yet.
+   *  Useful for structural properties like __reorder that aren't in the
+   *  original computed styles snapshot. */
+  ensureOriginalValue(selector: string, property: string, value: string) {
+    const tracked = this.tracked.get(selector);
+    if (tracked && !(property in tracked.originalStyles)) {
+      tracked.originalStyles[property] = value;
+      tracked.currentStyles[property] = value;
+    }
+  }
+
   /** Record a style change. Groups paired properties (e.g. paddingTop+paddingBottom
    *  from a single scrub gesture) into one undo step. */
   recordChange(selector: string, property: string, newValue: string): { from: string; to: string } | null {
@@ -552,6 +563,11 @@ export class ChangeTracker {
 
     this.persist();
     return { from: currentValue, to: originalValue };
+  }
+
+  /** Prevent the next change from coalescing with the previous one */
+  breakCoalescing() {
+    this.lastChange = null;
   }
 
   get canUndo(): boolean { return this.undoStack.length > 0; }

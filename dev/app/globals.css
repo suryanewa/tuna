@@ -441,6 +441,7 @@
 
 .btn-danger { background: transparent; color: var(--color-danger); }
 .btn-danger:hover { background: #fef2f2; }
+.btn.btn-danger.btn-sm { font-size: var(--font-2xl); }
 
 .btn-sm { padding: var(--spacing-1) var(--spacing-2); font-size: var(--font-xs); }
 .btn-icon { padding: var(--spacing-1) var(--spacing-2); }

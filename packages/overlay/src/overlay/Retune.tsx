@@ -317,6 +317,10 @@ function RetuneInner(props: RetuneConfig) {
     bridgeRef.current = bridge;
 
     bridge.onRequest(async (method, params) => {
+      // Use refs (not closure variables) so the handler always operates on the
+      // current tracker/preview — even if the setup effect re-runs due to HMR.
+      const t = trackerRef.current!;
+      const p = previewRef.current!;
       switch (method) {
         case "getSelection": {
           const sel = selectedElementRef.current;
@@ -329,9 +333,9 @@ function RetuneInner(props: RetuneConfig) {
           };
         }
         case "getPendingChanges":
-          return tracker.getPendingChanges();
+          return t.getPendingChanges();
         case "getCollapsedChanges":
-          return tracker.getPendingChanges().map((c) => ({
+          return t.getPendingChanges().map((c) => ({
             ...c,
             changes: collapseShorthands(c.changes),
           }));
@@ -339,13 +343,13 @@ function RetuneInner(props: RetuneConfig) {
           const { scanDesignTokens } = await import("../inspector/tokens");
           const { enrichPropertyChanges } = await import("../engine/candidates");
           const tokenMap = scanDesignTokens();
-          return tracker.getPendingChanges().map((c) => ({
+          return t.getPendingChanges().map((c) => ({
             ...c,
             changes: enrichPropertyChanges(collapseShorthands(c.changes), tokenMap, c.selector),
           }));
         }
         case "getFormattedChanges":
-          return formatChanges(tracker.getPendingChanges(), params?.fidelity || fidelityRef.current);
+          return formatChanges(t.getPendingChanges(), params?.fidelity || fidelityRef.current);
         case "clearChanges": {
           // MCP clear = agent already applied changes to source.
           // Don't restore DOM mutations — just clear the stacks and tracking data.
@@ -353,17 +357,22 @@ function RetuneInner(props: RetuneConfig) {
           deleteRedoStackRef.current = [];
           textStackRef.current = [];
           textRedoStackRef.current = [];
-          // Revert all reorders
-          while (reorderStackRef.current.length > 0) {
-            const entry = reorderStackRef.current.pop()!;
-            try {
-              const children = Array.from(entry.parent.children);
-              const ref = children[entry.oldIndex];
-              if (ref) entry.parent.insertBefore(entry.element, ref);
-              else entry.parent.appendChild(entry.element);
-            } catch {}
-          }
+          // Remove CSS order values — React will reconcile to new source order
+          reorderStackRef.current = [];
           reorderRedoStackRef.current = [];
+          reorderOriginRef.current = new WeakMap();
+          for (const [, originals] of reorderOriginalOrderRef.current) {
+            for (const [child, originalOrder] of originals) {
+              const el = child as HTMLElement;
+              if (originalOrder) {
+                el.style.order = originalOrder;
+              } else {
+                el.style.removeProperty("order");
+                if (el.getAttribute("style")?.trim() === "") el.removeAttribute("style");
+              }
+            }
+          }
+          reorderOriginalOrderRef.current.clear();
           // Clean up forced pseudo-state inline styles
           if (forcedStateRef.current) {
             const f = forcedStylesRef.current;
@@ -381,21 +390,15 @@ function RetuneInner(props: RetuneConfig) {
             setForcedState(null);
             forcedStateRef.current = null;
           }
-          preview.clearAll();
-          tracker.clear();
+          p.clearAll();
+          t.clear();
+          // Deselect — DOM nodes may have been restructured by React reconciliation
+          // after the source code change, making the old selection reference unreliable
+          setSelectedElement(null);
+          selectedElementRef.current = null;
+          pickerRef.current?.clearSelection();
           syncTrackerStateRef.current();
           setChangeRevision((r) => r + 1);
-          const el = selectedElementRef.current;
-          if (el) {
-            tracker.track(
-              el.selector, el.tagName, el.textContent, el.classes,
-              el.reactComponents, el.computedStyles, el.sourceFile,
-              el.stylingApproach, el.inlineStyles, el.elementId,
-              el.accessibleName, el.parentContext, el.childSummary,
-              el.domPath, el.nearbySiblings, el.position,
-            );
-          }
-          refreshSelectedElementRef.current();
           return { ok: true };
         }
         default:
@@ -423,23 +426,27 @@ function RetuneInner(props: RetuneConfig) {
               }
             } catch {}
           } else if (c.property === "__reorder") {
-            // Re-apply reorder: find element by selector, move to new position
+            // Re-apply reorder via CSS order (doesn't conflict with React)
             try {
-              const el = document.querySelector(change.selector);
+              const el = document.querySelector(change.selector) as HTMLElement;
               if (el?.parentElement) {
                 const parent = el.parentElement;
-                const oldIndex = Array.from(parent.children).indexOf(el);
-                const newIndex = parseInt(c.to);
-                if (!isNaN(newIndex) && oldIndex !== newIndex) {
-                  const children = Array.from(parent.children);
-                  if (newIndex >= children.length) {
-                    parent.appendChild(el);
-                  } else if (newIndex > oldIndex) {
-                    parent.insertBefore(el, children[newIndex + 1] || null);
-                  } else {
-                    parent.insertBefore(el, children[newIndex]);
+                const children = Array.from(parent.children) as HTMLElement[];
+                const domIndex = children.indexOf(el);
+                const targetIndex = parseInt(c.to);
+                if (!isNaN(targetIndex) && domIndex !== targetIndex) {
+                  // Assign explicit order to all children, then rearrange
+                  ensureExplicitOrder(parent);
+                  const visualOrder = [...children];
+                  visualOrder.splice(domIndex, 1);
+                  visualOrder.splice(targetIndex, 0, el);
+                  // Save previous orders for undo
+                  const undoEntry: Array<{ element: HTMLElement; prevOrder: string }> = [];
+                  for (let i = 0; i < visualOrder.length; i++) {
+                    undoEntry.push({ element: visualOrder[i], prevOrder: visualOrder[i].style.order });
+                    visualOrder[i].style.order = String(i);
                   }
-                  reorderStackRef.current.push({ element: el, parent, oldIndex, newIndex });
+                  reorderStackRef.current.push(undoEntry);
                 }
               }
             } catch {}
@@ -608,7 +615,7 @@ function RetuneInner(props: RetuneConfig) {
               tracker.track(
                 editSelector, el.tagName.toLowerCase(), originalText, Array.from(el.classList),
                 inspected?.reactComponents ?? [], {}, inspected?.sourceFile ?? null,
-                inspected?.stylingApproach ?? null, null, el.id || null,
+                inspected?.stylingApproach ?? undefined, null, el.id || null,
                 null, null, null,
                 inspected?.domPath ?? "", null, { x: 0, y: 0, width: 0, height: 0 },
               );
@@ -1149,18 +1156,20 @@ function RetuneInner(props: RetuneConfig) {
       return;
     }
 
-    // If this undo group contains a __reorder, move element back
+    // If this undo group contains a __reorder, restore previous CSS order values
     if (entries.some(e => e.property === "__reorder")) {
-      const entry = reorderStackRef.current.pop();
-      if (entry) {
-        const children = Array.from(entry.parent.children);
-        const ref = children[entry.oldIndex];
-        if (ref) {
-          entry.parent.insertBefore(entry.element, ref);
-        } else {
-          entry.parent.appendChild(entry.element);
+      const undoEntry = reorderStackRef.current.pop();
+      if (undoEntry) {
+        // Save current values for redo
+        const redoEntry: typeof undoEntry = undoEntry.map(s => ({
+          element: s.element,
+          prevOrder: s.element.style.order,
+        }));
+        // Restore previous order values
+        for (const s of undoEntry) {
+          s.element.style.order = s.prevOrder;
         }
-        reorderRedoStackRef.current.push(entry);
+        reorderRedoStackRef.current.push(redoEntry);
       }
       syncTrackerStateRef.current();
       refreshSelectedElementRef.current();
@@ -1219,18 +1228,18 @@ function RetuneInner(props: RetuneConfig) {
     const entries = tracker.popRedo();
     if (!entries) return;
 
-    // If this redo group contains a __reorder, re-apply the move
+    // If this redo group contains a __reorder, re-apply CSS order values
     if (entries.some(e => e.property === "__reorder")) {
-      const entry = reorderRedoStackRef.current.pop();
-      if (entry) {
-        const children = Array.from(entry.parent.children);
-        const ref = children[entry.newIndex];
-        if (ref) {
-          entry.parent.insertBefore(entry.element, ref.nextSibling ? ref.nextSibling : null);
-        } else {
-          entry.parent.appendChild(entry.element);
+      const redoEntry = reorderRedoStackRef.current.pop();
+      if (redoEntry) {
+        const undoEntry: typeof redoEntry = redoEntry.map(s => ({
+          element: s.element,
+          prevOrder: s.element.style.order,
+        }));
+        for (const s of redoEntry) {
+          s.element.style.order = s.prevOrder;
         }
-        reorderStackRef.current.push(entry);
+        reorderStackRef.current.push(undoEntry);
       }
       syncTrackerStateRef.current();
       refreshSelectedElementRef.current();
@@ -1321,57 +1330,98 @@ function RetuneInner(props: RetuneConfig) {
   }, [syncForcedInlineStyles]);
 
 
-  // Reorder stack for undo/redo
-  const reorderStackRef = useRef<Array<{ element: Element; parent: Element; oldIndex: number; newIndex: number }>>([]);
-  const reorderRedoStackRef = useRef<Array<{ element: Element; parent: Element; oldIndex: number; newIndex: number }>>([]);
+  // Reorder via CSS `order` — doesn't move DOM nodes, so React reconciliation can't undo it
+  type ReorderUndoEntry = Array<{ element: HTMLElement; prevOrder: string }>;
+  const reorderStackRef = useRef<ReorderUndoEntry[]>([]);
+  const reorderRedoStackRef = useRef<ReorderUndoEntry[]>([]);
+  // Track original selector per element so multiple arrow presses produce one net change
+  const reorderOriginRef = useRef(new WeakMap<Element, { selector: string; originalIndex: number }>());
+  // Track containers with explicit order values so we can clean up on clear
+  const reorderOriginalOrderRef = useRef(new Map<Element, Map<Element, string>>());
 
-  /** Move selected element up or down among its siblings (for flow elements in flex/grid) */
+  /** Get the visual order of children (sorted by CSS order, then DOM order for ties) */
+  function getVisualOrder(parent: Element): HTMLElement[] {
+    const children = Array.from(parent.children) as HTMLElement[];
+    return [...children].sort((a, b) => {
+      const orderA = parseInt(a.style.order) || 0;
+      const orderB = parseInt(b.style.order) || 0;
+      if (orderA !== orderB) return orderA - orderB;
+      return children.indexOf(a) - children.indexOf(b);
+    });
+  }
+
+  /** Assign explicit order values to all children if not already done */
+  function ensureExplicitOrder(parent: Element) {
+    if (reorderOriginalOrderRef.current.has(parent)) return;
+    const children = Array.from(parent.children) as HTMLElement[];
+    const originals = new Map<Element, string>();
+    for (const child of children) {
+      originals.set(child, child.style.order || "");
+    }
+    reorderOriginalOrderRef.current.set(parent, originals);
+    children.forEach((c, i) => { c.style.order = String(i); });
+  }
+
+  /** Move selected element up or down among its siblings using CSS order */
   const handleReorderByKey = useCallback((direction: "up" | "down") => {
-    const el = selectedElementRef.current?.element;
+    const el = selectedElementRef.current?.element as HTMLElement;
     if (!el?.parentElement) return;
 
     const parent = el.parentElement;
+    const children = Array.from(parent.children) as HTMLElement[];
+    if (children.length < 2) return;
 
-    const children = Array.from(parent.children);
-    const index = children.indexOf(el);
-    if (index === -1) return;
+    // Ensure all children have explicit order values
+    ensureExplicitOrder(parent);
 
-    const newIndex = direction === "up" ? index - 1 : index + 1;
-    if (newIndex < 0 || newIndex >= children.length) return;
+    // Find element's visual position
+    const visualOrder = getVisualOrder(parent);
+    const visualIndex = visualOrder.indexOf(el);
+    if (visualIndex === -1) return;
 
-    // Store for undo
-    reorderStackRef.current.push({ element: el, parent, oldIndex: index, newIndex });
-    reorderRedoStackRef.current = [];
+    const newVisualIndex = direction === "up" ? visualIndex - 1 : visualIndex + 1;
+    if (newVisualIndex < 0 || newVisualIndex >= visualOrder.length) return;
 
-    // Move the element in the DOM
-    if (direction === "up") {
-      parent.insertBefore(el, children[newIndex]);
-    } else {
-      const after = children[newIndex].nextSibling;
-      if (after) parent.insertBefore(el, after);
-      else parent.appendChild(el);
-    }
+    const neighbor = visualOrder[newVisualIndex];
 
-    // Record the change — use specific element selector for accurate targeting
+    // Record the change using DOM index (stable, not affected by CSS order)
+    const domIndex = children.indexOf(el);
     const tracker = trackerRef.current;
     if (tracker) {
-      const elSelector = getSelector(el);
+      const origin = reorderOriginRef.current.get(el);
+      const elSelector = origin?.selector ?? getSelector(el);
+      const originalIndex = origin?.originalIndex ?? domIndex;
+      if (!origin) {
+        reorderOriginRef.current.set(el, { selector: elSelector, originalIndex: domIndex });
+      }
+
       const inspected = selectedElementRef.current;
       tracker.track(
         elSelector, el.tagName.toLowerCase(), el.textContent?.slice(0, 40) || null,
         Array.from(el.classList),
-        inspected?.reactComponents ?? [], {}, inspected?.sourceFile ?? null,
-        inspected?.stylingApproach ?? null, null, el.id || null,
+        inspected?.reactComponents ?? [], { "__reorder": String(originalIndex) }, inspected?.sourceFile ?? null,
+        inspected?.stylingApproach ?? undefined, null, el.id || null,
         null, null, null,
         inspected?.domPath ?? "", null, { x: 0, y: 0, width: 0, height: 0 },
       );
-      const tracked = (tracker as any).tracked?.get(elSelector);
-      if (tracked && !tracked.currentStyles["__reorder"]) {
-        tracked.currentStyles["__reorder"] = String(index);
-      }
-      tracker.recordChange(elSelector, "__reorder", String(newIndex));
+      tracker.ensureOriginalValue(elSelector, "__reorder", String(originalIndex));
+      tracker.breakCoalescing();
+      tracker.recordChange(elSelector, "__reorder", String(newVisualIndex));
       tracker.persist();
     }
+
+    // Save previous order values for undo, then swap
+    const undoEntry: ReorderUndoEntry = [
+      { element: el, prevOrder: el.style.order },
+      { element: neighbor, prevOrder: neighbor.style.order },
+    ];
+    reorderStackRef.current.push(undoEntry);
+    reorderRedoStackRef.current = [];
+
+    // Swap CSS order values
+    const temp = el.style.order;
+    el.style.order = neighbor.style.order;
+    neighbor.style.order = temp;
 
     syncTrackerStateRef.current();
     refreshSelectedElementRef.current();
@@ -1394,8 +1444,9 @@ function RetuneInner(props: RetuneConfig) {
         e.preventDefault();
         handleRedo();
       }
-      // Arrow key reorder for flow elements in flex/grid containers
-      if (active && selectedElementRef.current && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+      // Arrow key reorder for flow elements in containers
+      // Up/Down for vertical layouts, Left/Right for horizontal (flex-direction: row)
+      if (active && selectedElementRef.current && (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "ArrowLeft" || e.key === "ArrowRight")) {
         const path = e.composedPath();
         const target = path[0] as HTMLElement;
         if (target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable) return;
@@ -1403,9 +1454,27 @@ function RetuneInner(props: RetuneConfig) {
         const el = selectedElementRef.current.element as HTMLElement;
         const parent = el.parentElement;
         if (!parent || parent.children.length < 2) return;
+
+        // CSS order only works on flex/grid items
+        const parentDisplay = getComputedStyle(parent).display;
+        const isFlex = parentDisplay === "flex" || parentDisplay === "inline-flex";
+        const isGrid = parentDisplay === "grid" || parentDisplay === "inline-grid";
+        if (!isFlex && !isGrid) return;
+
+        // Determine if the arrow direction matches the parent's layout axis
+        const isHorizontalKey = e.key === "ArrowLeft" || e.key === "ArrowRight";
+        const isVerticalKey = e.key === "ArrowUp" || e.key === "ArrowDown";
+        const parentDirection = getComputedStyle(parent).flexDirection;
+        const isHorizontalLayout = isFlex && (parentDirection === "row" || parentDirection === "row-reverse");
+
+        // Skip if axis doesn't match (e.g. Left/Right on a vertical list)
+        if (isHorizontalKey && !isHorizontalLayout) return;
+        if (isVerticalKey && isHorizontalLayout) return;
+
         e.preventDefault();
         e.stopPropagation();
-        handleReorderByKey(e.key === "ArrowUp" ? "up" : "down");
+        const goBack = e.key === "ArrowUp" || e.key === "ArrowLeft";
+        handleReorderByKey(goBack ? "up" : "down");
       }
 
       // Delete selected element
@@ -1447,17 +1516,22 @@ function RetuneInner(props: RetuneConfig) {
       try { entry.element.innerHTML = entry.originalHTML; } catch {}
     }
     textRedoStackRef.current = [];
-    // Revert all reorders
-    while (reorderStackRef.current.length > 0) {
-      const entry = reorderStackRef.current.pop()!;
-      try {
-        const children = Array.from(entry.parent.children);
-        const ref = children[entry.oldIndex];
-        if (ref) entry.parent.insertBefore(entry.element, ref);
-        else entry.parent.appendChild(entry.element);
-      } catch {}
-    }
+    // Revert all reorders — restore original CSS order values
+    reorderStackRef.current = [];
     reorderRedoStackRef.current = [];
+    for (const [parent, originals] of reorderOriginalOrderRef.current) {
+      for (const [child, originalOrder] of originals) {
+        const el = child as HTMLElement;
+        if (originalOrder) {
+          el.style.order = originalOrder;
+        } else {
+          el.style.removeProperty("order");
+          if (el.getAttribute("style")?.trim() === "") el.removeAttribute("style");
+        }
+      }
+    }
+    reorderOriginalOrderRef.current.clear();
+    reorderOriginRef.current = new WeakMap();
     // Clean up forced pseudo-state inline styles before clearing
     if (forcedStateRef.current) clearForcedInlineStyles();
     preview.clearAll();

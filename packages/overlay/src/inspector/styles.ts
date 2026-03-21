@@ -316,6 +316,7 @@ export function getScopedStyles(
   // A probe element resolves var() references to actual values.
   const ownedProperties = new Set<string>();
   const scopedValues: Record<string, string> = {};
+  const scopedSpecificity: Record<string, number> = {};
 
   const scopeClasses = scopeSelector.match(/\.[a-zA-Z0-9_-]+/g) || [];
 
@@ -323,6 +324,26 @@ export function getScopedStyles(
   const probe = document.createElement("div");
   probe.style.cssText = "position:fixed;top:-9999px;left:-9999px;visibility:hidden;pointer-events:none;";
   document.body.appendChild(probe);
+
+  function resolveRuleValue(rule: CSSStyleRule, prop: string): string {
+    let val = rule.style.getPropertyValue(prop).trim();
+    if (!val) {
+      for (const sh of ["padding", "margin", "border-radius", "gap", "border-width", "border-color", "border-style"]) {
+        const shVal = rule.style.getPropertyValue(sh).trim();
+        if (shVal && prop.startsWith(sh.split("-")[0])) {
+          probe.style.setProperty(sh, shVal);
+          val = getComputedStyle(probe).getPropertyValue(prop).trim();
+          probe.style.removeProperty(sh);
+          break;
+        }
+      }
+    } else if (val.includes("var(")) {
+      probe.style.setProperty(prop, val);
+      val = getComputedStyle(probe).getPropertyValue(prop).trim();
+      probe.style.removeProperty(prop);
+    }
+    return val;
+  }
 
   function walkScopedRules(rules: CSSRuleList) {
     for (let i = 0; i < rules.length; i++) {
@@ -338,37 +359,32 @@ export function getScopedStyles(
       try { if (!element.matches(sel)) continue; } catch { continue; }
 
       const ruleClasses = sel.match(/\.[a-zA-Z0-9_-]+/g) || [];
-      // Skip rules with no classes (universal selectors like *, ::before, tag selectors)
       if (ruleClasses.length === 0) continue;
-      const ruleWithinScope = ruleClasses.every((rc) => scopeClasses.includes(rc));
-      if (!ruleWithinScope) continue;
 
+      // Include rules where all classes are within scope (rule ⊆ scope)
+      // OR rules that are a superset of scope (scope ⊆ rule) — these have
+      // higher specificity and override scope values in the cascade.
+      const ruleWithinScope = ruleClasses.every((rc) => scopeClasses.includes(rc));
+      const ruleSupersetOfScope = !ruleWithinScope &&
+        scopeClasses.every((sc) => ruleClasses.includes(sc));
+
+      if (!ruleWithinScope && !ruleSupersetOfScope) continue;
+
+      const ruleSpecificity = ruleClasses.length;
       for (let j = 0; j < rule.style.length; j++) {
         const prop = rule.style[j];
         const camel = prop.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
-        ownedProperties.add(camel);
-
-        // Resolve the value (handles var() references via probe)
-        let val = rule.style.getPropertyValue(prop).trim();
-
-        // If longhand value is empty, check if it came from a shorthand
-        if (!val) {
-          for (const sh of ["padding", "margin", "border-radius", "gap", "border-width", "border-color", "border-style"]) {
-            const shVal = rule.style.getPropertyValue(sh).trim();
-            if (shVal && prop.startsWith(sh.split("-")[0])) {
-              // Apply shorthand to probe and read the resolved longhand
-              probe.style.setProperty(sh, shVal);
-              val = getComputedStyle(probe).getPropertyValue(prop).trim();
-              probe.style.removeProperty(sh);
-              break;
-            }
-          }
-        } else if (val.includes("var(")) {
-          probe.style.setProperty(prop, val);
-          val = getComputedStyle(probe).getPropertyValue(prop).trim();
-          probe.style.removeProperty(prop);
+        if (ruleWithinScope) ownedProperties.add(camel);
+        const val = resolveRuleValue(rule, prop);
+        if (!val) continue;
+        // Respect CSS specificity: only overwrite if new rule has >= specificity.
+        // For class-only selectors, specificity = number of classes.
+        // Equal specificity + later in source = wins (CSS cascade).
+        const prevSpec = scopedSpecificity[camel] ?? -1;
+        if (ruleSpecificity >= prevSpec) {
+          scopedValues[camel] = val;
+          scopedSpecificity[camel] = ruleSpecificity;
         }
-        if (val) scopedValues[camel] = val;
       }
     }
   }
@@ -380,6 +396,7 @@ export function getScopedStyles(
   }
 
   probe.remove();
+
 
   // Use scoped values for owned properties, computed values for everything else.
   // This ensures .alert's padding shows its own value (16px), not the cascade

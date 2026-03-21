@@ -5,10 +5,10 @@ import { useState, useRef, useEffect, useCallback } from "react";
 // ── Data ──
 
 const FOLDERS = [
+  { name: "Drafts", count: 1 },
   { name: "Inbox", count: 12 },
   { name: "Starred", count: 3 },
   { name: "Sent", count: 0 },
-  { name: "Drafts", count: 1 },
   { name: "Archive", count: 0 },
   { name: "Trash", count: 0 },
 ];
@@ -226,8 +226,8 @@ export default function MailApp() {
               <span className="checkbox__label">Select all</span>
             </label>
             <div className="toolbar__actions">
-              <button className="btn btn-ghost btn-sm">Archive</button>
               <button className="btn btn-ghost btn-sm">Mark read</button>
+              <button className="btn btn-ghost btn-sm">Archive</button>
               <button className="btn btn-danger btn-sm">Delete</button>
             </div>
           </div>
@@ -329,6 +329,7 @@ export default function MailApp() {
           </div>
         </div>
       )}
+
 
       {/* ── Alert Banner ── */}
       <div className="alert alert-warning alert-dismissible">

@@ -306,6 +306,126 @@ describe("ChangeTracker", () => {
     });
   });
 
+  // ─── ensureOriginalValue ─────────────────────────────────────────
+
+  describe("ensureOriginalValue", () => {
+    it("sets original and current value when property is missing", () => {
+      trackElement(); // tracks with { padding: "8px", color: "red" }
+      tracker.ensureOriginalValue(sel, "__reorder", "5");
+      // Now recordChange should see "5" as the old value
+      const result = tracker.recordChange(sel, "__reorder", "2");
+      expect(result).toEqual({ from: "5", to: "2" });
+    });
+
+    it("does not overwrite existing original value", () => {
+      trackElement();
+      tracker.ensureOriginalValue(sel, "__reorder", "5");
+      tracker.recordChange(sel, "__reorder", "3");
+      // Try to set again — should be no-op
+      tracker.ensureOriginalValue(sel, "__reorder", "99");
+      // The pending change should still show from: "5", not "99"
+      const changes = tracker.getPendingChanges();
+      const reorder = changes[0]?.changes.find(c => c.property === "__reorder");
+      expect(reorder?.from).toBe("5");
+    });
+
+    it("does nothing for untracked selector", () => {
+      tracker.ensureOriginalValue(".unknown", "__reorder", "5");
+      expect(tracker.getPendingChanges()).toEqual([]);
+    });
+  });
+
+  // ─── breakCoalescing ────────────────────────────────────────────
+
+  describe("breakCoalescing", () => {
+    it("prevents coalescing of rapid changes into one undo group", () => {
+      trackElement();
+      tracker.recordChange(sel, "__reorder", "4");
+      tracker.breakCoalescing();
+      tracker.recordChange(sel, "__reorder", "3");
+
+      // First undo should revert to "4", not "8px" (the original)
+      const entries1 = tracker.popUndo();
+      expect(entries1).not.toBeNull();
+      expect(entries1![0].value).toBe("4");
+
+      // Second undo should revert to original
+      const entries2 = tracker.popUndo();
+      expect(entries2).not.toBeNull();
+    });
+
+    it("without breakCoalescing, rapid changes coalesce", () => {
+      trackElement();
+      tracker.recordChange(sel, "__reorder", "4");
+      // No breakCoalescing — same selector within coalesce window
+      tracker.recordChange(sel, "__reorder", "3");
+
+      // Only one undo group (coalesced)
+      const entries = tracker.popUndo();
+      expect(entries).not.toBeNull();
+      // Should be empty after one pop
+      expect(tracker.canUndo).toBe(false);
+    });
+  });
+
+  // ─── Structural properties (__reorder, __delete, __text) ────────
+
+  describe("structural properties", () => {
+    it("__reorder change appears in getPendingChanges", () => {
+      trackElement();
+      tracker.ensureOriginalValue(sel, "__reorder", "5");
+      tracker.recordChange(sel, "__reorder", "1");
+      const changes = tracker.getPendingChanges();
+      expect(changes.length).toBe(1);
+      const reorder = changes[0].changes.find(c => c.property === "__reorder");
+      expect(reorder).toEqual({ property: "__reorder", from: "5", to: "1" });
+    });
+
+    it("__delete change appears in getPendingChanges", () => {
+      trackElement();
+      tracker.recordChange(sel, "__delete", "true");
+      const changes = tracker.getPendingChanges();
+      expect(changes[0].changes.find(c => c.property === "__delete")).toBeDefined();
+    });
+
+    it("__text change appears in getPendingChanges", () => {
+      trackElement();
+      tracker.ensureOriginalValue(sel, "__text", "Hello");
+      tracker.recordChange(sel, "__text", "Goodbye");
+      const changes = tracker.getPendingChanges();
+      const textChange = changes[0].changes.find(c => c.property === "__text");
+      expect(textChange).toEqual({ property: "__text", from: "Hello", to: "Goodbye" });
+    });
+
+    it("undo reverts __reorder to original position", () => {
+      trackElement();
+      tracker.ensureOriginalValue(sel, "__reorder", "5");
+      tracker.recordChange(sel, "__reorder", "1");
+      tracker.popUndo();
+      // After undo, no pending reorder change
+      const changes = tracker.getPendingChanges();
+      const reorder = changes[0]?.changes.find(c => c.property === "__reorder");
+      expect(reorder).toBeUndefined();
+    });
+
+    it("multiple reorders on same selector consolidate into one change", () => {
+      trackElement();
+      tracker.ensureOriginalValue(sel, "__reorder", "5");
+      tracker.breakCoalescing();
+      tracker.recordChange(sel, "__reorder", "4");
+      tracker.breakCoalescing();
+      tracker.recordChange(sel, "__reorder", "3");
+      tracker.breakCoalescing();
+      tracker.recordChange(sel, "__reorder", "2");
+
+      // Only one pending change entry for this selector
+      const changes = tracker.getPendingChanges();
+      expect(changes.length).toBe(1);
+      const reorder = changes[0].changes.find(c => c.property === "__reorder");
+      expect(reorder).toEqual({ property: "__reorder", from: "5", to: "2" });
+    });
+  });
+
   // ─── Undo/redo token association restoration ───────────────────
 
   describe("undo restores token associations for value changes", () => {
