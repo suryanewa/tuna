@@ -266,6 +266,7 @@ function RetuneInner(props: RetuneConfig) {
   const [portalTarget, setPortalTarget] = useState<HTMLDivElement | null>(null);
   const [updateInfo, setUpdateInfo] = useState<{ current: string; latest: string } | null>(null);
   const [updateDismissing, setUpdateDismissing] = useState(false);
+  const [updateDismissed, setUpdateDismissed] = useState(false);
   const [updateCopied, setUpdateCopied] = useState(false);
   const copyBtnRef = useRef<HTMLButtonElement>(null);
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1826,20 +1827,26 @@ function RetuneInner(props: RetuneConfig) {
             <div className="retune-tab-pill" ref={tabPillRef} />
             <button className={`retune-tab${panelTab === "elements" ? " active" : ""}`} onClick={() => setPanelTab("elements")}>Elements</button>
             <button className={`retune-tab${panelTab === "design" ? " active" : ""}`} onClick={() => setPanelTab("design")}>Design</button>
-            <span style={{ marginLeft: "auto", fontSize: "11px", lineHeight: "16px", color: "#a8a29e", letterSpacing: "-0.005em", paddingRight: "8px", display: "flex", alignItems: "center" }}>v{updateInfo?.current || (typeof __RETUNE_VERSION__ === "string" ? __RETUNE_VERSION__ : "")}</span>
+            <span
+              onClick={() => { if (updateInfo && updateDismissed) { setUpdateDismissed(false); setUpdateCopied(false); } }}
+              style={{ marginLeft: "auto", fontSize: "11px", lineHeight: "16px", color: "#a8a29e", letterSpacing: "-0.005em", paddingRight: "8px", display: "flex", alignItems: "center", gap: "4px", cursor: updateInfo ? "pointer" : "default" }}
+            >
+              {updateInfo && <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#0D99FF", flexShrink: 0 }} />}
+              v{updateInfo?.current || (typeof __RETUNE_VERSION__ === "string" ? __RETUNE_VERSION__ : "")}
+            </span>
           </div>
           <div className="retune-panel-body">
             {updateInfo && (
               <div
                 style={{
                   display: "grid",
-                  gridTemplateRows: updateDismissing ? "0fr" : "1fr",
-                  opacity: updateDismissing ? 0 : 1,
+                  gridTemplateRows: (updateDismissing || updateDismissed) ? "0fr" : "1fr",
+                  opacity: (updateDismissing || updateDismissed) ? 0 : 1,
                   transition: "grid-template-rows 150ms cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 150ms cubic-bezier(0.25, 0.46, 0.45, 0.94)",
                 }}
                 onTransitionEnd={(e) => {
                   if (e.propertyName === "opacity" && updateDismissing) {
-                    setUpdateInfo(null);
+                    setUpdateDismissed(true);
                     setUpdateDismissing(false);
                   }
                 }}
@@ -1852,6 +1859,8 @@ function RetuneInner(props: RetuneConfig) {
                   display: "flex",
                   flexDirection: "column",
                   gap: "8px",
+                  transform: (updateDismissing || updateDismissed) ? "translateY(-4px)" : "translateY(0)",
+                  transition: "transform 150ms cubic-bezier(0.25, 0.46, 0.45, 0.94)",
                 }}
               >
                 <div style={{ fontFamily: "inherit", fontSize: "12px", fontWeight: 600, lineHeight: "16px", letterSpacing: "-0.06px", color: "#fff" }}>
