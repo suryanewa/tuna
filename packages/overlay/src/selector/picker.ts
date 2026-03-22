@@ -111,8 +111,8 @@ export function createPicker(
     h.style.cssText = `
       position:fixed;pointer-events:auto;display:none;box-sizing:border-box;
       width:${HANDLE_SIZE}px;height:${HANDLE_SIZE}px;
-      background:#fff;border:1.5px solid #3b82f6;border-radius:1px;
-      z-index:2147483640;cursor:${HANDLE_CURSORS[pos]};
+      background:#fff;border:1px solid #3b82f6;border-radius:1px;
+      z-index:2147483646;cursor:${HANDLE_CURSORS[pos]};
     `;
     shadowRoot.appendChild(h);
     handleEls[pos] = h;
@@ -123,7 +123,7 @@ export function createPicker(
     const h = document.createElement("div");
     h.style.cssText = `
       position:fixed;pointer-events:auto;display:none;
-      z-index:2147483640;cursor:${HANDLE_CURSORS[pos]};
+      z-index:2147483646;cursor:${HANDLE_CURSORS[pos]};
     `;
     shadowRoot.appendChild(h);
     handleEls[pos] = h;
@@ -480,9 +480,17 @@ export function createPicker(
     });
   }
 
+  function handleScroll() {
+    scheduleTrack();
+    if (hoveredElement) {
+      hoveredElement = null;
+      hideHighlight();
+    }
+  }
+
   // Keep selection box in sync on scroll/resize
   function startTracking() {
-    window.addEventListener("scroll", scheduleTrack, { capture: true, passive: true });
+    window.addEventListener("scroll", handleScroll, { capture: true, passive: true });
     window.addEventListener("resize", scheduleTrack, { passive: true });
     resizeObserver = new ResizeObserver(scheduleTrack);
     if (selectedElement) resizeObserver.observe(selectedElement);
@@ -495,7 +503,7 @@ export function createPicker(
       cancelAnimationFrame(trackingRaf);
       trackingRaf = null;
     }
-    window.removeEventListener("scroll", scheduleTrack, true);
+    window.removeEventListener("scroll", handleScroll, true);
     window.removeEventListener("resize", scheduleTrack);
     resizeObserver?.disconnect();
     resizeObserver = null;
