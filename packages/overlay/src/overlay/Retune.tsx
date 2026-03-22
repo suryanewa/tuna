@@ -267,7 +267,7 @@ function RetuneInner(props: RetuneConfig) {
   const [updateInfo, setUpdateInfo] = useState<{ current: string; latest: string } | null>(null);
   const [updateDismissing, setUpdateDismissing] = useState(false);
   const [updateCopied, setUpdateCopied] = useState(false);
-  const [updateRolling, setUpdateRolling] = useState(false);
+  const copyBtnRef = useRef<HTMLButtonElement>(null);
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [panelTab, setPanelTab] = useState<"elements" | "design">("design");
   const [side, setSide] = useState<"right" | "left">(config.position.includes("right") ? "right" : "left");
@@ -1847,114 +1847,157 @@ function RetuneInner(props: RetuneConfig) {
               <div style={{ overflow: "hidden", minHeight: 0 }}>
               <div
                 style={{
-                  padding: "12px 12px 12px 16px",
-                  background: "rgba(110, 17, 176, 0.05)",
+                  padding: "12px 16px",
+                  background: "#0d99ff",
                   display: "flex",
-                  alignItems: "center",
-                  gap: "4px",
-                  fontSize: "11px",
-                  color: "#6E11B0",
+                  flexDirection: "column",
+                  gap: "8px",
                 }}
               >
-                <div style={{ flex: 1, lineHeight: "16px", letterSpacing: "-0.005em" }}>
-                  <div style={{ fontWeight: 500, fontSize: "12px", marginBottom: "4px" }}>Retune v{updateInfo.latest} is available</div>
-                  <span
+                <div style={{ fontFamily: "inherit", fontSize: "12px", fontWeight: 600, lineHeight: "16px", letterSpacing: "-0.06px", color: "#fff" }}>
+                  Retune v{updateInfo.latest} is available
+                </div>
+                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                  {/* Copy / Paste button
+                      Structure: button (no padding) contains:
+                      1. Invisible sizer (has padding, determines button dimensions)
+                      2. Two absolute overlays (same padding, crossfade between them)
+                      Width change animated via Web Animations API */}
+                  <button
+                    ref={copyBtnRef}
                     onClick={() => {
                       if (updateCopied) return;
+                      const btn = copyBtnRef.current;
+                      if (!btn) return;
+                      const oldWidth = btn.getBoundingClientRect().width;
                       navigator.clipboard.writeText("Update Retune to the latest version by running `npm install retune@latest` and `npx retune setup`. After updating, I'll need to restart Claude Code so the new MCP server and skill take effect.");
                       setUpdateCopied(true);
-                      setUpdateRolling(true);
-                      setTimeout(() => setUpdateRolling(false), 150);
+                      requestAnimationFrame(() => {
+                        const newWidth = btn.getBoundingClientRect().width;
+                        if (Math.abs(newWidth - oldWidth) > 1) {
+                          btn.animate(
+                            [{ width: `${oldWidth}px` }, { width: `${newWidth}px` }],
+                            { duration: 200, easing: "cubic-bezier(0.215, 0.61, 0.355, 1)" }
+                          );
+                        }
+                      });
                       setTimeout(() => {
-                        setUpdateRolling(true);
-                        setTimeout(() => setUpdateRolling(false), 150);
+                        const b = copyBtnRef.current;
+                        if (!b) return;
+                        const oldW = b.getBoundingClientRect().width;
                         setUpdateCopied(false);
+                        requestAnimationFrame(() => {
+                          const newW = b.getBoundingClientRect().width;
+                          if (Math.abs(newW - oldW) > 1) {
+                            b.animate(
+                              [{ width: `${oldW}px` }, { width: `${newW}px` }],
+                              { duration: 200, easing: "cubic-bezier(0.215, 0.61, 0.355, 1)" }
+                            );
+                          }
+                        });
                       }, 3000);
                     }}
                     style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "2px",
+                      background: "#fff",
+                      border: "none",
+                      borderRadius: "6px",
+                      padding: 0,
                       cursor: "pointer",
-                      height: "16px",
+                      fontFamily: "inherit",
+                      fontSize: "11px",
+                      fontWeight: 500,
+                      lineHeight: "16px",
+                      letterSpacing: "-0.055px",
+                      color: "#000",
+                      whiteSpace: "nowrap",
+                      position: "relative",
+                      overflow: "hidden",
+                      flexShrink: 0,
+                      transition: "transform 100ms ease",
                     }}
+                    onPointerDown={(e) => { (e.currentTarget as HTMLElement).style.transform = "scale(0.97)"; }}
+                    onPointerUp={(e) => { (e.currentTarget as HTMLElement).style.transform = ""; }}
+                    onPointerLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = ""; }}
                   >
-                    <span style={{ overflow: "hidden", width: 14, height: 16, flexShrink: 0, marginLeft: "-2.5px",
-                      maskImage: "linear-gradient(to bottom, transparent, black 3px, black calc(100% - 3px), transparent)",
-                      WebkitMaskImage: "linear-gradient(to bottom, transparent, black 3px, black calc(100% - 3px), transparent)",
+                    {/* Invisible sizer — determines button dimensions including padding */}
+                    <span style={{
+                      display: "flex", gap: "2px", alignItems: "center",
+                      padding: "6px 8px 6px 4px",
+                      visibility: "hidden",
+                    }}>
+                      <span style={{ width: 16, height: 16, flexShrink: 0 }} />
+                      {updateCopied ? "Paste in your AI agent to update" : "Copy update instructions"}
+                    </span>
+                    {/* Overlay A: Copy — crossfades out */}
+                    <span style={{
+                      position: "absolute", inset: 0,
+                      display: "flex", gap: "2px", alignItems: "center",
+                      padding: "6px 8px 6px 4px",
+                      opacity: updateCopied ? 0 : 1,
+                      filter: updateCopied ? "blur(2px)" : "blur(0)",
+                      transition: "opacity 200ms cubic-bezier(0.215, 0.61, 0.355, 1), filter 200ms cubic-bezier(0.215, 0.61, 0.355, 1)",
                     }}>
                       <span style={{
-                        display: "block", willChange: "transform, filter",
-                        transform: updateCopied ? "translateY(-16px)" : "translateY(0)",
-                        filter: updateRolling ? "blur(1.5px)" : "blur(0)",
-                        transition: "transform 300ms cubic-bezier(0.23, 1, 0.32, 1), filter 150ms cubic-bezier(0.23, 1, 0.32, 1)",
+                        width: 16, height: 16, flexShrink: 0,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        transform: updateCopied ? "scale(0.95)" : "scale(1)",
+                        transition: "transform 200ms cubic-bezier(0.215, 0.61, 0.355, 1)",
                       }}>
-                        <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "16px",
-                          opacity: updateCopied ? 0 : 1, transition: "opacity 150ms cubic-bezier(0.23, 1, 0.32, 1)",
-                        }}>
-                          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                            <path d="M8.5 3.5C9.32843 3.5 10 4.17157 10 5V6H11C11.8284 6 12.5 6.67157 12.5 7.5V11C12.5 11.8284 11.8284 12.5 11 12.5H7.5C6.67157 12.5 6 11.8284 6 11V10H5C4.17157 10 3.5 9.32843 3.5 8.5V5C3.5 4.17157 4.17157 3.5 5 3.5H8.5ZM10 8.5C10 9.32843 9.32843 10 8.5 10H7V11C7 11.2761 7.22386 11.5 7.5 11.5H11C11.2761 11.5 11.5 11.2761 11.5 11V7.5C11.5 7.22386 11.2761 7 11 7H10V8.5ZM5 4.5C4.72386 4.5 4.5 4.72386 4.5 5V8.5C4.5 8.77614 4.72386 9 5 9H8.5C8.77614 9 9 8.77614 9 8.5V5C9 4.72386 8.77614 4.5 8.5 4.5H5Z" fill="rgba(110, 17, 176, 0.7)" />
-                          </svg>
-                        </span>
-                        <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "16px",
-                          opacity: updateCopied ? 1 : 0, transition: "opacity 200ms cubic-bezier(0.23, 1, 0.32, 1) 100ms",
-                        }}>
-                          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                            <path d="M11.0839 4.22268C11.2371 3.99294 11.5475 3.93087 11.7773 4.08401C12.007 4.23718 12.0691 4.5476 11.916 4.77737L7.91596 10.7774C7.83287 10.902 7.69784 10.9833 7.54877 10.9981C7.39988 11.0127 7.25223 10.9593 7.14643 10.8535L4.14643 7.85354C3.9512 7.65827 3.95118 7.34176 4.14643 7.14651C4.34168 6.95126 4.6582 6.95128 4.85346 7.14651L7.42182 9.71487L11.0839 4.22268Z" fill="rgba(110, 17, 176, 0.7)" />
-                          </svg>
-                        </span>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <path d="M8.5 3.5C9.32843 3.5 10 4.17157 10 5V6H11C11.8284 6 12.5 6.67157 12.5 7.5V11C12.5 11.8284 11.8284 12.5 11 12.5H7.5C6.67157 12.5 6 11.8284 6 11V10H5C4.17157 10 3.5 9.32843 3.5 8.5V5C3.5 4.17157 4.17157 3.5 5 3.5H8.5ZM10 8.5C10 9.32843 9.32843 10 8.5 10H7V11C7 11.2761 7.22386 11.5 7.5 11.5H11C11.2761 11.5 11.5 11.2761 11.5 11V7.5C11.5 7.22386 11.2761 7 11 7H10V8.5ZM5 4.5C4.72386 4.5 4.5 4.72386 4.5 5V8.5C4.5 8.77614 4.72386 9 5 9H8.5C8.77614 9 9 8.77614 9 8.5V5C9 4.72386 8.77614 4.5 8.5 4.5H5Z" fill="black" fillOpacity="0.9" />
+                        </svg>
                       </span>
+                      Copy update instructions
                     </span>
-                    <span style={{ overflow: "hidden", height: "16px",
-                      maskImage: "linear-gradient(to bottom, transparent, black 3px, black calc(100% - 3px), transparent)",
-                      WebkitMaskImage: "linear-gradient(to bottom, transparent, black 3px, black calc(100% - 3px), transparent)",
+                    {/* Overlay B: Paste — crossfades in */}
+                    <span style={{
+                      position: "absolute", inset: 0,
+                      display: "flex", gap: "2px", alignItems: "center",
+                      padding: "6px 8px 6px 4px",
+                      opacity: updateCopied ? 1 : 0,
+                      filter: updateCopied ? "blur(0)" : "blur(2px)",
+                      transition: "opacity 200ms cubic-bezier(0.215, 0.61, 0.355, 1), filter 200ms cubic-bezier(0.215, 0.61, 0.355, 1)",
                     }}>
                       <span style={{
-                        display: "block", willChange: "transform, filter",
-                        transform: updateCopied ? "translateY(-16px)" : "translateY(0)",
-                        filter: updateRolling ? "blur(1.5px)" : "blur(0)",
-                        transition: "transform 300ms cubic-bezier(0.23, 1, 0.32, 1), filter 150ms cubic-bezier(0.23, 1, 0.32, 1)",
+                        width: 16, height: 16, flexShrink: 0,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        transform: updateCopied ? "scale(1)" : "scale(0.95)",
+                        transition: "transform 200ms cubic-bezier(0.215, 0.61, 0.355, 1)",
                       }}>
-                        <span
-                          style={{
-                            display: "block", height: "16px",
-                            color: "rgba(110, 17, 176, 0.7)",
-                            textDecoration: "underline dotted rgba(110, 17, 176, 0.7)", textUnderlineOffset: "2px",
-                            opacity: updateCopied ? 0 : 1,
-                            transition: "opacity 150ms cubic-bezier(0.23, 1, 0.32, 1), color 150ms ease, text-decoration-color 150ms ease",
-                          }}
-                          onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(110, 17, 176, 0.9)"; e.currentTarget.style.textDecorationColor = "rgba(110, 17, 176, 0.9)"; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(110, 17, 176, 0.7)"; e.currentTarget.style.textDecorationColor = "rgba(110, 17, 176, 0.7)"; }}
-                        >Copy update instructions</span>
-                        <span style={{
-                          display: "block", height: "16px", color: "rgba(110, 17, 176, 0.7)",
-                          opacity: updateCopied ? 1 : 0,
-                          transition: "opacity 200ms cubic-bezier(0.23, 1, 0.32, 1) 100ms",
-                        }}>Paste in your AI agent to update</span>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <path d="M11.0839 4.22268C11.2371 3.99294 11.5475 3.93087 11.7773 4.08401C12.007 4.23718 12.0691 4.5476 11.916 4.77737L7.91596 10.7774C7.83287 10.902 7.69784 10.9833 7.54877 10.9981C7.39988 11.0127 7.25223 10.9593 7.14643 10.8535L4.14643 7.85354C3.9512 7.65827 3.95118 7.34176 4.14643 7.14651C4.34168 6.95126 4.6582 6.95128 4.85346 7.14651L7.42182 9.71487L11.0839 4.22268Z" fill="black" fillOpacity="0.9" />
+                        </svg>
                       </span>
+                      Paste in your AI agent to update
                     </span>
-                  </span>
+                  </button>
+                  {/* Maybe later — fades out */}
+                  <button
+                    onClick={() => setUpdateDismissing(true)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      borderRadius: "6px",
+                      padding: "6px 8px",
+                      cursor: updateCopied ? "default" : "pointer",
+                      fontFamily: "inherit",
+                      fontSize: "11px",
+                      fontWeight: 500,
+                      lineHeight: "16px",
+                      letterSpacing: "-0.055px",
+                      color: "#fff",
+                      whiteSpace: "nowrap",
+                      opacity: updateCopied ? 0 : 0.9,
+                      filter: updateCopied ? "blur(2px)" : "blur(0)",
+                      pointerEvents: updateCopied ? "none" : "auto",
+                      transition: "opacity 200ms cubic-bezier(0.215, 0.61, 0.355, 1), filter 200ms cubic-bezier(0.215, 0.61, 0.355, 1)",
+                    }}
+                    onMouseEnter={(e) => { if (!updateCopied) (e.currentTarget as HTMLElement).style.opacity = "1"; }}
+                    onMouseLeave={(e) => { if (!updateCopied) (e.currentTarget as HTMLElement).style.opacity = "0.9"; }}
+                  >
+                    Maybe later
+                  </button>
                 </div>
-                <button
-                  onClick={() => setUpdateDismissing(true)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    padding: "2px",
-                    display: "flex",
-                    alignItems: "center",
-                    alignSelf: "flex-start",
-                    opacity: 0.45,
-                    transition: "opacity 150ms ease",
-                  }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = "0.9"; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = "0.45"; }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path fillRule="evenodd" clipRule="evenodd" d="M4.14645 4.14645C4.34171 3.95118 4.65829 3.95118 4.85355 4.14645L8 7.29289L11.1464 4.14645C11.3417 3.95118 11.6583 3.95118 11.8536 4.14645C12.0488 4.34171 12.0488 4.65829 11.8536 4.85355L8.70711 8L11.8536 11.1464C12.0488 11.3417 12.0488 11.6583 11.8536 11.8536C11.6583 12.0488 11.3417 12.0488 11.1464 11.8536L8 8.70711L4.85355 11.8536C4.65829 12.0488 4.34171 12.0488 4.14645 11.8536C3.95118 11.6583 3.95118 11.3417 4.14645 11.1464L7.29289 8L4.14645 4.85355C3.95118 4.65829 3.95118 4.34171 4.14645 4.14645Z" fill="#6E11B0" />
-                  </svg>
-                </button>
               </div>
               </div>
               </div>
