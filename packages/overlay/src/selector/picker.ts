@@ -111,7 +111,7 @@ export function createPicker(
     h.style.cssText = `
       position:fixed;pointer-events:auto;display:none;box-sizing:border-box;
       width:${HANDLE_SIZE}px;height:${HANDLE_SIZE}px;
-      background:#fff;border:1px solid #3b82f6;border-radius:1px;
+      background:#fff;border:1px solid #0D99FF;border-radius:1px;
       z-index:2147483646;cursor:${HANDLE_CURSORS[pos]};
     `;
     shadowRoot.appendChild(h);
@@ -393,14 +393,14 @@ export function createPicker(
     box.style.left = `${rect.left}px`;
     box.style.width = `${rect.width}px`;
     box.style.height = `${rect.height}px`;
-    box.style.border = `1px ${borderStyle} #3b82f6`;
-    box.style.background = `rgba(59, 130, 246, ${bgAlpha})`;
+    box.style.border = `1px ${borderStyle} #0D99FF`;
+    box.style.background = `rgba(13, 153, 255, ${bgAlpha})`;
     box.style.display = "";
 
     const labelY = rect.top > 24 ? rect.top - 24 : rect.bottom + 4;
     labelEl.style.top = `${labelY}px`;
     labelEl.style.left = `${rect.left}px`;
-    labelEl.style.background = "#3b82f6";
+    labelEl.style.background = "#0D99FF";
   }
 
   function updateHighlight(el: Element) {

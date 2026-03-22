@@ -342,7 +342,7 @@
   margin: 0 -8px;
 }
 .retune-selector-bridge.filled {
-  background: #DBEAFE;
+  background: rgba(13, 153, 255, 0.1);
 }
 .retune-selector-bridge::before,
 .retune-selector-bridge::after {
@@ -390,12 +390,12 @@
 
 .retune-selector-tag.included,
 .retune-selector-tag.active {
-  background: #DBEAFE;
-  color: #1C60BA;
+  background: rgba(13, 153, 255, 0.1);
+  color: #0D99FF;
 }
 .retune-selector-tag.included:hover,
 .retune-selector-tag.active:hover {
-  background: #BFDBFE;
+  background: rgba(13, 153, 255, 0.15);
 }
 
 .retune-selector-tag-count {
@@ -415,7 +415,7 @@
 
 .retune-selector-tag.included .retune-selector-tag-count,
 .retune-selector-tag.active .retune-selector-tag-count {
-  color: #1C60BA;
+  color: #000;
 }
 
 .retune-selector-tag-name {
