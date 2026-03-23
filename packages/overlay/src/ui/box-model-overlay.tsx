@@ -34,9 +34,14 @@ interface Rect {
   height: number;
 }
 
-const PADDING_COLOR = "rgba(77, 200, 96, 0.35)";
-const MARGIN_COLOR = "rgba(246, 178, 107, 0.35)";
-const GAP_COLOR = "rgba(195, 125, 255, 0.35)";
+function diagonalPattern(r: number, g: number, b: number) {
+  const line = `rgba(${r}, ${g}, ${b}, 0.5)`;
+  return `repeating-linear-gradient(-45deg, transparent, transparent 3px, ${line} 3px, ${line} 4px)`;
+}
+
+const PADDING_COLOR = diagonalPattern(13, 153, 255);
+const MARGIN_COLOR = diagonalPattern(255, 168, 36);
+const GAP_COLOR = diagonalPattern(255, 77, 157);
 
 function computePaddingRect(
   side: "Top" | "Right" | "Bottom" | "Left",
@@ -284,7 +289,7 @@ export function BoxModelOverlay({ element, hoveredProperty, revision }: BoxModel
             left: r.left,
             width: r.width,
             height: r.height,
-            backgroundColor: color,
+            background: color,
             pointerEvents: "none",
             zIndex: 2147483645,
           }}
