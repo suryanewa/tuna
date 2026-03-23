@@ -14,6 +14,8 @@ export interface ElementTreeProps {
   onSelect: (element: Element) => void;
   /** Called when user hovers a node (to highlight on page) */
   onHover: (element: Element | null) => void;
+  /** Visual order overrides for reordered containers (parent → ordered children) */
+  visualOrderMap?: Map<Element, Element[]>;
 }
 
 /** Tags to skip in the tree (invisible/meta elements) */
@@ -32,11 +34,12 @@ function isRetuneElement(el: Element): boolean {
   return false;
 }
 
-/** Get visible children of an element, filtering out Retune overlay and skip tags */
-function getVisibleChildren(el: Element): Element[] {
+/** Get visible children of an element, filtering out Retune overlay and skip tags.
+ *  Uses visual order override if available (for reordered containers). */
+function getVisibleChildren(el: Element, visualOrderMap?: Map<Element, Element[]>): Element[] {
+  const source = visualOrderMap?.get(el) ?? Array.from(el.children);
   const children: Element[] = [];
-  for (let i = 0; i < el.children.length; i++) {
-    const child = el.children[i];
+  for (const child of source) {
     if (SKIP_TAGS.has(child.tagName)) continue;
     if (isRetuneElement(child)) continue;
     children.push(child);
@@ -88,6 +91,7 @@ interface TreeNodeProps {
   depth: number;
   selectedElement: Element | null;
   expandedSet: Set<Element>;
+  visualOrderMap?: Map<Element, Element[]>;
   onToggle: (el: Element) => void;
   onSelect: (el: Element) => void;
   onHover: (el: Element | null) => void;
@@ -98,11 +102,12 @@ const TreeNode = memo(function TreeNode({
   depth,
   selectedElement,
   expandedSet,
+  visualOrderMap,
   onToggle,
   onSelect,
   onHover,
 }: TreeNodeProps) {
-  const children = getVisibleChildren(element);
+  const children = getVisibleChildren(element, visualOrderMap);
   const hasChildren = children.length > 0;
   const isExpanded = expandedSet.has(element);
   const isSelected = element === selectedElement;
@@ -144,6 +149,7 @@ const TreeNode = memo(function TreeNode({
           depth={depth + 1}
           selectedElement={selectedElement}
           expandedSet={expandedSet}
+          visualOrderMap={visualOrderMap}
           onToggle={onToggle}
           onSelect={onSelect}
           onHover={onHover}
@@ -155,7 +161,7 @@ const TreeNode = memo(function TreeNode({
 
 // ── Element Tree ──
 
-export function ElementTree({ selectedElement, onSelect, onHover }: ElementTreeProps) {
+export function ElementTree({ selectedElement, onSelect, onHover, visualOrderMap }: ElementTreeProps) {
   const [expandedSet, setExpandedSet] = useState<Set<Element>>(() => new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
   const prevSelectedRef = useRef<Element | null>(null);
@@ -211,6 +217,7 @@ export function ElementTree({ selectedElement, onSelect, onHover }: ElementTreeP
             depth={0}
             selectedElement={selectedElement}
             expandedSet={expandedSet}
+            visualOrderMap={visualOrderMap}
             onToggle={handleToggle}
             onSelect={onSelect}
             onHover={onHover}

@@ -1452,6 +1452,19 @@ function RetuneInner(props: RetuneConfig) {
     });
   }
 
+  // Build visual order map for the element tree (reflects reorder state)
+  const visualOrderMap = useMemo(() => {
+    const map = new Map<Element, Element[]>();
+    for (const parent of reorderOriginalOrderRef.current.keys()) {
+      if (parent.isConnected) map.set(parent, getVisualOrder(parent));
+    }
+    for (const parent of reorderVisualOrderRef.current.keys()) {
+      if (parent.isConnected && !map.has(parent)) map.set(parent, getVisualOrder(parent));
+    }
+    return map;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [changeRevision]);
+
   /** Assign explicit order values to all children if not already done (flex/grid only) */
   function ensureExplicitOrder(parent: Element) {
     if (reorderOriginalOrderRef.current.has(parent)) return;
@@ -2218,6 +2231,7 @@ function RetuneInner(props: RetuneConfig) {
                 selectedElement={selectedElement?.element ?? null}
                 onSelect={handleTreeSelect}
                 onHover={handleTreeHover}
+                visualOrderMap={visualOrderMap}
               />
             )}
             {panelTab === "design" && selectedElement && (
