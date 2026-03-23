@@ -370,7 +370,7 @@ function RetuneInner(props: RetuneConfig) {
           deleteRedoStackRef.current = [];
           textStackRef.current = [];
           textRedoStackRef.current = [];
-          // Remove CSS order values — React will reconcile to new source order
+          // Remove CSS order/translate values — React will reconcile to new source order
           reorderStackRef.current = [];
           reorderRedoStackRef.current = [];
           reorderOriginRef.current = new WeakMap();
@@ -381,11 +381,20 @@ function RetuneInner(props: RetuneConfig) {
                 el.style.order = originalOrder;
               } else {
                 el.style.removeProperty("order");
-                if (el.getAttribute("style")?.trim() === "") el.removeAttribute("style");
               }
             }
           }
           reorderOriginalOrderRef.current.clear();
+          for (const [, rects] of reorderOriginalRectsRef.current) {
+            for (const [child] of rects) {
+              const el = child as HTMLElement;
+              el.style.removeProperty("translate");
+              el.style.removeProperty("transition");
+              if (el.getAttribute("style")?.trim() === "") el.removeAttribute("style");
+            }
+          }
+          reorderOriginalRectsRef.current.clear();
+          reorderModeRef.current = new WeakMap();
           // Clean up forced pseudo-state inline styles
           if (forcedStateRef.current) {
             const f = forcedStylesRef.current;
@@ -440,7 +449,7 @@ function RetuneInner(props: RetuneConfig) {
               }
             } catch {}
           } else if (c.property === "__reorder") {
-            // Re-apply reorder via CSS order (doesn't conflict with React)
+            // Re-apply reorder preview
             try {
               const el = document.querySelector(change.selector) as HTMLElement;
               if (el?.parentElement) {
@@ -449,18 +458,45 @@ function RetuneInner(props: RetuneConfig) {
                 const domIndex = children.indexOf(el);
                 const targetIndex = parseInt(c.to);
                 if (!isNaN(targetIndex) && domIndex !== targetIndex) {
-                  // Assign explicit order to all children, then rearrange
-                  ensureExplicitOrder(parent);
-                  const visualOrder = [...children];
-                  visualOrder.splice(domIndex, 1);
-                  visualOrder.splice(targetIndex, 0, el);
-                  // Save previous orders for undo
-                  const undoEntry: Array<{ element: HTMLElement; prevOrder: string }> = [];
-                  for (let i = 0; i < visualOrder.length; i++) {
-                    undoEntry.push({ element: visualOrder[i], prevOrder: visualOrder[i].style.order });
-                    visualOrder[i].style.order = String(i);
+                  const parentDisplay = getComputedStyle(parent).display;
+                  const isFlex = parentDisplay === "flex" || parentDisplay === "inline-flex";
+                  const isGrid = parentDisplay === "grid" || parentDisplay === "inline-grid";
+
+                  if (isFlex || isGrid) {
+                    // Flex/grid: use CSS order
+                    ensureExplicitOrder(parent);
+                    const visualOrder = [...children];
+                    visualOrder.splice(domIndex, 1);
+                    visualOrder.splice(targetIndex, 0, el);
+                    const undoEntry: ReorderUndoEntry = [];
+                    for (let i = 0; i < visualOrder.length; i++) {
+                      undoEntry.push({ element: visualOrder[i], prevOrder: visualOrder[i].style.order, prevTranslate: "" });
+                      visualOrder[i].style.order = String(i);
+                    }
+                    reorderStackRef.current.push(undoEntry);
+                    reorderModeRef.current.set(parent, "order");
+                  } else {
+                    // Block: use translate
+                    ensureOriginalRects(parent);
+                    reorderModeRef.current.set(parent, "translate");
+                    // Apply sequential translate swaps from domIndex to targetIndex
+                    const step = targetIndex > domIndex ? 1 : -1;
+                    for (let i = domIndex; i !== targetIndex; i += step) {
+                      const a = children[i];
+                      const b = children[i + step];
+                      if (!a || !b) break;
+                      const rects = reorderOriginalRectsRef.current.get(parent);
+                      const rectA = rects?.get(a);
+                      const rectB = rects?.get(b);
+                      if (rectA && rectB) {
+                        const delta = rectB.top - rectA.top;
+                        const aY = parseFloat(a.style.translate?.split(" ")[1] || "0") || 0;
+                        const bY = parseFloat(b.style.translate?.split(" ")[1] || "0") || 0;
+                        a.style.translate = `0 ${aY + delta}px`;
+                        b.style.translate = `0 ${bY - delta}px`;
+                      }
+                    }
                   }
-                  reorderStackRef.current.push(undoEntry);
                 }
               }
             } catch {}
@@ -1205,18 +1241,19 @@ function RetuneInner(props: RetuneConfig) {
       return;
     }
 
-    // If this undo group contains a __reorder, restore previous CSS order values
+    // If this undo group contains a __reorder, restore previous visual state
     if (entries.some(e => e.property === "__reorder")) {
       const undoEntry = reorderStackRef.current.pop();
       if (undoEntry) {
-        // Save current values for redo
         const redoEntry: typeof undoEntry = undoEntry.map(s => ({
           element: s.element,
           prevOrder: s.element.style.order,
+          prevTranslate: s.element.style.translate,
         }));
-        // Restore previous order values
         for (const s of undoEntry) {
           s.element.style.order = s.prevOrder;
+          s.element.style.transition = "translate 200ms cubic-bezier(0.2, 0, 0, 1)";
+          s.element.style.translate = s.prevTranslate;
         }
         reorderRedoStackRef.current.push(redoEntry);
       }
@@ -1277,16 +1314,19 @@ function RetuneInner(props: RetuneConfig) {
     const entries = tracker.popRedo();
     if (!entries) return;
 
-    // If this redo group contains a __reorder, re-apply CSS order values
+    // If this redo group contains a __reorder, re-apply visual state
     if (entries.some(e => e.property === "__reorder")) {
       const redoEntry = reorderRedoStackRef.current.pop();
       if (redoEntry) {
         const undoEntry: typeof redoEntry = redoEntry.map(s => ({
           element: s.element,
           prevOrder: s.element.style.order,
+          prevTranslate: s.element.style.translate,
         }));
         for (const s of redoEntry) {
           s.element.style.order = s.prevOrder;
+          s.element.style.transition = "translate 200ms cubic-bezier(0.2, 0, 0, 1)";
+          s.element.style.translate = s.prevTranslate;
         }
         reorderStackRef.current.push(undoEntry);
       }
@@ -1379,18 +1419,39 @@ function RetuneInner(props: RetuneConfig) {
   }, [syncForcedInlineStyles]);
 
 
-  // Reorder via CSS `order` — doesn't move DOM nodes, so React reconciliation can't undo it
-  type ReorderUndoEntry = Array<{ element: HTMLElement; prevOrder: string }>;
+  // Reorder preview — CSS `order` for flex/grid, `translate` for block layout
+  type ReorderUndoEntry = Array<{ element: HTMLElement; prevOrder: string; prevTranslate: string }>;
   const reorderStackRef = useRef<ReorderUndoEntry[]>([]);
   const reorderRedoStackRef = useRef<ReorderUndoEntry[]>([]);
   // Track original selector per element so multiple arrow presses produce one net change
   const reorderOriginRef = useRef(new WeakMap<Element, { selector: string; originalIndex: number }>());
   // Track containers with explicit order values so we can clean up on clear
   const reorderOriginalOrderRef = useRef(new Map<Element, Map<Element, string>>());
+  // Track layout mode per container for translate-based reorder
+  const reorderModeRef = useRef(new WeakMap<Element, "order" | "translate">());
+  // Track original rects for translate-based reorder (snapshotted before any transforms)
+  const reorderOriginalRectsRef = useRef(new Map<Element, Map<Element, DOMRect>>());
 
-  /** Get the visual order of children (sorted by CSS order, then DOM order for ties) */
+  /** Get the visual order of children (sorted by CSS order for flex/grid, DOM order for block) */
   function getVisualOrder(parent: Element): HTMLElement[] {
     const children = Array.from(parent.children) as HTMLElement[];
+    const mode = reorderModeRef.current.get(parent);
+    if (mode === "translate") {
+      // For translate mode, visual order is tracked by accumulated translate offsets
+      // We need to sort by visual position (original top + translateY)
+      const rects = reorderOriginalRectsRef.current.get(parent);
+      if (rects) {
+        return [...children].sort((a, b) => {
+          const rectA = rects.get(a);
+          const rectB = rects.get(b);
+          const translateA = parseFloat(a.style.translate?.split(" ")[1] || "0") || 0;
+          const translateB = parseFloat(b.style.translate?.split(" ")[1] || "0") || 0;
+          const posA = (rectA?.top ?? 0) + translateA;
+          const posB = (rectB?.top ?? 0) + translateB;
+          return posA - posB;
+        });
+      }
+    }
     return [...children].sort((a, b) => {
       const orderA = parseInt(a.style.order) || 0;
       const orderB = parseInt(b.style.order) || 0;
@@ -1399,7 +1460,7 @@ function RetuneInner(props: RetuneConfig) {
     });
   }
 
-  /** Assign explicit order values to all children if not already done */
+  /** Assign explicit order values to all children if not already done (flex/grid only) */
   function ensureExplicitOrder(parent: Element) {
     if (reorderOriginalOrderRef.current.has(parent)) return;
     const children = Array.from(parent.children) as HTMLElement[];
@@ -1411,7 +1472,18 @@ function RetuneInner(props: RetuneConfig) {
     children.forEach((c, i) => { c.style.order = String(i); });
   }
 
-  /** Move selected element up or down among its siblings using CSS order */
+  /** Snapshot original rects for translate-based reorder (block layout) */
+  function ensureOriginalRects(parent: Element) {
+    if (reorderOriginalRectsRef.current.has(parent)) return;
+    const children = Array.from(parent.children) as HTMLElement[];
+    const rects = new Map<Element, DOMRect>();
+    for (const child of children) {
+      rects.set(child, child.getBoundingClientRect());
+    }
+    reorderOriginalRectsRef.current.set(parent, rects);
+  }
+
+  /** Move selected element up or down among its siblings */
   const handleReorderByKey = useCallback((direction: "up" | "down") => {
     const el = selectedElementRef.current?.element as HTMLElement;
     if (!el?.parentElement) return;
@@ -1420,8 +1492,22 @@ function RetuneInner(props: RetuneConfig) {
     const children = Array.from(parent.children) as HTMLElement[];
     if (children.length < 2) return;
 
-    // Ensure all children have explicit order values
-    ensureExplicitOrder(parent);
+    // Determine reorder mode based on parent layout
+    const parentDisplay = getComputedStyle(parent).display;
+    const isFlex = parentDisplay === "flex" || parentDisplay === "inline-flex";
+    const isGrid = parentDisplay === "grid" || parentDisplay === "inline-grid";
+    const mode = (isFlex || isGrid) ? "order" as const : "translate" as const;
+
+    // Initialize on first reorder
+    if (!reorderModeRef.current.has(parent)) {
+      reorderModeRef.current.set(parent, mode);
+    }
+
+    if (mode === "order") {
+      ensureExplicitOrder(parent);
+    } else {
+      ensureOriginalRects(parent);
+    }
 
     // Find element's visual position
     const visualOrder = getVisualOrder(parent);
@@ -1433,7 +1519,7 @@ function RetuneInner(props: RetuneConfig) {
 
     const neighbor = visualOrder[newVisualIndex];
 
-    // Record the change using DOM index (stable, not affected by CSS order)
+    // Record the change using DOM index (stable)
     const domIndex = children.indexOf(el);
     const tracker = trackerRef.current;
     if (tracker) {
@@ -1459,18 +1545,40 @@ function RetuneInner(props: RetuneConfig) {
       tracker.persist();
     }
 
-    // Save previous order values for undo, then swap
+    // Save previous values for undo
     const undoEntry: ReorderUndoEntry = [
-      { element: el, prevOrder: el.style.order },
-      { element: neighbor, prevOrder: neighbor.style.order },
+      { element: el, prevOrder: el.style.order, prevTranslate: el.style.translate },
+      { element: neighbor, prevOrder: neighbor.style.order, prevTranslate: neighbor.style.translate },
     ];
     reorderStackRef.current.push(undoEntry);
     reorderRedoStackRef.current = [];
 
-    // Swap CSS order values
-    const temp = el.style.order;
-    el.style.order = neighbor.style.order;
-    neighbor.style.order = temp;
+    if (mode === "order") {
+      // Swap CSS order values
+      const temp = el.style.order;
+      el.style.order = neighbor.style.order;
+      neighbor.style.order = temp;
+    } else {
+      // Swap visual positions using translate
+      const rects = reorderOriginalRectsRef.current.get(parent);
+      if (rects) {
+        const elRect = rects.get(el);
+        const neighborRect = rects.get(neighbor);
+        if (elRect && neighborRect) {
+          // Calculate the distance between original positions
+          const delta = neighborRect.top - elRect.top;
+          // Get current translate values
+          const elCurrentY = parseFloat(el.style.translate?.split(" ")[1] || "0") || 0;
+          const neighborCurrentY = parseFloat(neighbor.style.translate?.split(" ")[1] || "0") || 0;
+          // Apply transition for smooth animation
+          el.style.transition = "translate 200ms cubic-bezier(0.2, 0, 0, 1)";
+          neighbor.style.transition = "translate 200ms cubic-bezier(0.2, 0, 0, 1)";
+          // Swap: el moves by delta, neighbor moves by -delta
+          el.style.translate = `0 ${elCurrentY + delta}px`;
+          neighbor.style.translate = `0 ${neighborCurrentY - delta}px`;
+        }
+      }
+    }
 
     syncTrackerStateRef.current();
     refreshSelectedElementRef.current();
@@ -1504,19 +1612,19 @@ function RetuneInner(props: RetuneConfig) {
         const parent = el.parentElement;
         if (!parent || parent.children.length < 2) return;
 
-        // CSS order only works on flex/grid items
+        // Determine layout mode and axis
         const parentDisplay = getComputedStyle(parent).display;
         const isFlex = parentDisplay === "flex" || parentDisplay === "inline-flex";
         const isGrid = parentDisplay === "grid" || parentDisplay === "inline-grid";
-        if (!isFlex && !isGrid) return;
 
-        // Determine if the arrow direction matches the parent's layout axis
         const isHorizontalKey = e.key === "ArrowLeft" || e.key === "ArrowRight";
         const isVerticalKey = e.key === "ArrowUp" || e.key === "ArrowDown";
         const parentDirection = getComputedStyle(parent).flexDirection;
         const isHorizontalLayout = isFlex && (parentDirection === "row" || parentDirection === "row-reverse");
 
-        // Skip if axis doesn't match (e.g. Left/Right on a vertical list)
+        // Block layout: only vertical reorder (Up/Down)
+        if (!isFlex && !isGrid && isHorizontalKey) return;
+        // Flex/grid: skip if axis doesn't match
         if (isHorizontalKey && !isHorizontalLayout) return;
         if (isVerticalKey && isHorizontalLayout) return;
 
@@ -1565,21 +1673,31 @@ function RetuneInner(props: RetuneConfig) {
       try { entry.element.innerHTML = entry.originalHTML; } catch {}
     }
     textRedoStackRef.current = [];
-    // Revert all reorders — restore original CSS order values
+    // Revert all reorders — restore original CSS order/translate values
     reorderStackRef.current = [];
     reorderRedoStackRef.current = [];
-    for (const [parent, originals] of reorderOriginalOrderRef.current) {
+    for (const [, originals] of reorderOriginalOrderRef.current) {
       for (const [child, originalOrder] of originals) {
         const el = child as HTMLElement;
         if (originalOrder) {
           el.style.order = originalOrder;
         } else {
           el.style.removeProperty("order");
-          if (el.getAttribute("style")?.trim() === "") el.removeAttribute("style");
         }
       }
     }
     reorderOriginalOrderRef.current.clear();
+    // Clean up translate-based reorder
+    for (const [, rects] of reorderOriginalRectsRef.current) {
+      for (const [child] of rects) {
+        const el = child as HTMLElement;
+        el.style.removeProperty("translate");
+        el.style.removeProperty("transition");
+        if (el.getAttribute("style")?.trim() === "") el.removeAttribute("style");
+      }
+    }
+    reorderOriginalRectsRef.current.clear();
+    reorderModeRef.current = new WeakMap();
     reorderOriginRef.current = new WeakMap();
     // Clean up forced pseudo-state inline styles before clearing
     if (forcedStateRef.current) clearForcedInlineStyles();
