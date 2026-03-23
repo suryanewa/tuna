@@ -603,7 +603,7 @@ function RetuneInner(props: RetuneConfig) {
         sel?.addRange(range);
 
         // Style hint
-        el.style.outline = "1px solid #3b82f6";
+        el.style.outline = "1px solid #0D99FF";
 
         const cleanup = () => {
           el.contentEditable = "false";

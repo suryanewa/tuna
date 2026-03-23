@@ -300,12 +300,12 @@ export function createPicker(
     }
   }
 
-  function drawSegment(el: HTMLElement, x: number, y: number, size: number, horizontal: boolean) {
+  function drawSegment(el: HTMLElement, x: number, y: number, size: number, horizontal: boolean, dashed = true) {
     el.style.cssText = `
       position:fixed;pointer-events:none;display:block;
       top:${y}px;left:${x}px;
       width:${horizontal ? size : 0}px;height:${horizontal ? 0 : size}px;
-      border-${horizontal ? "top" : "left"}:1px dashed #e5484d;
+      border-${horizontal ? "top" : "left"}:1px ${dashed ? "dashed" : "solid"} #e5484d;
     `;
   }
 
@@ -350,7 +350,7 @@ export function createPicker(
       const hx1 = Math.min(hOriginX, hoverEdgeX);
 
       // Straight segment going outward
-      drawSegment(hMeasure.line, hx1, hOriginY, hDist, true);
+      drawSegment(hMeasure.line, hx1, hOriginY, hDist, true, false);
       positionLabel(hMeasure.label, hDist, hx1, hOriginY, hDist, true);
 
       // Can the straight line reach the hovered element?
@@ -372,7 +372,7 @@ export function createPicker(
       const vy1 = Math.min(vOriginY, hoverEdgeY);
 
       // Straight segment going outward
-      drawSegment(vMeasure.line, vOriginX, vy1, vDist, false);
+      drawSegment(vMeasure.line, vOriginX, vy1, vDist, false, false);
       positionLabel(vMeasure.label, vDist, vOriginX, vy1, vDist, false);
 
       // Can the straight line reach the hovered element?
