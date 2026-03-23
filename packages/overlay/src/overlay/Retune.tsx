@@ -1433,6 +1433,8 @@ function RetuneInner(props: RetuneConfig) {
   const reorderOriginalRectsRef = useRef(new Map<Element, Map<Element, DOMRect>>());
   // Track desired visual order for translate-based reorder
   const reorderVisualOrderRef = useRef(new Map<Element, HTMLElement[]>());
+  // MutationObserver to auto-clear translates when React reconciles (e.g., after HMR)
+  const reorderObserverRef = useRef<MutationObserver | null>(null);
 
   /** Get the visual order of children (sorted by CSS order for flex/grid, DOM order for block) */
   function getVisualOrder(parent: Element): HTMLElement[] {
@@ -1472,6 +1474,31 @@ function RetuneInner(props: RetuneConfig) {
     }
     reorderOriginalRectsRef.current.set(parent, rects);
     reorderVisualOrderRef.current.set(parent, [...children]);
+
+    // Watch for React reconciliation (HMR, state changes) — auto-clear translates
+    // if children are added/removed/reordered by React
+    if (!reorderObserverRef.current) {
+      reorderObserverRef.current = new MutationObserver((mutations) => {
+        for (const m of mutations) {
+          const target = m.target as Element;
+          if (m.type === "childList" && reorderOriginalRectsRef.current.has(target)) {
+            // React changed this parent's children — clear all translates
+            const rects = reorderOriginalRectsRef.current.get(target);
+            if (rects) {
+              for (const [child] of rects) {
+                const el = child as HTMLElement;
+                el.style.removeProperty("translate");
+                if (el.getAttribute("style")?.trim() === "") el.removeAttribute("style");
+              }
+            }
+            reorderOriginalRectsRef.current.delete(target);
+            reorderVisualOrderRef.current.delete(target);
+            reorderModeRef.current.delete(target);
+          }
+        }
+      });
+    }
+    reorderObserverRef.current.observe(parent, { childList: true });
   }
 
   /** Recompute all translates to match desired visual order, accounting for different heights */
@@ -1714,6 +1741,7 @@ function RetuneInner(props: RetuneConfig) {
     reorderOriginalRectsRef.current.clear();
     reorderVisualOrderRef.current.clear();
     reorderModeRef.current = new WeakMap();
+    reorderObserverRef.current?.disconnect();
     reorderOriginRef.current = new WeakMap();
     // Clean up forced pseudo-state inline styles before clearing
     if (forcedStateRef.current) clearForcedInlineStyles();
