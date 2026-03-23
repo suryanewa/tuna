@@ -209,7 +209,7 @@ function IconSBBarVBottom({ color }: { color: string }) {
 
 // ── Icon selection helpers ───────────────────────────────────────────────
 
-const BLUE = "#2563eb";
+const BLUE = "#0D99FF";
 const GRAY = "#a8a29e";
 
 const CELL_TOOLTIPS: Record<string, string> = {
