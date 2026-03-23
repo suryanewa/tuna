@@ -1252,7 +1252,7 @@ function RetuneInner(props: RetuneConfig) {
         }));
         for (const s of undoEntry) {
           s.element.style.order = s.prevOrder;
-          s.element.style.transition = "translate 200ms cubic-bezier(0.2, 0, 0, 1)";
+          s.element.style.transition = "";
           s.element.style.translate = s.prevTranslate;
         }
         reorderRedoStackRef.current.push(redoEntry);
@@ -1325,7 +1325,7 @@ function RetuneInner(props: RetuneConfig) {
         }));
         for (const s of redoEntry) {
           s.element.style.order = s.prevOrder;
-          s.element.style.transition = "translate 200ms cubic-bezier(0.2, 0, 0, 1)";
+          s.element.style.transition = "";
           s.element.style.translate = s.prevTranslate;
         }
         reorderStackRef.current.push(undoEntry);
@@ -1431,26 +1431,16 @@ function RetuneInner(props: RetuneConfig) {
   const reorderModeRef = useRef(new WeakMap<Element, "order" | "translate">());
   // Track original rects for translate-based reorder (snapshotted before any transforms)
   const reorderOriginalRectsRef = useRef(new Map<Element, Map<Element, DOMRect>>());
+  // Track desired visual order for translate-based reorder
+  const reorderVisualOrderRef = useRef(new Map<Element, HTMLElement[]>());
 
   /** Get the visual order of children (sorted by CSS order for flex/grid, DOM order for block) */
   function getVisualOrder(parent: Element): HTMLElement[] {
     const children = Array.from(parent.children) as HTMLElement[];
     const mode = reorderModeRef.current.get(parent);
     if (mode === "translate") {
-      // For translate mode, visual order is tracked by accumulated translate offsets
-      // We need to sort by visual position (original top + translateY)
-      const rects = reorderOriginalRectsRef.current.get(parent);
-      if (rects) {
-        return [...children].sort((a, b) => {
-          const rectA = rects.get(a);
-          const rectB = rects.get(b);
-          const translateA = parseFloat(a.style.translate?.split(" ")[1] || "0") || 0;
-          const translateB = parseFloat(b.style.translate?.split(" ")[1] || "0") || 0;
-          const posA = (rectA?.top ?? 0) + translateA;
-          const posB = (rectB?.top ?? 0) + translateB;
-          return posA - posB;
-        });
-      }
+      const desired = reorderVisualOrderRef.current.get(parent);
+      if (desired) return [...desired];
     }
     return [...children].sort((a, b) => {
       const orderA = parseInt(a.style.order) || 0;
@@ -1472,7 +1462,7 @@ function RetuneInner(props: RetuneConfig) {
     children.forEach((c, i) => { c.style.order = String(i); });
   }
 
-  /** Snapshot original rects for translate-based reorder (block layout) */
+  /** Snapshot original rects and visual order for translate-based reorder (block layout) */
   function ensureOriginalRects(parent: Element) {
     if (reorderOriginalRectsRef.current.has(parent)) return;
     const children = Array.from(parent.children) as HTMLElement[];
@@ -1481,6 +1471,40 @@ function RetuneInner(props: RetuneConfig) {
       rects.set(child, child.getBoundingClientRect());
     }
     reorderOriginalRectsRef.current.set(parent, rects);
+    reorderVisualOrderRef.current.set(parent, [...children]);
+  }
+
+  /** Recompute all translates to match desired visual order, accounting for different heights */
+  function applyTranslateOrder(parent: Element) {
+    const rects = reorderOriginalRectsRef.current.get(parent);
+    const desiredOrder = reorderVisualOrderRef.current.get(parent);
+    if (!rects || !desiredOrder) return;
+
+    // Compute the average gap between consecutive original elements
+    const originalChildren = Array.from(parent.children) as HTMLElement[];
+    let totalGap = 0;
+    let gapCount = 0;
+    for (let i = 0; i < originalChildren.length - 1; i++) {
+      const curr = rects.get(originalChildren[i])!;
+      const next = rects.get(originalChildren[i + 1])!;
+      totalGap += next.top - curr.bottom;
+      gapCount++;
+    }
+    const gap = gapCount > 0 ? totalGap / gapCount : 0;
+
+    // Stack elements in desired order using actual heights + gap
+    let currentTop = rects.get(originalChildren[0])!.top; // start at original first position
+    for (let i = 0; i < desiredOrder.length; i++) {
+      const child = desiredOrder[i];
+      const originalTop = rects.get(child)!.top;
+      const translateY = currentTop - originalTop;
+      if (Math.abs(translateY) < 0.5) {
+        child.style.removeProperty("translate");
+      } else {
+        child.style.translate = `0 ${translateY}px`;
+      }
+      currentTop += rects.get(child)!.height + gap;
+    }
   }
 
   /** Move selected element up or down among its siblings */
@@ -1559,23 +1583,14 @@ function RetuneInner(props: RetuneConfig) {
       el.style.order = neighbor.style.order;
       neighbor.style.order = temp;
     } else {
-      // Swap visual positions using translate
-      const rects = reorderOriginalRectsRef.current.get(parent);
-      if (rects) {
-        const elRect = rects.get(el);
-        const neighborRect = rects.get(neighbor);
-        if (elRect && neighborRect) {
-          // Calculate the distance between original positions
-          const delta = neighborRect.top - elRect.top;
-          // Get current translate values
-          const elCurrentY = parseFloat(el.style.translate?.split(" ")[1] || "0") || 0;
-          const neighborCurrentY = parseFloat(neighbor.style.translate?.split(" ")[1] || "0") || 0;
-          // Apply transition for smooth animation
-          el.style.transition = "translate 200ms cubic-bezier(0.2, 0, 0, 1)";
-          neighbor.style.transition = "translate 200ms cubic-bezier(0.2, 0, 0, 1)";
-          // Swap: el moves by delta, neighbor moves by -delta
-          el.style.translate = `0 ${elCurrentY + delta}px`;
-          neighbor.style.translate = `0 ${neighborCurrentY - delta}px`;
+      // Swap in the desired visual order array, then recompute all translates
+      const desired = reorderVisualOrderRef.current.get(parent);
+      if (desired) {
+        const idx = desired.indexOf(el);
+        const neighborIdx = desired.indexOf(neighbor);
+        if (idx !== -1 && neighborIdx !== -1) {
+          [desired[idx], desired[neighborIdx]] = [desired[neighborIdx], desired[idx]];
+          applyTranslateOrder(parent);
         }
       }
     }
@@ -1697,6 +1712,7 @@ function RetuneInner(props: RetuneConfig) {
       }
     }
     reorderOriginalRectsRef.current.clear();
+    reorderVisualOrderRef.current.clear();
     reorderModeRef.current = new WeakMap();
     reorderOriginRef.current = new WeakMap();
     // Clean up forced pseudo-state inline styles before clearing
@@ -1722,7 +1738,11 @@ function RetuneInner(props: RetuneConfig) {
         el.domPath, el.nearbySiblings, el.position,
       );
     }
-    refreshSelectedElement();
+    // Defer selection refresh so element positions settle after order/translate removal
+    requestAnimationFrame(() => {
+      refreshSelectedElement();
+      pickerRef.current?.refreshSelection();
+    });
   }, [syncTrackerState, refreshSelectedElement, clearForcedInlineStyles]);
 
   /** Migrate preview + tracker changes between selectors, including pseudo-state variants. */
