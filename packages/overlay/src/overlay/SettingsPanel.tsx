@@ -14,6 +14,7 @@ interface SettingsPanelProps {
   fidelity: "minimal" | "standard" | "full";
   onFidelityChange: (fidelity: "minimal" | "standard" | "full") => void;
   onHide: () => void;
+  exiting?: boolean;
 }
 
 const SHORTCUTS: Array<{ label: string; keys: string[] }> = [
@@ -55,6 +56,7 @@ export function SettingsPanel({
   fidelity,
   onFidelityChange,
   onHide,
+  exiting,
 }: SettingsPanelProps) {
   const [view, setView] = useState<"main" | "shortcuts">("main");
   const panelRef = useRef<HTMLDivElement>(null);
@@ -99,10 +101,7 @@ export function SettingsPanel({
   const isMain = view === "main";
 
   return (
-    <div
-      ref={panelRef}
-      className={`retune-panel retune-settings-panel ${side}`}
-    >
+    <div ref={panelRef} className={`retune-settings-panel ${side}${exiting ? " exiting" : ""}`}>
       <div className="retune-settings-clip">
       {/* ── Main settings view ── */}
       <div

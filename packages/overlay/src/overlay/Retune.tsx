@@ -284,6 +284,9 @@ function RetuneInner(props: RetuneConfig) {
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [panelTab, setPanelTab] = useState<"elements" | "design">("design");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsVisible, setSettingsVisible] = useState(false);
+  const [settingsExiting, setSettingsExiting] = useState(false);
+  const settingsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [theme, setTheme] = useState<"system" | "light" | "dark">(() => {
     try {
       const saved = localStorage.getItem("retune-theme");
@@ -600,6 +603,8 @@ function RetuneInner(props: RetuneConfig) {
 
         setSelectedElement(inspected);
         setSettingsOpen(false);
+        setSettingsVisible(false);
+        setSettingsExiting(false);
         // Eagerly update the ref so the MCP bridge handler sees the value
         // immediately, without waiting for React to re-render.
         selectedElementRef.current = inspected;
@@ -816,6 +821,8 @@ function RetuneInner(props: RetuneConfig) {
     setSelectedElement(null);
     selectedElementRef.current = null;
     setSettingsOpen(false);
+    setSettingsVisible(false);
+    setSettingsExiting(false);
     pickerRef.current?.deactivate();
   }, [clearForcedInlineStyles]);
 
@@ -826,6 +833,8 @@ function RetuneInner(props: RetuneConfig) {
         setSelectedElement(null);
         selectedElementRef.current = null;
         setSettingsOpen(false);
+        setSettingsVisible(false);
+        setSettingsExiting(false);
         pickerRef.current?.deactivate();
       } else {
         pickerRef.current?.activate();
@@ -2166,15 +2175,19 @@ function RetuneInner(props: RetuneConfig) {
             <button
               className="retune-toolbar-btn"
               onClick={() => {
-                setSettingsOpen(o => {
-                  if (!o) {
-                    // Opening settings — clear selection
-                    pickerRef.current?.clearSelection();
-                    setSelectedElement(null);
-                    selectedElementRef.current = null;
-                  }
-                  return !o;
-                });
+                if (settingsTimerRef.current) clearTimeout(settingsTimerRef.current);
+                if (!settingsOpen) {
+                  setSettingsOpen(true);
+                  setSettingsVisible(true);
+                  setSettingsExiting(false);
+                } else {
+                  setSettingsOpen(false);
+                  setSettingsExiting(true);
+                  settingsTimerRef.current = setTimeout(() => {
+                    setSettingsVisible(false);
+                    setSettingsExiting(false);
+                  }, 250);
+                }
               }}
             >
               <IconSettingsGear2 size={20} />
@@ -2191,8 +2204,8 @@ function RetuneInner(props: RetuneConfig) {
         </div>
       </div>
 
-      {/* Panel with tabs */}
-      <AnimatedPanel visible={!!(active && selectedElement)}>
+      {/* Design panel */}
+      <AnimatedPanel visible={!!(active && selectedElement && !settingsOpen)}>
         <div className={`retune-panel ${side}`}>
           <div className="retune-tab-bar" ref={tabBarRef}>
             <div className="retune-tab-pill" ref={tabPillRef} />
@@ -2420,15 +2433,16 @@ function RetuneInner(props: RetuneConfig) {
         </div>
       </AnimatedPanel>
 
-      {/* Settings panel */}
-      {active && settingsOpen && (
+      {/* Settings panel — overlays on top of design panel */}
+      {active && settingsVisible && (
         <SettingsPanel
           side={side}
           theme={theme}
           onThemeChange={handleThemeChange}
           fidelity={fidelity}
           onFidelityChange={setFidelity}
-          onHide={() => { setSettingsOpen(false); handleClose(); }}
+          onHide={() => { setSettingsOpen(false); setSettingsVisible(false); setSettingsExiting(false); handleClose(); }}
+          exiting={settingsExiting}
         />
       )}
 
