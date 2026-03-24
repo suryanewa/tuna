@@ -301,7 +301,9 @@ function RetuneInner(props: RetuneConfig) {
 
   // Toggle dark class on host element based on theme
   useEffect(() => {
-    const host = document.querySelector("[data-retune-host]");
+    if (!portalTarget) return;
+    const root = portalTarget.getRootNode();
+    const host = root instanceof ShadowRoot ? root.host : null;
     if (!host) return;
     const isDark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
     host.classList.toggle("dark", isDark);
@@ -312,7 +314,7 @@ function RetuneInner(props: RetuneConfig) {
       mq.addEventListener("change", handler);
       return () => mq.removeEventListener("change", handler);
     }
-  }, [theme]);
+  }, [theme, portalTarget]);
   const [side, setSide] = useState<"right" | "left">(() => {
     try {
       const saved = localStorage.getItem("retune-panel-side");
