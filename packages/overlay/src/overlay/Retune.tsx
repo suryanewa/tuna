@@ -2193,16 +2193,7 @@ function RetuneInner(props: RetuneConfig) {
 
       {/* Panel with tabs */}
       <AnimatedPanel visible={!!(active && selectedElement)}>
-        <div
-          className={`retune-panel ${side}`}
-          style={settingsOpen ? {
-            opacity: 0,
-            filter: "blur(4px)",
-            transition: "opacity 150ms cubic-bezier(0.215, 0.61, 0.355, 1), filter 150ms cubic-bezier(0.215, 0.61, 0.355, 1)",
-            pointerEvents: "none",
-            animation: "none",
-          } : undefined}
-        >
+        <div className={`retune-panel ${side}`}>
           <div className="retune-tab-bar" ref={tabBarRef}>
             <div className="retune-tab-pill" ref={tabPillRef} />
             <button className={`retune-tab${panelTab === "elements" ? " active" : ""}`} onClick={() => setPanelTab("elements")}>Elements</button>
@@ -2429,8 +2420,8 @@ function RetuneInner(props: RetuneConfig) {
         </div>
       </AnimatedPanel>
 
-      {/* Settings panel — crossfades with design panel */}
-      {active && (
+      {/* Settings panel */}
+      {active && settingsOpen && (
         <SettingsPanel
           side={side}
           theme={theme}
@@ -2438,7 +2429,6 @@ function RetuneInner(props: RetuneConfig) {
           fidelity={fidelity}
           onFidelityChange={setFidelity}
           onHide={() => { setSettingsOpen(false); handleClose(); }}
-          visible={settingsOpen}
         />
       )}
 
