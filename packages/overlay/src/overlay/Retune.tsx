@@ -599,6 +599,7 @@ function RetuneInner(props: RetuneConfig) {
         }
 
         setSelectedElement(inspected);
+        setSettingsOpen(false);
         // Eagerly update the ref so the MCP bridge handler sees the value
         // immediately, without waiting for React to re-render.
         selectedElementRef.current = inspected;
@@ -2164,7 +2165,17 @@ function RetuneInner(props: RetuneConfig) {
           <Tooltip content="Settings" side="top">
             <button
               className="retune-toolbar-btn"
-              onClick={() => setSettingsOpen(o => !o)}
+              onClick={() => {
+                setSettingsOpen(o => {
+                  if (!o) {
+                    // Opening settings — clear selection
+                    pickerRef.current?.clearSelection();
+                    setSelectedElement(null);
+                    selectedElementRef.current = null;
+                  }
+                  return !o;
+                });
+              }}
             >
               <IconSettingsGear2 size={20} />
             </button>

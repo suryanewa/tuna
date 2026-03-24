@@ -79,7 +79,7 @@
   overflow: visible;
 }
 .retune-toolbar.collapsed:hover {
-  background: var(--retune-surface-hover);
+  background: color-mix(in srgb, var(--retune-stone) 4%, var(--retune-surface));
 }
 
 .retune-toolbar.top.right { top: 16px; right: 16px; }
