@@ -411,7 +411,7 @@
   font-size: 11px;
   font-weight: 500;
   letter-spacing: -0.005em;
-  color: var(--retune-blue-text);
+  color: var(--retune-text);
   line-height: 16px;
   white-space: nowrap;
   transition: background-color 0.15s ease, color 0.15s ease;
@@ -424,7 +424,7 @@
 .retune-selector-tag.included,
 .retune-selector-tag.active {
   background: var(--retune-blue-bg);
-  color: var(--retune-blue);
+  color: var(--retune-blue-text);
 }
 .retune-selector-tag.included:hover,
 .retune-selector-tag.active:hover {
@@ -448,7 +448,7 @@
 
 .retune-selector-tag.included .retune-selector-tag-count,
 .retune-selector-tag.active .retune-selector-tag-count {
-  color: var(--retune-blue);
+  color: var(--retune-blue-text);
 }
 
 .retune-selector-tag-name {
@@ -2691,11 +2691,11 @@
 
 @keyframes retune-settings-in {
   from { opacity: 0; transform: translateY(8px); filter: blur(4px); }
-  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+  to { opacity: 1; transform: none; filter: none; }
 }
 
 @keyframes retune-settings-out {
-  from { opacity: 1; transform: translateY(0); filter: blur(0); }
+  from { opacity: 1; transform: none; filter: none; }
   to { opacity: 0; transform: translateY(8px); filter: blur(4px); }
 }
 
@@ -2712,11 +2712,11 @@
   max-height: calc(100vh - 84px);
   overflow: visible;
   bottom: 68px;
-  animation: retune-settings-in 250ms cubic-bezier(0.5, 0, 0, 1) both;
+  animation: retune-settings-in 250ms cubic-bezier(0.5, 0, 0, 1);
 }
 
 .retune-settings-panel.exiting {
-  animation: retune-settings-out 250ms cubic-bezier(0.5, 0, 0, 1) both;
+  animation: retune-settings-out 250ms cubic-bezier(0.5, 0, 0, 1) forwards;
 }
 
 .retune-settings-panel.right { right: 16px; }

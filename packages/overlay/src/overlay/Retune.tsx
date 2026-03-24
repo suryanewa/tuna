@@ -309,6 +309,7 @@ function RetuneInner(props: RetuneConfig) {
   const tabPillRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ startX: number; startY: number; originX: number; dragging: boolean; lastX: number; lastT: number; velocity: number } | null>(null);
+  const [toolbarDragging, setToolbarDragging] = useState(false);
   const tabPillFirstRender = useRef(true);
 
   // Selector candidates for the selected element (class-based selectors with match counts)
@@ -1171,6 +1172,7 @@ function RetuneInner(props: RetuneConfig) {
       drag.originX = rect.left + rect.width / 2;
       drag.dragging = true;
       toolbar.setPointerCapture(e.pointerId);
+      setToolbarDragging(true);
     }
 
     // Track velocity (px/ms) for flick detection
@@ -1228,6 +1230,7 @@ function RetuneInner(props: RetuneConfig) {
         const cleanup = () => {
           toolbar.removeEventListener("transitionend", cleanup);
           toolbar.style.transition = "";
+          setToolbarDragging(false);
         };
         toolbar.addEventListener("transitionend", cleanup, { once: true });
       });
@@ -2205,7 +2208,7 @@ function RetuneInner(props: RetuneConfig) {
       </div>
 
       {/* Design panel */}
-      <AnimatedPanel visible={!!(active && selectedElement && !settingsOpen)}>
+      <AnimatedPanel visible={!!(active && selectedElement && !settingsOpen && !toolbarDragging)}>
         <div className={`retune-panel ${side}`}>
           <div className="retune-tab-bar" ref={tabBarRef}>
             <div className="retune-tab-pill" ref={tabPillRef} />
@@ -2434,7 +2437,7 @@ function RetuneInner(props: RetuneConfig) {
       </AnimatedPanel>
 
       {/* Settings panel — overlays on top of design panel */}
-      {active && settingsVisible && (
+      {active && settingsVisible && !toolbarDragging && (
         <SettingsPanel
           side={side}
           theme={theme}

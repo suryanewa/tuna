@@ -120,21 +120,25 @@ export function SettingsPanel({
         <div className="retune-settings-body">
           <div className="retune-settings-row">
             <span className="retune-settings-label">Theme</span>
-            <SelectInput
-              prop="theme"
-              value={theme}
-              options={["system", "light", "dark"]}
-              onChange={handleThemeChange}
-            />
+            <div style={{ width: 96 }}>
+              <SelectInput
+                prop="theme"
+                value={theme}
+                options={["system", "light", "dark"]}
+                onChange={handleThemeChange}
+              />
+            </div>
           </div>
           <div className="retune-settings-row">
             <span className="retune-settings-label">Output Detail</span>
-            <SelectInput
-              prop="fidelity"
-              value={fidelity}
-              options={["minimal", "standard", "full"]}
-              onChange={handleFidelityChange}
-            />
+            <div style={{ width: 96 }}>
+              <SelectInput
+                prop="fidelity"
+                value={fidelity}
+                options={["minimal", "standard", "full"]}
+                onChange={handleFidelityChange}
+              />
+            </div>
           </div>
           <div className="retune-settings-row">
             <span className="retune-settings-label">Hide Retune for this session</span>
