@@ -257,7 +257,17 @@ function RetuneInner(props: RetuneConfig) {
   const [changeCount, setChangeCount] = useState(0);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
-  const [fidelity, setFidelity] = useState<Fidelity>(config.fidelity);
+  const [fidelity, setFidelityState] = useState<Fidelity>(() => {
+    try {
+      const saved = localStorage.getItem("retune-fidelity");
+      if (saved === "minimal" || saved === "standard" || saved === "full") return saved;
+    } catch {}
+    return config.fidelity;
+  });
+  const setFidelity = useCallback((f: Fidelity) => {
+    setFidelityState(f);
+    try { localStorage.setItem("retune-fidelity", f); } catch {}
+  }, []);
   const fidelityRef = useRef(fidelity);
   fidelityRef.current = fidelity;
   const [copied, setCopied] = useState(false);
@@ -274,6 +284,17 @@ function RetuneInner(props: RetuneConfig) {
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [panelTab, setPanelTab] = useState<"elements" | "design">("design");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [theme, setTheme] = useState<"system" | "light" | "dark">(() => {
+    try {
+      const saved = localStorage.getItem("retune-theme");
+      if (saved === "system" || saved === "light" || saved === "dark") return saved;
+    } catch {}
+    return "system";
+  });
+  const handleThemeChange = useCallback((t: "system" | "light" | "dark") => {
+    setTheme(t);
+    try { localStorage.setItem("retune-theme", t); } catch {}
+  }, []);
   const [side, setSide] = useState<"right" | "left">(() => {
     try {
       const saved = localStorage.getItem("retune-panel-side");
@@ -793,6 +814,7 @@ function RetuneInner(props: RetuneConfig) {
     setActive(false);
     setSelectedElement(null);
     selectedElementRef.current = null;
+    setSettingsOpen(false);
     pickerRef.current?.deactivate();
   }, [clearForcedInlineStyles]);
 
@@ -802,6 +824,7 @@ function RetuneInner(props: RetuneConfig) {
         if (forcedStateRef.current) clearForcedInlineStyles();
         setSelectedElement(null);
         selectedElementRef.current = null;
+        setSettingsOpen(false);
         pickerRef.current?.deactivate();
       } else {
         pickerRef.current?.activate();
@@ -2159,7 +2182,16 @@ function RetuneInner(props: RetuneConfig) {
 
       {/* Panel with tabs */}
       <AnimatedPanel visible={!!(active && selectedElement)}>
-        <div className={`retune-panel ${side}`}>
+        <div
+          className={`retune-panel ${side}`}
+          style={settingsOpen ? {
+            opacity: 0,
+            filter: "blur(4px)",
+            transition: "opacity 150ms cubic-bezier(0.215, 0.61, 0.355, 1), filter 150ms cubic-bezier(0.215, 0.61, 0.355, 1)",
+            pointerEvents: "none",
+            animation: "none",
+          } : undefined}
+        >
           <div className="retune-tab-bar" ref={tabBarRef}>
             <div className="retune-tab-pill" ref={tabPillRef} />
             <button className={`retune-tab${panelTab === "elements" ? " active" : ""}`} onClick={() => setPanelTab("elements")}>Elements</button>
@@ -2386,17 +2418,18 @@ function RetuneInner(props: RetuneConfig) {
         </div>
       </AnimatedPanel>
 
-      {/* Settings panel */}
-      <AnimatedPanel visible={!!(active && settingsOpen)}>
+      {/* Settings panel — crossfades with design panel */}
+      {active && (
         <SettingsPanel
           side={side}
-          theme="system"
-          onThemeChange={() => {}}
+          theme={theme}
+          onThemeChange={handleThemeChange}
           fidelity={fidelity}
           onFidelityChange={setFidelity}
           onHide={() => { setSettingsOpen(false); handleClose(); }}
+          visible={settingsOpen}
         />
-      </AnimatedPanel>
+      )}
 
       {/* Box model visualization overlay */}
       {active && selectedElement && hoveredBoxModel && (

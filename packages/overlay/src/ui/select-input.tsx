@@ -127,7 +127,7 @@ export function SelectInput({ label, prop, value, options, onChange, isChanged, 
       {open && menuPos && (
         <div
           className="retune-select-dropdown-anchor"
-          style={{ top: menuPos.top, left: menuPos.left, minWidth: menuPos.width }}
+          style={{ top: menuPos.top, right: window.innerWidth - menuPos.left - menuPos.width, minWidth: menuPos.width }}
         >
           <DropdownMenu
             options={menuOptions}

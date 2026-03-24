@@ -14,6 +14,7 @@ interface SettingsPanelProps {
   fidelity: "minimal" | "standard" | "full";
   onFidelityChange: (fidelity: "minimal" | "standard" | "full") => void;
   onHide: () => void;
+  visible?: boolean;
 }
 
 const SHORTCUTS: Array<{ label: string; keys: string[] }> = [
@@ -55,6 +56,7 @@ export function SettingsPanel({
   fidelity,
   onFidelityChange,
   onHide,
+  visible = true,
 }: SettingsPanelProps) {
   const [view, setView] = useState<"main" | "shortcuts">("main");
   const panelRef = useRef<HTMLDivElement>(null);
@@ -99,14 +101,24 @@ export function SettingsPanel({
   const isMain = view === "main";
 
   return (
-    <div ref={panelRef} className={`retune-panel retune-settings-panel ${side}`}>
+    <div
+      ref={panelRef}
+      className={`retune-panel retune-settings-panel ${side}`}
+      style={visible ? undefined : {
+        opacity: 0,
+        filter: "blur(4px)",
+        transition: "opacity 150ms cubic-bezier(0.215, 0.61, 0.355, 1), filter 150ms cubic-bezier(0.215, 0.61, 0.355, 1)",
+        pointerEvents: "none",
+      }}
+    >
+      <div className="retune-settings-clip">
       {/* ── Main settings view ── */}
       <div
         className="retune-settings-view-container"
         style={{
           opacity: isMain ? 1 : 0,
-          transform: isMain ? "translateY(0)" : "translateY(-4px)",
-          filter: isMain ? "blur(0)" : "blur(4px)",
+          transform: isMain ? "none" : "translateY(-4px)",
+          filter: isMain ? "none" : "blur(4px)",
           transition: isMain
             ? `opacity ${EASE_OUT} 30ms, transform ${EASE_OUT} 30ms, filter ${EASE_OUT} 30ms`
             : `opacity ${EASE_IN_OUT}, transform ${EASE_IN_OUT}, filter ${EASE_IN_OUT}`,
@@ -160,8 +172,8 @@ export function SettingsPanel({
         className="retune-settings-view-container"
         style={{
           opacity: !isMain ? 1 : 0,
-          transform: !isMain ? "translateY(0)" : "translateY(4px)",
-          filter: !isMain ? "blur(0)" : "blur(4px)",
+          transform: !isMain ? "none" : "translateY(4px)",
+          filter: !isMain ? "none" : "blur(4px)",
           transition: !isMain
             ? `opacity ${EASE_OUT} 30ms, transform ${EASE_OUT} 30ms, filter ${EASE_OUT} 30ms`
             : `opacity ${EASE_IN_OUT}, transform ${EASE_IN_OUT}, filter ${EASE_IN_OUT}`,
@@ -186,6 +198,7 @@ export function SettingsPanel({
             </div>
           ))}
         </div>
+      </div>
       </div>
     </div>
   );
