@@ -25,6 +25,7 @@ import { getSelector, getSelectorCandidates, scoreNamePattern, isHashedClass, ty
 import { getPseudoStateStyles, getStyleSources, getScopedStyles, type ForcedState, type StyleSource } from "../inspector/styles";
 import { PropertyPanel } from "./PropertyPanel";
 import { ElementTree } from "./ElementTree";
+import { SettingsPanel } from "./SettingsPanel";
 import { IconCursorClick } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconCursorClick";
 import { IconSquareBehindSquare1 } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconSquareBehindSquare1";
 import { IconStepBack } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconStepBack";
@@ -256,7 +257,7 @@ function RetuneInner(props: RetuneConfig) {
   const [changeCount, setChangeCount] = useState(0);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
-  const [fidelity] = useState<Fidelity>(config.fidelity);
+  const [fidelity, setFidelity] = useState<Fidelity>(config.fidelity);
   const fidelityRef = useRef(fidelity);
   fidelityRef.current = fidelity;
   const [copied, setCopied] = useState(false);
@@ -272,6 +273,7 @@ function RetuneInner(props: RetuneConfig) {
   const copyBtnRef = useRef<HTMLButtonElement>(null);
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [panelTab, setPanelTab] = useState<"elements" | "design">("design");
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [side, setSide] = useState<"right" | "left">(() => {
     try {
       const saved = localStorage.getItem("retune-panel-side");
@@ -648,7 +650,7 @@ function RetuneInner(props: RetuneConfig) {
         sel?.addRange(range);
 
         // Style hint
-        el.style.outline = "1px solid #0D99FF";
+        el.style.outline = "1px solid var(--retune-blue)";
 
         const cleanup = () => {
           el.contentEditable = "false";
@@ -2139,6 +2141,7 @@ function RetuneInner(props: RetuneConfig) {
           <Tooltip content="Settings" side="top">
             <button
               className="retune-toolbar-btn"
+              onClick={() => setSettingsOpen(o => !o)}
             >
               <IconSettingsGear2 size={20} />
             </button>
@@ -2163,9 +2166,9 @@ function RetuneInner(props: RetuneConfig) {
             <button className={`retune-tab${panelTab === "design" ? " active" : ""}`} onClick={() => setPanelTab("design")}>Design</button>
             <span
               onClick={() => { if (updateInfo && updateDismissed) { setUpdateDismissed(false); setUpdateCopied(false); } }}
-              style={{ marginLeft: "auto", fontSize: "11px", lineHeight: "16px", color: "#a8a29e", letterSpacing: "-0.005em", paddingRight: "8px", display: "flex", alignItems: "center", gap: "4px", cursor: updateInfo ? "pointer" : "default" }}
+              style={{ marginLeft: "auto", fontSize: "11px", lineHeight: "16px", color: "var(--retune-text-tertiary)", letterSpacing: "-0.005em", paddingRight: "8px", display: "flex", alignItems: "center", gap: "4px", cursor: updateInfo ? "pointer" : "default" }}
             >
-              {updateInfo && <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#0D99FF", flexShrink: 0 }} />}
+              {updateInfo && <span style={{ width: 4, height: 4, borderRadius: "50%", background: "var(--retune-blue)", flexShrink: 0 }} />}
               v{updateInfo?.current || (typeof __RETUNE_VERSION__ === "string" ? __RETUNE_VERSION__ : "")}
             </span>
           </div>
@@ -2189,7 +2192,7 @@ function RetuneInner(props: RetuneConfig) {
               <div
                 style={{
                   padding: "12px 16px",
-                  background: "#0d99ff",
+                  background: "var(--retune-blue)",
                   display: "flex",
                   flexDirection: "column",
                   gap: "8px",
@@ -2197,7 +2200,7 @@ function RetuneInner(props: RetuneConfig) {
                   transition: "transform 150ms cubic-bezier(0.25, 0.46, 0.45, 0.94)",
                 }}
               >
-                <div style={{ fontFamily: "inherit", fontSize: "12px", fontWeight: 600, lineHeight: "16px", letterSpacing: "-0.06px", color: "#fff" }}>
+                <div style={{ fontFamily: "inherit", fontSize: "12px", fontWeight: 600, lineHeight: "16px", letterSpacing: "-0.06px", color: "var(--retune-white)" }}>
                   Retune v{updateInfo.latest} is available
                 </div>
                 <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
@@ -2241,7 +2244,7 @@ function RetuneInner(props: RetuneConfig) {
                       }, 3000);
                     }}
                     style={{
-                      background: "#fff",
+                      background: "var(--retune-white)",
                       border: "none",
                       borderRadius: "6px",
                       padding: 0,
@@ -2251,7 +2254,7 @@ function RetuneInner(props: RetuneConfig) {
                       fontWeight: 500,
                       lineHeight: "16px",
                       letterSpacing: "-0.055px",
-                      color: "#1c1917",
+                      color: "var(--retune-text)",
                       whiteSpace: "nowrap",
                       position: "relative",
                       overflow: "hidden",
@@ -2287,7 +2290,7 @@ function RetuneInner(props: RetuneConfig) {
                         transition: "transform 200ms cubic-bezier(0.215, 0.61, 0.355, 1)",
                       }}>
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                          <path d="M8.5 3.5C9.32843 3.5 10 4.17157 10 5V6H11C11.8284 6 12.5 6.67157 12.5 7.5V11C12.5 11.8284 11.8284 12.5 11 12.5H7.5C6.67157 12.5 6 11.8284 6 11V10H5C4.17157 10 3.5 9.32843 3.5 8.5V5C3.5 4.17157 4.17157 3.5 5 3.5H8.5ZM10 8.5C10 9.32843 9.32843 10 8.5 10H7V11C7 11.2761 7.22386 11.5 7.5 11.5H11C11.2761 11.5 11.5 11.2761 11.5 11V7.5C11.5 7.22386 11.2761 7 11 7H10V8.5ZM5 4.5C4.72386 4.5 4.5 4.72386 4.5 5V8.5C4.5 8.77614 4.72386 9 5 9H8.5C8.77614 9 9 8.77614 9 8.5V5C9 4.72386 8.77614 4.5 8.5 4.5H5Z" fill="#1c1917" fillOpacity="0.9" />
+                          <path d="M8.5 3.5C9.32843 3.5 10 4.17157 10 5V6H11C11.8284 6 12.5 6.67157 12.5 7.5V11C12.5 11.8284 11.8284 12.5 11 12.5H7.5C6.67157 12.5 6 11.8284 6 11V10H5C4.17157 10 3.5 9.32843 3.5 8.5V5C3.5 4.17157 4.17157 3.5 5 3.5H8.5ZM10 8.5C10 9.32843 9.32843 10 8.5 10H7V11C7 11.2761 7.22386 11.5 7.5 11.5H11C11.2761 11.5 11.5 11.2761 11.5 11V7.5C11.5 7.22386 11.2761 7 11 7H10V8.5ZM5 4.5C4.72386 4.5 4.5 4.72386 4.5 5V8.5C4.5 8.77614 4.72386 9 5 9H8.5C8.77614 9 9 8.77614 9 8.5V5C9 4.72386 8.77614 4.5 8.5 4.5H5Z" fill="currentColor" fillOpacity="0.9" />
                         </svg>
                       </span>
                       Copy update instructions
@@ -2308,7 +2311,7 @@ function RetuneInner(props: RetuneConfig) {
                         transition: "transform 200ms cubic-bezier(0.215, 0.61, 0.355, 1)",
                       }}>
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                          <path d="M11.0839 4.22268C11.2371 3.99294 11.5475 3.93087 11.7773 4.08401C12.007 4.23718 12.0691 4.5476 11.916 4.77737L7.91596 10.7774C7.83287 10.902 7.69784 10.9833 7.54877 10.9981C7.39988 11.0127 7.25223 10.9593 7.14643 10.8535L4.14643 7.85354C3.9512 7.65827 3.95118 7.34176 4.14643 7.14651C4.34168 6.95126 4.6582 6.95128 4.85346 7.14651L7.42182 9.71487L11.0839 4.22268Z" fill="#1c1917" fillOpacity="0.9" />
+                          <path d="M11.0839 4.22268C11.2371 3.99294 11.5475 3.93087 11.7773 4.08401C12.007 4.23718 12.0691 4.5476 11.916 4.77737L7.91596 10.7774C7.83287 10.902 7.69784 10.9833 7.54877 10.9981C7.39988 11.0127 7.25223 10.9593 7.14643 10.8535L4.14643 7.85354C3.9512 7.65827 3.95118 7.34176 4.14643 7.14651C4.34168 6.95126 4.6582 6.95128 4.85346 7.14651L7.42182 9.71487L11.0839 4.22268Z" fill="currentColor" fillOpacity="0.9" />
                         </svg>
                       </span>
                       Paste in your AI agent to update
@@ -2328,7 +2331,7 @@ function RetuneInner(props: RetuneConfig) {
                       fontWeight: 500,
                       lineHeight: "16px",
                       letterSpacing: "-0.055px",
-                      color: "#fff",
+                      color: "var(--retune-white)",
                       whiteSpace: "nowrap",
                       opacity: updateCopied ? 0 : 0.9,
                       filter: updateCopied ? "blur(2px)" : "blur(0)",
@@ -2381,6 +2384,18 @@ function RetuneInner(props: RetuneConfig) {
             )}
           </div>
         </div>
+      </AnimatedPanel>
+
+      {/* Settings panel */}
+      <AnimatedPanel visible={!!(active && settingsOpen)}>
+        <SettingsPanel
+          side={side}
+          theme="system"
+          onThemeChange={() => {}}
+          fidelity={fidelity}
+          onFidelityChange={setFidelity}
+          onHide={() => { setSettingsOpen(false); handleClose(); }}
+        />
       </AnimatedPanel>
 
       {/* Box model visualization overlay */}

@@ -1744,7 +1744,7 @@ export function PropertyPanel({
                 <Row>
                   <div className="retune-prop retune-prop-variable-applied" style={{ flex: 1, cursor: "pointer" }} onClick={() => shadowPickerRef.current?.()}>
                     <ChangeIndicator isChanged={changeProps("boxShadow").isChanged} onReset={changeProps("boxShadow").onReset} />
-                    <span className="retune-prop-input" style={{ display: "flex", alignItems: "center", paddingLeft: 12, color: "#1c1917" }}>
+                    <span className="retune-prop-input" style={{ display: "flex", alignItems: "center", paddingLeft: 12, color: "var(--retune-text)" }}>
                       {shadowVarMatch.variable.className.startsWith("var(--")
                         ? shadowVarMatch.variable.className.slice(6, -1)
                         : shadowVarMatch.variable.className}
