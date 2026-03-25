@@ -84,6 +84,10 @@
      SEMANTIC — swap these for dark mode
      ══════════════════════════════════════ */
 
+  /* ── Always (mode-independent) ── */
+  --retune-always-white: #ffffff;
+  --retune-always-black: #1c1917;
+
   /* ── Text ── */
   --retune-text: var(--retune-black);
   --retune-text-secondary: var(--retune-black-70);
@@ -99,6 +103,7 @@
 
   /* ── Borders & shadows ── */
   --retune-border: var(--retune-black-10);
+  --retune-border-hover: var(--retune-black-15);
   --retune-border-subtle: var(--retune-black-5);
   --retune-shadow: var(--retune-black-10);
 
@@ -131,6 +136,7 @@
 
   /* ── Borders & shadows ── */
   --retune-border: var(--retune-white-10);
+  --retune-border-hover: var(--retune-white-15);
   --retune-border-subtle: var(--retune-white-5);
   --retune-shadow: var(--retune-white-5);
 
@@ -348,7 +354,7 @@
   font-size: 13px;
   font-weight: 500;
   background: var(--retune-blue);
-  color: var(--retune-surface);
+  color: var(--retune-always-white);
   min-width: 32px;
   height: 32px;
   border-radius: 999px;
@@ -670,7 +676,7 @@
 }
 
 .retune-tree-node.selected {
-  background: #eff6ff;
+  background: var(--retune-surface-hover);
 }
 
 .retune-tree-arrow {
@@ -1062,7 +1068,7 @@
 }
 
 .retune-pin-center-btn:hover {
-  border-color: #d6d3d1;
+  border-color: var(--retune-border-hover);
 }
 
 .retune-pin-center-dot {
@@ -2185,7 +2191,7 @@
 .retune-font-system-btn {
   width: 100%;
   padding: 8px;
-  border: 1px dashed #d6d3d1;
+  border: 1px dashed var(--retune-border-hover);
   border-radius: 8px;
   background: transparent;
   font-size: 12px;
@@ -2295,13 +2301,13 @@
   transition: background-color 0.15s ease;
 }
 
-.retune-combo-input:hover { background: var(--retune-border); }
+.retune-combo-input:hover:not(.retune-combo-variable-applied) { background: var(--retune-border); }
 .retune-combo-input:focus {
   outline: 1px solid var(--retune-border);
   outline-offset: -1px;
 }
 .retune-combo-variable-applied:focus {
-  outline: 1px solid #D6D3D1;
+  outline: 1px solid var(--retune-border-hover);
   outline-offset: -1px;
 }
 .retune-combo-input::selection { background: #bfdbfe; color: var(--retune-text); }
@@ -2611,7 +2617,7 @@
   outline-offset: -1px;
 }
 .retune-prop-variable-applied:hover {
-  outline-color: #D6D3D1;
+  outline-color: var(--retune-border-hover);
 }
 .retune-prop-variable-applied .retune-prop-input,
 .retune-prop-variable-applied .retune-prop-label {
@@ -2625,7 +2631,7 @@
   border-radius: 8px;
 }
 .retune-combo-variable-applied:hover {
-  outline-color: #D6D3D1;
+  outline-color: var(--retune-border-hover);
 }
 .retune-combo:has(.retune-combo-variable-applied) .retune-combo-label {
   cursor: pointer;
@@ -2641,7 +2647,7 @@
   border-radius: 8px;
 }
 .retune-color-variable-applied:hover {
-  outline-color: #D6D3D1;
+  outline-color: var(--retune-border-hover);
 }
 .retune-color-variable-applied .retune-color-hex-input {
   cursor: pointer;
