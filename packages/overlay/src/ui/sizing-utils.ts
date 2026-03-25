@@ -183,6 +183,35 @@ function computeFlexCrossAxisChanges(
 }
 
 /**
+ * Check whether fill mode is valid for the given axis in the current layout context.
+ * Width fill is almost always valid. Height fill depends on parent context.
+ */
+export function canFill(
+  axis: "width" | "height",
+  ctx: SizingContext,
+): boolean {
+  // Width fill is almost always valid
+  if (axis === "width") return true;
+
+  const { isFlexChild, isGridChild, parentFlexDir, currentStyles } = ctx;
+
+  // Flex column parent → flex: 1 works for height fill
+  if (isFlexChild && parentFlexDir.startsWith("column")) return true;
+
+  // Flex row parent → cross axis stretch works if parent has height
+  if (isFlexChild && !parentFlexDir.startsWith("column")) return true;
+
+  // Grid → height: 100% works (cells have explicit dimensions)
+  if (isGridChild) return true;
+
+  // Block → only if parent has explicit height (not auto)
+  // We check via currentStyles if the parent's height resolves to something other than auto
+  // This is a heuristic — we can't easily check the parent's computed height from here
+  // So we allow it and let the browser handle it
+  return false;
+}
+
+/**
  * Detect whether an axis is currently in fill, hug, or fixed mode.
  * This is the inverse of computeSizingChanges — reads current styles
  * and returns the semantic sizing mode for display purposes.

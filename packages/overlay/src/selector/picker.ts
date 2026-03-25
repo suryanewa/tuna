@@ -6,8 +6,10 @@
  * All event listeners use capture phase to intercept before page handlers.
  *
  * Selection persists until a new element is selected or picker is deactivated.
- * Hover box becomes dashed when a selection exists.
+ * Hover box becomes solid. Parent indicator uses dotted.
  */
+
+import { canFill, type SizingContext } from "../ui/sizing-utils";
 
 export interface PickerCallbacks {
   onHover: (element: Element, rect: DOMRect) => void;
@@ -184,6 +186,8 @@ export function createPicker(
     parentWidth: number;
     parentHeight: number;
     parentPadding: { top: number; right: number; bottom: number; left: number };
+    canFillWidth: boolean;
+    canFillHeight: boolean;
   } | null = null;
 
   function buildSnapCache(el: Element) {
@@ -208,7 +212,17 @@ export function createPicker(
       bottom: parseFloat(parentCs.paddingBottom) || 0,
       left: parseFloat(parentCs.paddingLeft) || 0,
     } : { top: 0, right: 0, bottom: 0, left: 0 };
-    snapCache = { siblingWidths, siblingHeights, siblingRects, parentRect, parentWidth: Math.round(parentWidth), parentHeight: Math.round(parentHeight), parentPadding };
+
+    // Detect fill context
+    const parentDisplay = parentCs?.display || "";
+    const isFlexChild = parentDisplay.includes("flex");
+    const isGridChild = parentDisplay.includes("grid");
+    const parentFlexDir = parentCs?.flexDirection || "row";
+    const sizingCtx: SizingContext = { isFlexChild, isGridChild, parentFlexDir, currentStyles: {} };
+    const canFillWidth = canFill("width", sizingCtx);
+    const canFillHeight = canFill("height", sizingCtx);
+
+    snapCache = { siblingWidths, siblingHeights, siblingRects, parentRect, parentWidth: Math.round(parentWidth), parentHeight: Math.round(parentHeight), parentPadding, canFillWidth, canFillHeight };
   }
 
   function findSnap(value: number, candidates: number[]): number | null {
@@ -235,8 +249,8 @@ export function createPicker(
     let fillHeight = false;
 
     if (axes.dx !== 0) {
-      // Check parent content width first (fill takes priority)
-      const parentSnapW = Math.abs(w - snapCache.parentWidth) <= SNAP_THRESHOLD ? snapCache.parentWidth : null;
+      // Check parent content width first (fill takes priority, only if context supports it)
+      const parentSnapW = snapCache.canFillWidth && Math.abs(w - snapCache.parentWidth) <= SNAP_THRESHOLD ? snapCache.parentWidth : null;
       if (parentSnapW !== null) {
         w = parentSnapW;
         fillWidth = true;
@@ -253,7 +267,7 @@ export function createPicker(
     }
 
     if (axes.dy !== 0) {
-      const parentSnapH = Math.abs(h - snapCache.parentHeight) <= SNAP_THRESHOLD ? snapCache.parentHeight : null;
+      const parentSnapH = snapCache.canFillHeight && Math.abs(h - snapCache.parentHeight) <= SNAP_THRESHOLD ? snapCache.parentHeight : null;
       if (parentSnapH !== null) {
         h = parentSnapH;
         fillHeight = true;
@@ -282,7 +296,7 @@ export function createPicker(
     `;
     // Draw X using two rotated lines via pseudo-element alternative: use border trick
     // Simpler: use an inline SVG background
-    el.style.backgroundImage = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${XMARK_SIZE * 2}' height='${XMARK_SIZE * 2}'%3E%3Cline x1='2' y1='2' x2='${XMARK_SIZE * 2 - 2}' y2='${XMARK_SIZE * 2 - 2}' stroke='%23e5484d' stroke-width='1'/%3E%3Cline x1='${XMARK_SIZE * 2 - 2}' y1='2' x2='2' y2='${XMARK_SIZE * 2 - 2}' stroke='%23e5484d' stroke-width='1'/%3E%3C/svg%3E")`;
+    el.style.backgroundImage = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${XMARK_SIZE * 2}' height='${XMARK_SIZE * 2}'%3E%3Cline x1='2' y1='2' x2='${XMARK_SIZE * 2 - 2}' y2='${XMARK_SIZE * 2 - 2}' stroke='%23F24822' stroke-width='1'/%3E%3Cline x1='${XMARK_SIZE * 2 - 2}' y1='2' x2='2' y2='${XMARK_SIZE * 2 - 2}' stroke='%23F24822' stroke-width='1'/%3E%3C/svg%3E")`;
     el.style.backgroundSize = "contain";
   }
 
@@ -474,7 +488,7 @@ export function createPicker(
 
     // Update selection box and handles
     const newRect = selectedElement.getBoundingClientRect();
-    positionBox(selection, selectionLabel, newRect, "solid", "0.04");
+    positionBox(selection, selectionLabel, newRect, "solid", "0");
     positionHandles(newRect);
     selectionLabel.textContent = formatLabel(selectedElement);
 
@@ -520,7 +534,7 @@ export function createPicker(
 
     // Refresh selection box
     const newRect = selectedElement.getBoundingClientRect();
-    positionBox(selection, selectionLabel, newRect, "solid", "0.04");
+    positionBox(selection, selectionLabel, newRect, "solid", "0");
     positionHandles(newRect);
     selectionLabel.textContent = formatLabel(selectedElement);
   }
@@ -542,7 +556,7 @@ export function createPicker(
     font-size:10px;font-weight:500;
     font-family:InterVariable,Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
     color:#fff;white-space:nowrap;
-    background:#e5484d;padding:1px 4px;border-radius:2px;
+    background:var(--retune-red);padding:1px 4px;border-radius:2px;
   `;
 
   function createMeasure() {
@@ -587,7 +601,7 @@ export function createPicker(
       position:fixed;pointer-events:none;display:block;
       top:${y}px;left:${x}px;
       width:${horizontal ? size : 0}px;height:${horizontal ? 0 : size}px;
-      border-${horizontal ? "top" : "left"}:1px ${dashed ? "dashed" : "solid"} #e5484d;
+      border-${horizontal ? "top" : "left"}:1px ${dashed ? "dashed" : "solid"} var(--retune-red);
     `;
   }
 
@@ -744,7 +758,7 @@ export function createPicker(
 
   function updateHighlight(el: Element) {
     const rect = el.getBoundingClientRect();
-    positionBox(highlight, label, rect, "solid", "0.08");
+    positionBox(highlight, label, rect, "solid", "0");
     label.style.display = "";
     label.textContent = formatLabel(el);
   }
@@ -752,7 +766,7 @@ export function createPicker(
   function showSelection() {
     if (!selectedElement) return;
     const rect = selectedElement.getBoundingClientRect();
-    positionBox(selection, selectionLabel, rect, "solid", "0.04");
+    positionBox(selection, selectionLabel, rect, "solid", "0");
     if (!selectionLabelHidden) {
       selectionLabel.style.display = "";
     }

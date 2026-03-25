@@ -24,7 +24,7 @@ import { AlignmentGrid } from "../ui/alignment-grid";
 import { GridPicker, parseGridCount } from "../ui/grid-picker";
 import { GradientEditor } from "../ui/gradient-editor";
 import { type FillMode, type GradientFill, detectFillMode, defaultGradient, parseCssGradient, gradientToCss } from "../ui/gradient-utils";
-import { computeSizingChanges, detectSizingMode, type SizingMode } from "../ui/sizing-utils";
+import { computeSizingChanges, detectSizingMode, canFill, type SizingMode } from "../ui/sizing-utils";
 import { SegmentedControl } from "../ui/segmented-control";
 import { detectTruncation, computeTruncationChanges } from "../ui/truncation-utils";
 import type { SegmentedOption } from "../ui/segmented-control";
@@ -432,6 +432,8 @@ export function PropertyPanel({
   const sizingCtx = { isFlexChild, isGridChild, parentFlexDir, currentStyles: s };
   const widthMode = detectSizingMode("width", sizingCtx);
   const heightMode = detectSizingMode("height", sizingCtx);
+  const heightCanFill = canFill("height", sizingCtx);
+  const heightSizeOptions = heightCanFill ? SIZE_OPTIONS : SIZE_OPTIONS.filter(o => o.value !== "__fill");
   // Map semantic mode to the __fill/__hug pseudo-values for ComboInput display
   const widthDisplayValue = widthMode === "fill" ? "__fill" : widthMode === "hug" ? "__hug" : s.width;
   const heightDisplayValue = heightMode === "fill" ? "__fill" : heightMode === "hug" ? "__hug" : s.height;
@@ -1290,7 +1292,7 @@ export function PropertyPanel({
             <ComboInput
               prop="height"
               value={heightDisplayValue}
-              options={SIZE_OPTIONS}
+              options={heightSizeOptions}
               onChange={(prop, val) => {
                 if (val === "__fill") handleSizingModeChange("height", "fill");
                 else if (val === "__hug") handleSizingModeChange("height", "hug");
