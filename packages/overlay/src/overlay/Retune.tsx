@@ -789,6 +789,33 @@ function RetuneInner(props: RetuneConfig) {
         refreshSelectedElementRef.current();
         setChangeRevision((r) => r + 1);
       },
+      onRepositionPreview: (element: Element, property: "top" | "left" | "right" | "bottom", value: string) => {
+        const preview = previewRef.current;
+        if (!preview) return;
+        const selector = activeSelectorRef.current ?? getSelector(element);
+        preview.applyChange(selector, property, value);
+      },
+      onReposition: (element: Element, property: "top" | "left" | "right" | "bottom", value: string) => {
+        const tracker = trackerRef.current;
+        const preview = previewRef.current;
+        if (!tracker || !preview) return;
+        const selector = activeSelectorRef.current ?? getSelector(element);
+        const inspected = selectedElementRef.current;
+        if (inspected) {
+          tracker.track(
+            selector, inspected.tagName, inspected.textContent, inspected.classes,
+            inspected.reactComponents, inspected.computedStyles, inspected.sourceFile,
+            inspected.stylingApproach, inspected.inlineStyles, inspected.elementId,
+            inspected.accessibleName, inspected.parentContext, inspected.childSummary,
+            inspected.domPath, inspected.nearbySiblings, inspected.position,
+          );
+        }
+        tracker.recordChange(selector, property, value);
+        preview.applyChange(selector, property, value);
+        syncTrackerStateRef.current();
+        refreshSelectedElementRef.current();
+        setChangeRevision((r) => r + 1);
+      },
       onCancel: () => {
         deactivateOverlay();
       },

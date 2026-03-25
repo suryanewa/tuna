@@ -19,6 +19,10 @@ export interface PickerCallbacks {
   onResize?: (element: Element, property: "width" | "height", value: string) => void;
   /** Called during resize drag for live preview (updates stylesheet without recording changes) */
   onResizePreview?: (element: Element, property: "width" | "height", value: string) => void;
+  /** Called when an absolute/fixed element is repositioned via drag */
+  onReposition?: (element: Element, property: "top" | "left" | "right" | "bottom", value: string) => void;
+  /** Called during reposition drag for live preview */
+  onRepositionPreview?: (element: Element, property: "top" | "left" | "right" | "bottom", value: string) => void;
 }
 
 export function createPicker(
@@ -544,6 +548,163 @@ export function createPicker(
     handleEls[pos].addEventListener("pointerdown", (e) => handleResizePointerDown(e, pos));
   }
 
+  // ── Drag-to-reposition (absolute/fixed elements) ──
+
+  // Cached positioning axes for the selected element (persists across drags)
+  let repositionAxes: { useRight: boolean; useBottom: boolean } | null = null;
+
+  let repositionDrag: {
+    startX: number;
+    startY: number;
+    startTop: number;
+    startLeft: number;
+    startRight: number;
+    startBottom: number;
+  } | null = null;
+
+  function isRepositionable(el: Element): boolean {
+    const pos = getComputedStyle(el).position;
+    return pos === "absolute" || pos === "fixed";
+  }
+
+  function updateSelectionCursor() {
+    if (selectedElement && isRepositionable(selectedElement)) {
+      selection.style.pointerEvents = "auto";
+      selection.style.cursor = "move";
+    } else {
+      selection.style.pointerEvents = "none";
+      selection.style.cursor = "";
+    }
+  }
+
+  function handleRepositionPointerDown(e: PointerEvent) {
+    if (!selectedElement || !isRepositionable(selectedElement)) return;
+    e.stopPropagation();
+    e.preventDefault();
+    selection.setPointerCapture(e.pointerId);
+
+    const el = selectedElement as HTMLElement;
+    const cs = getComputedStyle(el);
+
+    // Detect positioning axes on first drag, cache for subsequent drags
+    if (!repositionAxes) {
+      const inlineTop = el.style.top;
+      const inlineBottom = el.style.bottom;
+      const inlineLeft = el.style.left;
+      const inlineRight = el.style.right;
+
+      repositionAxes = {
+        useBottom: (inlineBottom !== "" && inlineTop === "") ||
+          (!inlineTop && !inlineBottom && parseFloat(cs.bottom) < parseFloat(cs.top)),
+        useRight: (inlineRight !== "" && inlineLeft === "") ||
+          (!inlineLeft && !inlineRight && parseFloat(cs.right) < parseFloat(cs.left)),
+      };
+    }
+
+    repositionDrag = {
+      startX: e.clientX,
+      startY: e.clientY,
+      startTop: parseFloat(cs.top) || 0,
+      startLeft: parseFloat(cs.left) || 0,
+      startRight: parseFloat(cs.right) || 0,
+      startBottom: parseFloat(cs.bottom) || 0,
+    };
+
+    document.addEventListener("pointermove", handleRepositionPointerMove, true);
+    document.addEventListener("pointerup", handleRepositionPointerUp, true);
+  }
+
+  function handleRepositionPointerMove(e: PointerEvent) {
+    if (!repositionDrag || !selectedElement) return;
+    e.preventDefault();
+
+    const dx = e.clientX - repositionDrag.startX;
+    const dy = e.clientY - repositionDrag.startY;
+    const el = selectedElement as HTMLElement;
+
+    // Update the correct positioning properties based on what the element uses
+    if (repositionAxes?.useBottom) {
+      const newBottom = Math.round(repositionDrag.startBottom - dy);
+      el.style.setProperty("bottom", `${newBottom}px`, "important");
+      callbacks.onRepositionPreview?.(selectedElement, "bottom", `${newBottom}px`);
+    } else {
+      const newTop = Math.round(repositionDrag.startTop + dy);
+      el.style.setProperty("top", `${newTop}px`, "important");
+      callbacks.onRepositionPreview?.(selectedElement, "top", `${newTop}px`);
+    }
+
+    if (repositionAxes?.useRight) {
+      const newRight = Math.round(repositionDrag.startRight - dx);
+      el.style.setProperty("right", `${newRight}px`, "important");
+      callbacks.onRepositionPreview?.(selectedElement, "right", `${newRight}px`);
+    } else {
+      const newLeft = Math.round(repositionDrag.startLeft + dx);
+      el.style.setProperty("left", `${newLeft}px`, "important");
+      callbacks.onRepositionPreview?.(selectedElement, "left", `${newLeft}px`);
+    }
+
+    // Update selection box + handles
+    const newRect = selectedElement.getBoundingClientRect();
+    positionBox(selection, selectionLabel, newRect, "solid", "0");
+    positionHandles(newRect);
+    selectionLabel.textContent = formatLabel(selectedElement);
+
+    // Update parent indicator
+    const parent = selectedElement.parentElement;
+    if (parent && parent !== document.body && parent !== document.documentElement) {
+      const pr = parent.getBoundingClientRect();
+      parentIndicator.style.top = `${pr.top}px`;
+      parentIndicator.style.left = `${pr.left}px`;
+      parentIndicator.style.width = `${pr.width}px`;
+      parentIndicator.style.height = `${pr.height}px`;
+    }
+  }
+
+  function handleRepositionPointerUp(e: PointerEvent) {
+    if (!repositionDrag || !selectedElement) {
+      repositionDrag = null;
+      return;
+    }
+
+    const dx = e.clientX - repositionDrag.startX;
+    const dy = e.clientY - repositionDrag.startY;
+    const el = selectedElement as HTMLElement;
+
+    // Remove inline overrides
+    if (repositionAxes?.useBottom) el.style.removeProperty("bottom");
+    else el.style.removeProperty("top");
+    if (repositionAxes?.useRight) el.style.removeProperty("right");
+    else el.style.removeProperty("left");
+
+    // Report final values using the correct properties
+    if (Math.abs(dy) > 0.5) {
+      if (repositionAxes?.useBottom) {
+        callbacks.onReposition?.(selectedElement, "bottom", `${Math.round(repositionDrag.startBottom - dy)}px`);
+      } else {
+        callbacks.onReposition?.(selectedElement, "top", `${Math.round(repositionDrag.startTop + dy)}px`);
+      }
+    }
+    if (Math.abs(dx) > 0.5) {
+      if (repositionAxes?.useRight) {
+        callbacks.onReposition?.(selectedElement, "right", `${Math.round(repositionDrag.startRight - dx)}px`);
+      } else {
+        callbacks.onReposition?.(selectedElement, "left", `${Math.round(repositionDrag.startLeft + dx)}px`);
+      }
+    }
+
+    repositionDrag = null;
+    document.removeEventListener("pointermove", handleRepositionPointerMove, true);
+    document.removeEventListener("pointerup", handleRepositionPointerUp, true);
+
+    // Refresh selection box
+    const newRect = selectedElement.getBoundingClientRect();
+    positionBox(selection, selectionLabel, newRect, "solid", "0");
+    positionHandles(newRect);
+    selectionLabel.textContent = formatLabel(selectedElement);
+  }
+
+  selection.addEventListener("pointerdown", handleRepositionPointerDown);
+
   // ── Spacing measurement lines ──
   // Shows distance between selected and hovered elements
   const spacingContainer = document.createElement("div");
@@ -773,6 +934,7 @@ export function createPicker(
     selectionLabel.textContent = formatLabel(selectedElement);
     lastSelRect = { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
     positionHandles(rect);
+    updateSelectionCursor();
 
     // Show dotted parent indicator
     const parent = selectedElement.parentElement;
@@ -843,7 +1005,10 @@ export function createPicker(
   function hideSelection() {
     selection.style.display = "none";
     selectionLabel.style.display = "none";
+    selection.style.pointerEvents = "none";
+    selection.style.cursor = "";
     parentIndicator.style.display = "none";
+    repositionAxes = null;
     hideHandles();
   }
 
