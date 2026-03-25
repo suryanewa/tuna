@@ -63,7 +63,10 @@ function resolvePropertyCandidates(
   }
 
   // 2. CSS custom properties
-  const cssVarMatches = findCssVarsForValue(prop.to, tokenMap);
+  // Skip for position properties (top/right/bottom/left) — they rarely use design tokens
+  // and value matches like `0px` produce false positives (e.g., --tw-ring-offset-width)
+  const SKIP_CSS_VAR_PROPS = new Set(["top", "right", "bottom", "left", "transform"]);
+  const cssVarMatches = SKIP_CSS_VAR_PROPS.has(kebab) ? [] : findCssVarsForValue(prop.to, tokenMap);
   const cssVariables = cssVarMatches.slice(0, MAX_CSS_VARS);
 
   // If no utility token but we have a CSS variable, promote it to recommended
