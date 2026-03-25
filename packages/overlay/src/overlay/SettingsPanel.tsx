@@ -24,8 +24,7 @@ const SHORTCUTS: Array<{ label: string; keys: string[] }> = [
   { label: "Select Parent", keys: ["⇧", "Enter"] },
   { label: "Select Next Sibling", keys: ["Tab"] },
   { label: "Select Previous Sibling", keys: ["⇧", "Tab"] },
-  { label: "Reorder Up", keys: ["↑"] },
-  { label: "Reorder Down", keys: ["↓"] },
+  { label: "Reorder", keys: ["↑", "↓", "←", "→"] },
   { label: "Delete Element", keys: ["⌫"] },
 ];
 

@@ -1062,9 +1062,14 @@ export function createPicker(
     }
   }
 
+  // Global cursor override when Retune is active
+  const cursorStyle = document.createElement("style");
+  cursorStyle.setAttribute("data-retune-cursor", "");
+
   function activate() {
     active = true;
-    document.body.style.cursor = "crosshair";
+    cursorStyle.textContent = "* { cursor: default !important; }";
+    document.head.appendChild(cursorStyle);
     document.addEventListener("mousemove", handleMouseMove, true);
     document.addEventListener("click", handleClick, true);
     document.addEventListener("dblclick", handleDblClick, true);
@@ -1074,7 +1079,8 @@ export function createPicker(
 
   function deactivate() {
     active = false;
-    document.body.style.cursor = "";
+    cursorStyle.textContent = "";
+    cursorStyle.remove();
     hoveredElement = null;
     selectedElement = null;
     selectionLabelHidden = false;
