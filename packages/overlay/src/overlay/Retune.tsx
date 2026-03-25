@@ -329,6 +329,7 @@ function RetuneInner(props: RetuneConfig) {
   const toolbarRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ startX: number; startY: number; originX: number; dragging: boolean; lastX: number; lastT: number; velocity: number } | null>(null);
   const [toolbarDragging, setToolbarDragging] = useState(false);
+  const [sessionHidden, setSessionHidden] = useState(false);
   const tabPillFirstRender = useRef(true);
 
   // Selector candidates for the selected element (class-based selectors with match counts)
@@ -2179,6 +2180,8 @@ function RetuneInner(props: RetuneConfig) {
 
   if (!portalTarget) return null;
 
+  if (sessionHidden) return null;
+
   return createPortal(
     <PreviewBridgeContext.Provider value={previewBridgeRef.current}>
     <TooltipPortalContext.Provider value={portalTarget}>
@@ -2502,7 +2505,7 @@ function RetuneInner(props: RetuneConfig) {
           onThemeChange={handleThemeChange}
           fidelity={fidelity}
           onFidelityChange={setFidelity}
-          onHide={() => { setSettingsOpen(false); setSettingsVisible(false); setSettingsExiting(false); handleClose(); }}
+          onHide={() => { setSettingsOpen(false); setSettingsVisible(false); setSettingsExiting(false); deactivateOverlay(); setSessionHidden(true); }}
           exiting={settingsExiting}
         />
       )}
