@@ -16,6 +16,8 @@ import { createPortal } from "react-dom";
 import type { RetuneConfig, InspectedElement } from "../types";
 import { mountOverlay, unmountOverlay } from "./mount";
 import { createPicker } from "../selector/picker";
+import { PreviewBridge } from "../ui/preview-bridge";
+import { PreviewBridgeContext } from "../ui/preview-bridge-context";
 import { LivePreviewEngine } from "../engine/live-preview";
 import { ChangeTracker } from "../engine/change-tracker";
 import { formatChanges, collapseShorthands, type Fidelity } from "../engine/output";
@@ -355,6 +357,7 @@ function RetuneInner(props: RetuneConfig) {
   const pickerRef = useRef<ReturnType<typeof createPicker> | null>(null);
   const previewRef = useRef<LivePreviewEngine | null>(null);
   const trackerRef = useRef<ChangeTracker | null>(null);
+  const previewBridgeRef = useRef(new PreviewBridge());
   const bridgeRef = useRef<BridgeClient | null>(null);
   const selectedElementRef = useRef<InspectedElement | null>(null);
   selectedElementRef.current = selectedElement;
@@ -767,6 +770,10 @@ function RetuneInner(props: RetuneConfig) {
         if (!preview) return;
         const selector = activeSelectorRef.current ?? getSelector(element);
         preview.applyChange(selector, property, value);
+        // Push to PreviewBridge for real-time panel input updates
+        const bridge = previewBridgeRef.current;
+        if (!bridge.active) bridge.start();
+        bridge.set(property, value);
       },
       onResize: (element: Element, property: "width" | "height", value: string) => {
         const tracker = trackerRef.current;
@@ -785,6 +792,7 @@ function RetuneInner(props: RetuneConfig) {
         }
         tracker.recordChange(selector, property, value);
         preview.applyChange(selector, property, value);
+        previewBridgeRef.current.end();
         syncTrackerStateRef.current();
         refreshSelectedElementRef.current();
         setChangeRevision((r) => r + 1);
@@ -794,6 +802,9 @@ function RetuneInner(props: RetuneConfig) {
         if (!preview) return;
         const selector = activeSelectorRef.current ?? getSelector(element);
         preview.applyChange(selector, property, value);
+        const bridge = previewBridgeRef.current;
+        if (!bridge.active) bridge.start();
+        bridge.set(property, value);
       },
       onReposition: (element: Element, property: "top" | "left" | "right" | "bottom", value: string) => {
         const tracker = trackerRef.current;
@@ -812,6 +823,7 @@ function RetuneInner(props: RetuneConfig) {
         }
         tracker.recordChange(selector, property, value);
         preview.applyChange(selector, property, value);
+        previewBridgeRef.current.end();
         syncTrackerStateRef.current();
         refreshSelectedElementRef.current();
         setChangeRevision((r) => r + 1);
@@ -2168,6 +2180,7 @@ function RetuneInner(props: RetuneConfig) {
   if (!portalTarget) return null;
 
   return createPortal(
+    <PreviewBridgeContext.Provider value={previewBridgeRef.current}>
     <TooltipPortalContext.Provider value={portalTarget}>
       {/* Floating toolbar */}
       <div
@@ -2501,7 +2514,8 @@ function RetuneInner(props: RetuneConfig) {
           revision={changeRevision}
         />
       )}
-    </TooltipPortalContext.Provider>,
+    </TooltipPortalContext.Provider>
+    </PreviewBridgeContext.Provider>,
     portalTarget
   );
 }

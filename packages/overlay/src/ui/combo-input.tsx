@@ -19,6 +19,7 @@ import { ChangeIndicator } from "./change-indicator";
 import { VariableDialog } from "./variable-dialog";
 import { claimDialog, releaseDialog } from "./dialog-singleton";
 import { Tooltip } from "./tooltip";
+import { usePreviewValue } from "./use-preview-value";
 
 export interface ComboOption {
   value: string;
@@ -53,7 +54,11 @@ export function ComboInput({ label, prop, value, options, onChange, variableMatc
   const [menuPos, setMenuPos] = useState<MenuPosition | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const labelRef = useRef<HTMLSpanElement>(null);
+  const comboInputRef = useRef<HTMLInputElement>(null);
   const editingRef = useRef(false);
+
+  // Subscribe to live drag preview values (bypasses React)
+  const previewActiveRef = usePreviewValue(prop, comboInputRef);
   useScrollLock(open);
 
   // Variable picker state
@@ -72,8 +77,8 @@ export function ComboInput({ label, prop, value, options, onChange, variableMatc
   const [prevValue, setPrevValue] = useState(value);
   if (value !== prevValue) {
     setPrevValue(value);
-    // Don't overwrite what the user is typing
-    if (!editingRef.current) {
+    // Don't overwrite what the user is typing or preview value during drag
+    if (!editingRef.current && !previewActiveRef.current) {
       setLocalValue(roundCssValue(value || ""));
     }
   }
@@ -372,6 +377,7 @@ export function ComboInput({ label, prop, value, options, onChange, variableMatc
         </span>
       )}
       <input
+        ref={comboInputRef}
         className="retune-combo-input"
         style={label ? undefined : { paddingLeft: 8 }}
         value={displayValue}

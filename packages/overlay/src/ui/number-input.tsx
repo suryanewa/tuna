@@ -8,6 +8,7 @@ import { roundCssValue, inferCssUnit } from "./round-css-value";
 import type { VariableMatch } from "../variables/types";
 import { ChangeIndicator } from "./change-indicator";
 import { VariableAction } from "./variable-action";
+import { usePreviewValue } from "./use-preview-value";
 
 
 function clampNum(val: number, min?: number, max?: number): number {
@@ -59,6 +60,10 @@ export function NumberInput({ label, prop, value, placeholder, onChange, min, ma
   const labelRef = useRef<HTMLSpanElement>(null);
   const varPickerRef = useRef<(() => void) | null>(null);
 
+  // Subscribe to live drag preview values (bypasses React)
+  const inputRef = useRef<HTMLInputElement>(null);
+  const previewActiveRef = usePreviewValue(prop, inputRef);
+
   const handleInputClick = useCallback(() => {
     if (variableMatch) varPickerRef.current?.();
   }, [variableMatch]);
@@ -66,7 +71,10 @@ export function NumberInput({ label, prop, value, placeholder, onChange, min, ma
   const [prevValue, setPrevValue] = useState(value);
   if (value !== prevValue) {
     setPrevValue(value);
-    setLocalValue(roundCssValue(value || ""));
+    // Don't overwrite preview value during drag
+    if (!previewActiveRef.current) {
+      setLocalValue(roundCssValue(value || ""));
+    }
   }
 
   // Scrub-to-adjust: drag on label to change numeric values
@@ -99,7 +107,6 @@ export function NumberInput({ label, prop, value, placeholder, onChange, min, ma
   };
 
   // Scrub from input's left padding when there's no label
-  const inputRef = useRef<HTMLInputElement>(null);
   const SCRUB_ZONE = 16; // px from left edge of input
 
   const handleInputPointerDown = (e: React.PointerEvent<HTMLInputElement>) => {
