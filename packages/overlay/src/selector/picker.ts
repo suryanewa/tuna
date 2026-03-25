@@ -41,6 +41,15 @@ export function createPicker(
   selectionLabel.setAttribute("data-retune-selection-label", "");
   shadowRoot.appendChild(selectionLabel);
 
+  // Parent indicator (dotted outline, no fill — shown during fill snap)
+  const parentIndicator = document.createElement("div");
+  parentIndicator.setAttribute("data-retune-parent-indicator", "");
+  parentIndicator.style.cssText = `
+    position:fixed;display:none;pointer-events:none;z-index:2147483644;
+    border:1px dotted #0D99FF;background:none;border-radius:0;
+  `;
+  shadowRoot.appendChild(parentIndicator);
+
   let active = false;
   let suspended = false; // temporarily suppress hover (e.g. during text editing)
   let hoveredElement: Element | null = null;
@@ -174,6 +183,7 @@ export function createPicker(
     parentRect: DOMRect | null;
     parentWidth: number;
     parentHeight: number;
+    parentPadding: { top: number; right: number; bottom: number; left: number };
   } | null = null;
 
   function buildSnapCache(el: Element) {
@@ -192,7 +202,13 @@ export function createPicker(
     const parentHeight = parentRect && parentCs
       ? parentRect.height - parseFloat(parentCs.paddingTop) - parseFloat(parentCs.paddingBottom) - parseFloat(parentCs.borderTopWidth) - parseFloat(parentCs.borderBottomWidth)
       : 0;
-    snapCache = { siblingWidths, siblingHeights, siblingRects, parentRect, parentWidth: Math.round(parentWidth), parentHeight: Math.round(parentHeight) };
+    const parentPadding = parentCs ? {
+      top: parseFloat(parentCs.paddingTop) || 0,
+      right: parseFloat(parentCs.paddingRight) || 0,
+      bottom: parseFloat(parentCs.paddingBottom) || 0,
+      left: parseFloat(parentCs.paddingLeft) || 0,
+    } : { top: 0, right: 0, bottom: 0, left: 0 };
+    snapCache = { siblingWidths, siblingHeights, siblingRects, parentRect, parentWidth: Math.round(parentWidth), parentHeight: Math.round(parentHeight), parentPadding };
   }
 
   function findSnap(value: number, candidates: number[]): number | null {
@@ -210,86 +226,173 @@ export function createPicker(
     return bestDist <= SNAP_THRESHOLD ? best : null;
   }
 
-  function snapResize(w: number, h: number, axes: { dx: number; dy: number }): { width: number; height: number; guides: Array<{ axis: "x" | "y"; value: number; ref: number; refRect?: DOMRect }> } {
-    if (!snapCache) return { width: w, height: h, guides: [] };
-    const guides: Array<{ axis: "x" | "y"; value: number; ref: number; refRect?: DOMRect }> = [];
+  type SnapGuide = { axis: "x" | "y"; value: number; ref: number; refRect?: DOMRect; fill?: boolean };
+
+  function snapResize(w: number, h: number, axes: { dx: number; dy: number }): { width: number; height: number; guides: SnapGuide[]; fillWidth: boolean; fillHeight: boolean } {
+    if (!snapCache) return { width: w, height: h, guides: [], fillWidth: false, fillHeight: false };
+    const guides: SnapGuide[] = [];
+    let fillWidth = false;
+    let fillHeight = false;
 
     if (axes.dx !== 0) {
-      // Check sibling widths
-      const snapW = findSnap(w, snapCache.siblingWidths);
-      // Check parent content width
+      // Check parent content width first (fill takes priority)
       const parentSnapW = Math.abs(w - snapCache.parentWidth) <= SNAP_THRESHOLD ? snapCache.parentWidth : null;
-      const bestW = parentSnapW !== null ? parentSnapW : snapW;
-      if (bestW !== null) {
-        w = bestW;
-        // Find a sibling with matching width for the guide line
-        const matchRect = snapCache.siblingRects.find(r => Math.round(r.width) === bestW);
-        guides.push({ axis: "x", value: bestW, ref: bestW, refRect: matchRect });
+      if (parentSnapW !== null) {
+        w = parentSnapW;
+        fillWidth = true;
+        guides.push({ axis: "x", value: parentSnapW, ref: parentSnapW, fill: true });
+      } else {
+        // Check sibling widths
+        const snapW = findSnap(w, snapCache.siblingWidths);
+        if (snapW !== null) {
+          w = snapW;
+          const matchRect = snapCache.siblingRects.find(r => Math.round(r.width) === snapW);
+          guides.push({ axis: "x", value: snapW, ref: snapW, refRect: matchRect });
+        }
       }
     }
 
     if (axes.dy !== 0) {
-      const snapH = findSnap(h, snapCache.siblingHeights);
       const parentSnapH = Math.abs(h - snapCache.parentHeight) <= SNAP_THRESHOLD ? snapCache.parentHeight : null;
-      const bestH = parentSnapH !== null ? parentSnapH : snapH;
-      if (bestH !== null) {
-        h = bestH;
-        const matchRect = snapCache.siblingRects.find(r => Math.round(r.height) === bestH);
-        guides.push({ axis: "y", value: bestH, ref: bestH, refRect: matchRect });
+      if (parentSnapH !== null) {
+        h = parentSnapH;
+        fillHeight = true;
+        guides.push({ axis: "y", value: parentSnapH, ref: parentSnapH, fill: true });
+      } else {
+        const snapH = findSnap(h, snapCache.siblingHeights);
+        if (snapH !== null) {
+          h = snapH;
+          const matchRect = snapCache.siblingRects.find(r => Math.round(r.height) === snapH);
+          guides.push({ axis: "y", value: snapH, ref: snapH, refRect: matchRect });
+        }
       }
     }
 
-    return { width: w, height: h, guides };
+    return { width: w, height: h, guides, fillWidth, fillHeight };
   }
 
-  function showSnapGuides(guides: Array<{ axis: "x" | "y"; value: number; ref: number; refRect?: DOMRect }>, elRect: DOMRect) {
-    // Hide all first
+  const XMARK_SIZE = 4; // half-size of the X mark (8px total)
+
+  function drawXMark(el: HTMLDivElement, x: number, y: number) {
+    el.style.cssText = `
+      position:fixed;pointer-events:none;z-index:2147483645;
+      top:${y - XMARK_SIZE}px;left:${x - XMARK_SIZE}px;
+      width:${XMARK_SIZE * 2}px;height:${XMARK_SIZE * 2}px;
+      background:none;
+    `;
+    // Draw X using two rotated lines via pseudo-element alternative: use border trick
+    // Simpler: use an inline SVG background
+    el.style.backgroundImage = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${XMARK_SIZE * 2}' height='${XMARK_SIZE * 2}'%3E%3Cline x1='2' y1='2' x2='${XMARK_SIZE * 2 - 2}' y2='${XMARK_SIZE * 2 - 2}' stroke='%23e5484d' stroke-width='1'/%3E%3Cline x1='${XMARK_SIZE * 2 - 2}' y1='2' x2='2' y2='${XMARK_SIZE * 2 - 2}' stroke='%23e5484d' stroke-width='1'/%3E%3C/svg%3E")`;
+    el.style.backgroundSize = "contain";
+  }
+
+  function showSnapGuides(guides: SnapGuide[], elRect: DOMRect, handle: HandlePos) {
+    // Hide snap visuals (not parent indicator — that's managed by showSelection)
     for (const g of snapGuidePool) {
       g.line.classList.remove("visible");
       g.label.classList.remove("visible");
+      g.label.style.display = "";
     }
 
-    guides.forEach((guide, i) => {
-      if (i >= snapGuidePool.length) return;
-      const { line, label } = snapGuidePool[i];
+    const axes = HANDLE_AXES[handle];
+    let poolIdx = 0;
 
-      if (guide.axis === "x" && guide.refRect) {
-        // Horizontal dashed line connecting widths
-        const y = Math.min(elRect.bottom, guide.refRect.bottom) + 8;
-        const left = Math.min(elRect.left, guide.refRect.left);
-        const right = Math.max(elRect.right, guide.refRect.right);
-        line.style.cssText = `position:fixed;pointer-events:none;z-index:2147483645;top:${y}px;left:${left}px;width:${right - left}px;height:1px;background:#e5484d;`;
-        line.classList.add("visible");
-        label.textContent = `${guide.value}`;
-        label.style.cssText = `position:fixed;pointer-events:none;z-index:2147483646;top:${y + 4}px;left:${(left + right) / 2}px;transform:translateX(-50%);font-size:10px;font-weight:500;font-family:inherit;color:#fff;background:#e5484d;padding:1px 4px;border-radius:2px;white-space:nowrap;`;
-        label.classList.add("visible");
-      } else if (guide.axis === "y" && guide.refRect) {
-        // Vertical dashed line connecting heights
-        const x = Math.min(elRect.right, guide.refRect.right) + 8;
-        const top = Math.min(elRect.top, guide.refRect.top);
-        const bottom = Math.max(elRect.bottom, guide.refRect.bottom);
-        line.style.cssText = `position:fixed;pointer-events:none;z-index:2147483645;top:${top}px;left:${x}px;width:1px;height:${bottom - top}px;background:#e5484d;`;
-        line.classList.add("visible");
-        label.textContent = `${guide.value}`;
-        label.style.cssText = `position:fixed;pointer-events:none;z-index:2147483646;top:${(top + bottom) / 2}px;left:${x + 4}px;transform:translateY(-50%);font-size:10px;font-weight:500;font-family:inherit;color:#fff;background:#e5484d;padding:1px 4px;border-radius:2px;white-space:nowrap;`;
-        label.classList.add("visible");
-      } else if (guide.axis === "x") {
-        // Width matches parent — show horizontal line at element bottom
-        const y = elRect.bottom + 8;
-        line.style.cssText = `position:fixed;pointer-events:none;z-index:2147483645;top:${y}px;left:${elRect.left}px;width:${elRect.width}px;height:1px;background:#e5484d;`;
-        line.classList.add("visible");
-        label.textContent = `${guide.value}`;
-        label.style.cssText = `position:fixed;pointer-events:none;z-index:2147483646;top:${y + 4}px;left:${elRect.left + elRect.width / 2}px;transform:translateX(-50%);font-size:10px;font-weight:500;font-family:inherit;color:#fff;background:#e5484d;padding:1px 4px;border-radius:2px;white-space:nowrap;`;
-        label.classList.add("visible");
-      } else if (guide.axis === "y") {
-        const x = elRect.right + 8;
-        line.style.cssText = `position:fixed;pointer-events:none;z-index:2147483645;top:${elRect.top}px;left:${x}px;width:1px;height:${elRect.height}px;background:#e5484d;`;
-        line.classList.add("visible");
-        label.textContent = `${guide.value}`;
-        label.style.cssText = `position:fixed;pointer-events:none;z-index:2147483646;top:${elRect.top + elRect.height / 2}px;left:${x + 4}px;transform:translateY(-50%);font-size:10px;font-weight:500;font-family:inherit;color:#fff;background:#e5484d;padding:1px 4px;border-radius:2px;white-space:nowrap;`;
-        label.classList.add("visible");
+    for (const guide of guides) {
+      if (guide.fill && snapCache?.parentRect) {
+        const pr = snapCache.parentRect;
+        const pad = snapCache.parentPadding;
+        const hasPadding = guide.axis === "x" ? (pad.left > 0 || pad.right > 0) : (pad.top > 0 || pad.bottom > 0);
+
+        // Always show dotted parent indicator
+        parentIndicator.style.cssText = `
+          position:fixed;display:block;pointer-events:none;z-index:2147483644;
+          border:1px dotted #0D99FF;background:none;
+          top:${pr.top}px;left:${pr.left}px;width:${pr.width}px;height:${pr.height}px;
+        `;
+
+        if (hasPadding) {
+          // Show padding stripe rects
+          const PADDING_BG = "repeating-linear-gradient(-45deg, transparent, transparent 3px, rgba(13, 153, 255, 0.5) 3px, rgba(13, 153, 255, 0.5) 4px)";
+
+          if (guide.axis === "x") {
+            if (pad.left > 0 && poolIdx < snapGuidePool.length) {
+              const g1 = snapGuidePool[poolIdx++];
+              g1.line.style.cssText = `position:fixed;pointer-events:none;z-index:2147483645;top:${pr.top}px;left:${pr.left}px;width:${pad.left}px;height:${pr.height}px;background:${PADDING_BG};`;
+              g1.line.classList.add("visible");
+            }
+            if (pad.right > 0 && poolIdx < snapGuidePool.length) {
+              const g2 = snapGuidePool[poolIdx++];
+              g2.line.style.cssText = `position:fixed;pointer-events:none;z-index:2147483645;top:${pr.top}px;left:${pr.right - pad.right}px;width:${pad.right}px;height:${pr.height}px;background:${PADDING_BG};`;
+              g2.line.classList.add("visible");
+            }
+          } else {
+            if (pad.top > 0 && poolIdx < snapGuidePool.length) {
+              const g1 = snapGuidePool[poolIdx++];
+              g1.line.style.cssText = `position:fixed;pointer-events:none;z-index:2147483645;top:${pr.top}px;left:${pr.left}px;width:${pr.width}px;height:${pad.top}px;background:${PADDING_BG};`;
+              g1.line.classList.add("visible");
+            }
+            if (pad.bottom > 0 && poolIdx < snapGuidePool.length) {
+              const g2 = snapGuidePool[poolIdx++];
+              g2.line.style.cssText = `position:fixed;pointer-events:none;z-index:2147483645;top:${pr.bottom - pad.bottom}px;left:${pr.left}px;width:${pr.width}px;height:${pad.bottom}px;background:${PADDING_BG};`;
+              g2.line.classList.add("visible");
+            }
+          }
+        } else {
+          // No padding — show X marks on parent corners on the drag side
+          if (guide.axis === "x") {
+            const side = axes.dx > 0 ? "right" : "left";
+            const x = side === "right" ? pr.right : pr.left;
+            if (poolIdx < snapGuidePool.length) {
+              const g1 = snapGuidePool[poolIdx++];
+              drawXMark(g1.line, x, pr.top);
+              g1.line.classList.add("visible");
+            }
+            if (poolIdx < snapGuidePool.length) {
+              const g2 = snapGuidePool[poolIdx++];
+              drawXMark(g2.line, x, pr.bottom);
+              g2.line.classList.add("visible");
+            }
+          } else {
+            const side = axes.dy > 0 ? "bottom" : "top";
+            const y = side === "bottom" ? pr.bottom : pr.top;
+            if (poolIdx < snapGuidePool.length) {
+              const g1 = snapGuidePool[poolIdx++];
+              drawXMark(g1.line, pr.left, y);
+              g1.line.classList.add("visible");
+            }
+            if (poolIdx < snapGuidePool.length) {
+              const g2 = snapGuidePool[poolIdx++];
+              drawXMark(g2.line, pr.right, y);
+              g2.line.classList.add("visible");
+            }
+          }
+        }
+      } else {
+        // Sibling snap — X marks on corners
+        const refRect = guide.refRect;
+        if (!refRect || poolIdx + 1 >= snapGuidePool.length) continue;
+
+        if (guide.axis === "x") {
+          const side = axes.dx > 0 ? "right" : "left";
+          const x = side === "right" ? refRect.right : refRect.left;
+          const g1 = snapGuidePool[poolIdx++];
+          drawXMark(g1.line, x, refRect.top);
+          g1.line.classList.add("visible");
+          const g2 = snapGuidePool[poolIdx++];
+          drawXMark(g2.line, x, refRect.bottom);
+          g2.line.classList.add("visible");
+        } else {
+          const side = axes.dy > 0 ? "bottom" : "top";
+          const y = side === "bottom" ? refRect.bottom : refRect.top;
+          const g1 = snapGuidePool[poolIdx++];
+          drawXMark(g1.line, refRect.left, y);
+          g1.line.classList.add("visible");
+          const g2 = snapGuidePool[poolIdx++];
+          drawXMark(g2.line, refRect.right, y);
+          g2.line.classList.add("visible");
+        }
       }
-    });
+    }
   }
 
   function hideSnapGuides() {
@@ -300,6 +403,8 @@ export function createPicker(
   }
 
   // ── Resize drag state ──
+  let resizeFillWidth = false;
+  let resizeFillHeight = false;
   let resizeDrag: {
     handle: HandlePos;
     startX: number;
@@ -355,15 +460,17 @@ export function createPicker(
 
     const raw = computeResize(e);
     const axes = HANDLE_AXES[resizeDrag.handle];
-    const { width, height, guides } = snapResize(raw.width, raw.height, axes);
+    const { width, height, guides, fillWidth, fillHeight } = snapResize(raw.width, raw.height, axes);
+    resizeFillWidth = fillWidth;
+    resizeFillHeight = fillHeight;
     const el = selectedElement as HTMLElement;
 
     // Update LivePreviewEngine stylesheet for all matching instances
-    if (axes.dx !== 0) callbacks.onResizePreview?.(selectedElement, "width", `${width}px`);
-    if (axes.dy !== 0) callbacks.onResizePreview?.(selectedElement, "height", `${height}px`);
+    if (axes.dx !== 0) callbacks.onResizePreview?.(selectedElement, "width", fillWidth ? "100%" : `${width}px`);
+    if (axes.dy !== 0) callbacks.onResizePreview?.(selectedElement, "height", fillHeight ? "100%" : `${height}px`);
     // Also set inline !important on selected element to guarantee it wins
-    if (axes.dx !== 0) el.style.setProperty("width", `${width}px`, "important");
-    if (axes.dy !== 0) el.style.setProperty("height", `${height}px`, "important");
+    if (axes.dx !== 0) el.style.setProperty("width", fillWidth ? "100%" : `${width}px`, "important");
+    if (axes.dy !== 0) el.style.setProperty("height", fillHeight ? "100%" : `${height}px`, "important");
 
     // Update selection box and handles
     const newRect = selectedElement.getBoundingClientRect();
@@ -373,7 +480,7 @@ export function createPicker(
 
     // Show/hide snap guides
     if (guides.length > 0) {
-      showSnapGuides(guides, newRect);
+      showSnapGuides(guides, newRect, resizeDrag!.handle);
     } else {
       hideSnapGuides();
     }
@@ -387,25 +494,27 @@ export function createPicker(
 
     const raw = computeResize(e);
     const axes = HANDLE_AXES[resizeDrag.handle];
-    const { width, height } = snapResize(raw.width, raw.height, axes);
+    const { width, height, fillWidth, fillHeight } = snapResize(raw.width, raw.height, axes);
     const el = selectedElement as HTMLElement;
 
     hideSnapGuides();
     snapCache = null;
 
     // Report final values through callback (keeps inline styles — LivePreviewEngine overrides)
-    const widthChanged = axes.dx !== 0 && Math.abs(width - resizeDrag.startWidth) > 0.5;
-    const heightChanged = axes.dy !== 0 && Math.abs(height - resizeDrag.startHeight) > 0.5;
+    const widthChanged = axes.dx !== 0 && (fillWidth || Math.abs(width - resizeDrag.startWidth) > 0.5);
+    const heightChanged = axes.dy !== 0 && (fillHeight || Math.abs(height - resizeDrag.startHeight) > 0.5);
     if (widthChanged) {
       el.style.removeProperty("width");
-      callbacks.onResize?.(selectedElement, "width", `${width}px`);
+      callbacks.onResize?.(selectedElement, "width", fillWidth ? "100%" : `${width}px`);
     }
     if (heightChanged) {
       el.style.removeProperty("height");
-      callbacks.onResize?.(selectedElement, "height", `${height}px`);
+      callbacks.onResize?.(selectedElement, "height", fillHeight ? "100%" : `${height}px`);
     }
 
     resizeDrag = null;
+    resizeFillWidth = false;
+    resizeFillHeight = false;
     document.removeEventListener("pointermove", handleResizePointerMove, true);
     document.removeEventListener("pointerup", handleResizePointerUp, true);
 
@@ -635,8 +744,7 @@ export function createPicker(
 
   function updateHighlight(el: Element) {
     const rect = el.getBoundingClientRect();
-    const dashed = selectedElement !== null && el !== selectedElement;
-    positionBox(highlight, label, rect, dashed ? "dotted" : "solid", "0.08");
+    positionBox(highlight, label, rect, "solid", "0.08");
     label.style.display = "";
     label.textContent = formatLabel(el);
   }
@@ -651,6 +759,19 @@ export function createPicker(
     selectionLabel.textContent = formatLabel(selectedElement);
     lastSelRect = { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
     positionHandles(rect);
+
+    // Show dotted parent indicator
+    const parent = selectedElement.parentElement;
+    if (parent && parent !== document.body && parent !== document.documentElement) {
+      const pr = parent.getBoundingClientRect();
+      parentIndicator.style.cssText = `
+        position:fixed;display:block;pointer-events:none;z-index:2147483644;
+        border:1px dotted #0D99FF;background:none;
+        top:${pr.top}px;left:${pr.left}px;width:${pr.width}px;height:${pr.height}px;
+      `;
+    } else {
+      parentIndicator.style.display = "none";
+    }
   }
 
   // Lightweight position-only update for scroll/resize tracking
@@ -676,6 +797,16 @@ export function createPicker(
     selectionLabel.textContent = formatLabel(selectedElement);
     lastSelRect = { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
     positionHandles(rect);
+
+    // Update parent indicator position
+    const parent = selectedElement.parentElement;
+    if (parent && parent !== document.body && parent !== document.documentElement && parentIndicator.style.display !== "none") {
+      const pr = parent.getBoundingClientRect();
+      parentIndicator.style.top = `${pr.top}px`;
+      parentIndicator.style.left = `${pr.left}px`;
+      parentIndicator.style.width = `${pr.width}px`;
+      parentIndicator.style.height = `${pr.height}px`;
+    }
   }
 
   function formatLabel(el: Element): string {
@@ -698,6 +829,7 @@ export function createPicker(
   function hideSelection() {
     selection.style.display = "none";
     selectionLabel.style.display = "none";
+    parentIndicator.style.display = "none";
     hideHandles();
   }
 
@@ -959,6 +1091,7 @@ export function createPicker(
     selection.remove();
     selectionLabel.remove();
     spacingContainer.remove();
+    parentIndicator.remove();
     for (const g of snapGuidePool) { g.line.remove(); g.label.remove(); }
     for (const pos of ALL_POSITIONS) handleEls[pos].remove();
   }
