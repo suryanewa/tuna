@@ -445,7 +445,44 @@ export function PropertyPanel({
   if ((s.maxWidth && s.maxWidth !== "none") ||
       (s.maxHeight && s.maxHeight !== "none")) visibleSizeExtras.add("max");
 
-  const [pins, setPins] = useState<PinState>({ top: true, right: false, bottom: false, left: true });
+  // Detect which position properties are authored for pin state
+  const [pins, setPins] = useState<PinState>(() => {
+    const el = element.element as HTMLElement;
+    const cs = element.computedStyles;
+    const pos = cs.position;
+    if (pos !== "absolute" && pos !== "fixed") return { top: true, right: false, bottom: false, left: true };
+
+    function isAuthored(prop: "top" | "right" | "bottom" | "left"): boolean {
+      // Check inline style first
+      if (el.style[prop] !== "") return true;
+      // Check matched CSS rules
+      try {
+        for (const sheet of document.styleSheets) {
+          try {
+            for (const rule of sheet.cssRules) {
+              if (rule instanceof CSSStyleRule && el.matches(rule.selectorText)) {
+                const val = rule.style.getPropertyValue(prop);
+                if (val && val !== "auto") return true;
+              }
+            }
+          } catch {}
+        }
+      } catch {}
+      return false;
+    }
+
+    const hasTop = isAuthored("top");
+    const hasBottom = isAuthored("bottom");
+    const hasLeft = isAuthored("left");
+    const hasRight = isAuthored("right");
+
+    return {
+      top: hasTop || (!hasTop && !hasBottom),
+      right: hasRight && !hasLeft,
+      bottom: hasBottom && !hasTop,
+      left: hasLeft || (!hasLeft && !hasRight),
+    };
+  });
   const [centered, setCentered] = useState(false);
   const centeredAxes = useRef({ h: false, v: false });
 

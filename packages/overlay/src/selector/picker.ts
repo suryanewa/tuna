@@ -586,19 +586,55 @@ export function createPicker(
     const el = selectedElement as HTMLElement;
     const cs = getComputedStyle(el);
 
-    // Detect positioning axes on first drag, cache for subsequent drags
+    // Detect positioning axes on first drag, cache for subsequent drags.
+    // Strategy: check inline style first, then check matched CSS rules,
+    // then fall back to comparing computed values (closer to edge = that axis).
     if (!repositionAxes) {
       const inlineTop = el.style.top;
       const inlineBottom = el.style.bottom;
       const inlineLeft = el.style.left;
       const inlineRight = el.style.right;
 
-      repositionAxes = {
-        useBottom: (inlineBottom !== "" && inlineTop === "") ||
-          (!inlineTop && !inlineBottom && parseFloat(cs.bottom) < parseFloat(cs.top)),
-        useRight: (inlineRight !== "" && inlineLeft === "") ||
-          (!inlineLeft && !inlineRight && parseFloat(cs.right) < parseFloat(cs.left)),
-      };
+      let useBottom = false;
+      let useRight = false;
+
+      if (inlineBottom !== "" || inlineTop !== "") {
+        // Inline styles present — use them
+        useBottom = inlineBottom !== "" && inlineTop === "";
+      } else {
+        // Check matched CSS rules for authored properties
+        try {
+          const rules = [...document.styleSheets].flatMap(s => {
+            try { return [...s.cssRules]; } catch { return []; }
+          }).filter((r): r is CSSStyleRule => r instanceof CSSStyleRule);
+          const hasRuleBottom = rules.some(r => el.matches(r.selectorText) && r.style.bottom && r.style.bottom !== "auto");
+          const hasRuleTop = rules.some(r => el.matches(r.selectorText) && r.style.top && r.style.top !== "auto");
+          if (hasRuleBottom && !hasRuleTop) useBottom = true;
+          else if (!hasRuleBottom && hasRuleTop) useBottom = false;
+          else useBottom = parseFloat(cs.bottom) < parseFloat(cs.top);
+        } catch {
+          useBottom = parseFloat(cs.bottom) < parseFloat(cs.top);
+        }
+      }
+
+      if (inlineRight !== "" || inlineLeft !== "") {
+        useRight = inlineRight !== "" && inlineLeft === "";
+      } else {
+        try {
+          const rules = [...document.styleSheets].flatMap(s => {
+            try { return [...s.cssRules]; } catch { return []; }
+          }).filter((r): r is CSSStyleRule => r instanceof CSSStyleRule);
+          const hasRuleRight = rules.some(r => el.matches(r.selectorText) && r.style.right && r.style.right !== "auto");
+          const hasRuleLeft = rules.some(r => el.matches(r.selectorText) && r.style.left && r.style.left !== "auto");
+          if (hasRuleRight && !hasRuleLeft) useRight = true;
+          else if (!hasRuleRight && hasRuleLeft) useRight = false;
+          else useRight = parseFloat(cs.right) < parseFloat(cs.left);
+        } catch {
+          useRight = parseFloat(cs.right) < parseFloat(cs.left);
+        }
+      }
+
+      repositionAxes = { useBottom, useRight };
     }
 
     repositionDrag = {
