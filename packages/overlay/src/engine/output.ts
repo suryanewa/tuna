@@ -268,9 +268,16 @@ function formatSingleChange(change: ElementChange, fidelity: Fidelity, tokenMap:
     lines.push("");
     lines.push("### Action: Edit Text Content");
     lines.push("");
-    lines.push("| Before | After |");
-    lines.push("|--------|-------|");
-    lines.push(`| ${truncate(textChange.from, 60)} | ${truncate(textChange.to, 60)} |`);
+    // Show full text content (escape newlines and pipe characters for markdown table)
+    const escapeForTable = (s: string) => s.replace(/\n/g, "\\n").replace(/\|/g, "\\|");
+    lines.push("**Before:**");
+    lines.push("```");
+    lines.push(textChange.from);
+    lines.push("```");
+    lines.push("**After:**");
+    lines.push("```");
+    lines.push(textChange.to);
+    lines.push("```");
     lines.push("");
   }
 

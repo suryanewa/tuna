@@ -574,7 +574,8 @@ function RetuneInner(props: RetuneConfig) {
                 // (otherwise it would destroy the children)
                 const hasChildElements = el.querySelector("*") !== null;
                 if (!hasChildElements) {
-                  el.textContent = c.to;
+                  // Convert \n back to <br> for line breaks
+                  el.innerHTML = c.to.replace(/\n/g, "<br>");
                   textStackRef.current.push({ element: el, originalHTML, newHTML: el.innerHTML });
                 }
               }
@@ -764,21 +765,17 @@ function RetuneInner(props: RetuneConfig) {
 
         // Make editable
         el.contentEditable = "true";
+        el.style.outline = "none";
+        el.style.cursor = "text";
         el.focus();
 
-        // Select all text
-        const range = document.createRange();
-        range.selectNodeContents(el);
-        const sel = window.getSelection();
-        sel?.removeAllRanges();
-        sel?.addRange(range);
-
-        // Style hint
-        el.style.outline = "1px solid var(--retune-blue)";
+        // Place cursor at click position (don't select all — let user click to place cursor)
+        // The double-click will naturally select a word, which is the expected behavior
 
         const cleanup = () => {
           el.contentEditable = "false";
           el.style.removeProperty("outline");
+          el.style.removeProperty("cursor");
           el.removeEventListener("keydown", onKeyDown);
           el.removeEventListener("blur", onBlur);
           // Resume picker and restore selection highlight
@@ -787,27 +784,42 @@ function RetuneInner(props: RetuneConfig) {
         };
 
         const save = () => {
-          const newText = el.textContent || "";
+          // Remove edit-mode styles BEFORE reading text (so they don't leak into tracker)
+          el.style.removeProperty("outline");
+          el.style.removeProperty("cursor");
+          if (el.getAttribute("style")?.trim() === "") el.removeAttribute("style");
+
+          // Convert innerHTML to text preserving line breaks
+          // contentEditable inserts <br>, <div>, or <p> for line breaks depending on browser
+          const newText = el.innerHTML
+            .replace(/<br\s*\/?>/gi, "\n")
+            .replace(/<\/div><div>/gi, "\n")
+            .replace(/<\/p><p>/gi, "\n")
+            .replace(/<[^>]+>/g, "")
+            .replace(/&nbsp;/g, " ")
+            .replace(/&amp;/g, "&")
+            .replace(/&lt;/g, "<")
+            .replace(/&gt;/g, ">")
+            .trim();
+
           if (newText !== originalText) {
-            // Generate a selector for the ACTUAL edited element (not the panel's scope selector)
             const editSelector = getSelector(el);
-            // Record the text change against the edited element
             const tracker = trackerRef.current;
             if (tracker) {
               const inspected = selectedElementRef.current;
               tracker.track(
                 editSelector, el.tagName.toLowerCase(), originalText, Array.from(el.classList),
-                inspected?.reactComponents ?? [], {}, inspected?.sourceFile ?? null,
+                inspected?.reactComponents ?? [], { "__text": originalText || "" }, inspected?.sourceFile ?? null,
                 inspected?.stylingApproach ?? undefined, null, el.id || null,
                 null, null, null,
                 inspected?.domPath ?? "", null, { x: 0, y: 0, width: 0, height: 0 },
               );
-              const tracked = (tracker as any).tracked?.get(editSelector);
-              if (tracked) tracked.currentStyles["__text"] = originalText;
+              tracker.ensureOriginalValue(editSelector, "__text", originalText || "");
+              tracker.breakCoalescing();
               tracker.recordChange(editSelector, "__text", newText);
               tracker.persist();
             }
-            // Store for undo
+            // Store for undo (use innerHTML for faithful restore)
             textStackRef.current.push({ element: el, originalHTML, newHTML: el.innerHTML });
             textRedoStackRef.current = [];
             syncTrackerStateRef.current();
@@ -822,14 +834,25 @@ function RetuneInner(props: RetuneConfig) {
         };
 
         const onKeyDown = (e: KeyboardEvent) => {
+          e.stopPropagation(); // Prevent Retune hotkeys from firing during edit
           if (e.key === "Escape") {
             e.preventDefault();
-            e.stopPropagation();
             cancel();
-          } else if (e.key === "Enter" && !e.shiftKey) {
+          } else if (e.key === "Enter") {
+            // Insert <br> instead of letting browser create <div> wrappers
             e.preventDefault();
-            e.stopPropagation();
-            save();
+            const selection = window.getSelection();
+            if (selection && selection.rangeCount > 0) {
+              const range = selection.getRangeAt(0);
+              range.deleteContents();
+              const br = document.createElement("br");
+              range.insertNode(br);
+              // Move cursor after the <br>
+              range.setStartAfter(br);
+              range.setEndAfter(br);
+              selection.removeAllRanges();
+              selection.addRange(range);
+            }
           }
         };
 
@@ -903,6 +926,9 @@ function RetuneInner(props: RetuneConfig) {
         syncTrackerStateRef.current();
         refreshSelectedElementRef.current();
         setChangeRevision((r) => r + 1);
+      },
+      onCanvasReorder: (element: Element, fromIndex: number, toIndex: number) => {
+        handleTreeReorder(element, fromIndex, toIndex);
       },
       onCancel: () => {
         deactivateOverlay();

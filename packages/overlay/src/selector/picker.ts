@@ -23,6 +23,8 @@ export interface PickerCallbacks {
   onReposition?: (element: Element, property: "top" | "left" | "right" | "bottom", value: string) => void;
   /** Called during reposition drag for live preview */
   onRepositionPreview?: (element: Element, property: "top" | "left" | "right" | "bottom", value: string) => void;
+  /** Called when a flow element is reordered by drag among its siblings */
+  onCanvasReorder?: (element: Element, fromIndex: number, toIndex: number) => void;
 }
 
 export function createPicker(
@@ -923,6 +925,9 @@ export function createPicker(
     if (selectedElement && isRepositionable(selectedElement)) {
       selection.style.pointerEvents = "auto";
       selection.style.cursor = "move";
+    } else if (selectedElement && detectReorderContext(selectedElement)) {
+      selection.style.pointerEvents = "auto";
+      selection.style.cursor = "grab";
     } else {
       selection.style.pointerEvents = "none";
       selection.style.cursor = "";
@@ -1127,7 +1132,362 @@ export function createPicker(
     refreshPinLines();
   }
 
-  selection.addEventListener("pointerdown", handleRepositionPointerDown);
+  // ── Canvas drag-to-reorder (flow elements in flex/grid containers) ──
+
+  const REORDER_THRESHOLD = 5;
+  const REORDER_HYSTERESIS = 0.08; // 8% of element size dead zone around midpoint
+  let reorderClickTimer: ReturnType<typeof setTimeout> | null = null;
+
+  let reorderDrag: {
+    element: Element;
+    parent: Element;
+    siblings: Element[];
+    siblingRects: DOMRect[];
+    dragIndex: number;
+    dropIndex: number;
+    horizontal: boolean;
+    startX: number;
+    startY: number;
+    startRect: DOMRect;
+    active: boolean;
+    ghost: HTMLDivElement | null;
+    indicator: HTMLDivElement | null;
+  } | null = null;
+
+  /** Detect if element is in a reorderable container (flex, grid, or block with 2+ children) */
+  function detectReorderContext(el: Element): {
+    parent: Element; siblings: Element[]; horizontal: boolean; index: number;
+  } | null {
+    const parent = el.parentElement;
+    if (!parent) return null;
+
+    // Don't reorder absolute/fixed elements — they're out of flow
+    const pos = getComputedStyle(el).position;
+    if (pos === "absolute" || pos === "fixed") return null;
+
+    const display = getComputedStyle(parent).display;
+    const isFlex = display === "flex" || display === "inline-flex";
+    const isGrid = display === "grid" || display === "inline-grid";
+    const isBlock = display === "block" || display === "inline-block" || display === "flow-root";
+
+    if (!isFlex && !isGrid && !isBlock) return null;
+
+    // Get visible siblings (filter out display:none, visibility:hidden, absolute/fixed)
+    const siblings = Array.from(parent.children).filter(c => {
+      const cs = getComputedStyle(c);
+      if (cs.display === "none" || cs.visibility === "hidden") return false;
+      if (cs.position === "absolute" || cs.position === "fixed") return false;
+      return true;
+    });
+    if (siblings.length < 2) return null;
+
+    const index = siblings.indexOf(el);
+    if (index === -1) return null;
+
+    // Detect direction
+    let horizontal: boolean;
+    if (isFlex) {
+      const dir = getComputedStyle(parent).flexDirection;
+      horizontal = dir === "row" || dir === "row-reverse";
+    } else if (isGrid) {
+      const autoFlow = getComputedStyle(parent).gridAutoFlow;
+      if (autoFlow.startsWith("column")) {
+        horizontal = false;
+      } else if (siblings.length >= 2) {
+        const r0 = siblings[0].getBoundingClientRect();
+        const r1 = siblings[1].getBoundingClientRect();
+        horizontal = Math.abs(r1.left - r0.left) > Math.abs(r1.top - r0.top);
+      } else {
+        horizontal = true;
+      }
+    } else {
+      // Block layout is always vertical
+      horizontal = false;
+    }
+
+    return { parent, siblings, horizontal, index };
+  }
+
+  /** Compute drop index with hysteresis for canvas reorder */
+  function computeCanvasDropIndex(
+    cursorX: number, cursorY: number,
+    siblingRects: DOMRect[], horizontal: boolean,
+    currentDropIndex: number
+  ): number {
+    // For each sibling, check if cursor is past its centroid on the drag axis
+    for (let i = 0; i < siblingRects.length; i++) {
+      const rect = siblingRects[i];
+      if (horizontal) {
+        const mid = rect.left + rect.width / 2;
+        const hysteresis = rect.width * REORDER_HYSTERESIS;
+        // Apply hysteresis: require crossing midpoint by a threshold
+        const threshold = i < currentDropIndex ? mid + hysteresis : mid - hysteresis;
+        if (cursorX < threshold) return i;
+      } else {
+        const mid = rect.top + rect.height / 2;
+        const hysteresis = rect.height * REORDER_HYSTERESIS;
+        const threshold = i < currentDropIndex ? mid + hysteresis : mid - hysteresis;
+        if (cursorY < threshold) return i;
+      }
+    }
+    return siblingRects.length;
+  }
+
+  function createReorderGhost(el: Element, x: number, y: number): HTMLDivElement {
+    const rect = el.getBoundingClientRect();
+    const ghost = document.createElement("div");
+    ghost.style.cssText = `
+      position:fixed;pointer-events:none;z-index:2147483647;
+      width:${rect.width}px;height:${rect.height}px;
+      left:${rect.left}px;top:${rect.top}px;
+      opacity:0.7;border:2px solid #0D99FF;border-radius:4px;
+      background:rgba(13,153,255,0.06);transition:none;
+    `;
+    shadowRoot.appendChild(ghost);
+    return ghost;
+  }
+
+  function createReorderIndicator(): HTMLDivElement {
+    const indicator = document.createElement("div");
+    indicator.style.cssText = `
+      position:fixed;pointer-events:none;z-index:2147483646;display:none;
+      background:#0D99FF;border-radius:1px;
+    `;
+    shadowRoot.appendChild(indicator);
+    return indicator;
+  }
+
+  function positionReorderIndicator(
+    indicator: HTMLDivElement, dropIndex: number,
+    siblingRects: DOMRect[], horizontal: boolean, dragIndex: number
+  ) {
+    if (siblingRects.length === 0) return;
+
+    // Adjust for the visual position (dragged element still takes space)
+    const visualDrop = dropIndex > dragIndex ? dropIndex + 1 : dropIndex;
+
+    if (horizontal) {
+      // Vertical line between horizontal siblings
+      let x: number;
+      if (visualDrop <= 0) {
+        x = siblingRects[0].left - 1;
+      } else if (visualDrop >= siblingRects.length) {
+        x = siblingRects[siblingRects.length - 1].right;
+      } else {
+        x = (siblingRects[visualDrop - 1].right + siblingRects[visualDrop].left) / 2;
+      }
+      // Height spans the tallest sibling
+      const top = Math.min(...siblingRects.map(r => r.top));
+      const bottom = Math.max(...siblingRects.map(r => r.bottom));
+      indicator.style.left = `${x - 1}px`;
+      indicator.style.top = `${top}px`;
+      indicator.style.width = "2px";
+      indicator.style.height = `${bottom - top}px`;
+    } else {
+      // Horizontal line between vertical siblings
+      let y: number;
+      if (visualDrop <= 0) {
+        y = siblingRects[0].top - 1;
+      } else if (visualDrop >= siblingRects.length) {
+        y = siblingRects[siblingRects.length - 1].bottom;
+      } else {
+        y = (siblingRects[visualDrop - 1].bottom + siblingRects[visualDrop].top) / 2;
+      }
+      // Width spans the widest sibling
+      const left = Math.min(...siblingRects.map(r => r.left));
+      const right = Math.max(...siblingRects.map(r => r.right));
+      indicator.style.left = `${left}px`;
+      indicator.style.top = `${y - 1}px`;
+      indicator.style.width = `${right - left}px`;
+      indicator.style.height = "2px";
+    }
+    indicator.style.display = "block";
+  }
+
+  function handleReorderPointerMove(e: PointerEvent) {
+    if (!reorderDrag || !selectedElement) return;
+    e.preventDefault();
+
+    const dx = e.clientX - reorderDrag.startX;
+    const dy = e.clientY - reorderDrag.startY;
+
+    if (!reorderDrag.active) {
+      if (Math.abs(dx) + Math.abs(dy) < REORDER_THRESHOLD) return;
+
+      // Activate
+      reorderDrag.active = true;
+      reorderDrag.siblingRects = reorderDrag.siblings.map(s => s.getBoundingClientRect());
+
+      // Hide selection chrome
+      selection.style.display = "none";
+      selectionLabel.style.display = "none";
+      hideHandles();
+
+      // Dim source element
+      (reorderDrag.element as HTMLElement).style.opacity = "0.3";
+
+      // Create ghost + indicator
+      reorderDrag.ghost = createReorderGhost(reorderDrag.element, e.clientX, e.clientY);
+      reorderDrag.indicator = createReorderIndicator();
+      return;
+    }
+
+    // Verify element still connected
+    if (!reorderDrag.element.isConnected) {
+      cleanupReorderDrag(false);
+      return;
+    }
+
+    // Move ghost
+    if (reorderDrag.ghost) {
+      reorderDrag.ghost.style.left = `${reorderDrag.startRect.left + dx}px`;
+      reorderDrag.ghost.style.top = `${reorderDrag.startRect.top + dy}px`;
+    }
+
+    // Compute drop index with hysteresis
+    const newIndex = computeCanvasDropIndex(
+      e.clientX, e.clientY,
+      reorderDrag.siblingRects, reorderDrag.horizontal,
+      reorderDrag.dropIndex
+    );
+    reorderDrag.dropIndex = newIndex;
+
+    // Position indicator
+    if (reorderDrag.indicator && newIndex !== reorderDrag.dragIndex) {
+      positionReorderIndicator(
+        reorderDrag.indicator, newIndex,
+        reorderDrag.siblingRects, reorderDrag.horizontal, reorderDrag.dragIndex
+      );
+    } else if (reorderDrag.indicator) {
+      reorderDrag.indicator.style.display = "none";
+    }
+  }
+
+  function handleReorderPointerUp(e: PointerEvent) {
+    document.removeEventListener("pointermove", handleReorderPointerMove, true);
+    document.removeEventListener("pointerup", handleReorderPointerUp, true);
+
+    if (!reorderDrag) return;
+
+    const { element, dragIndex, dropIndex, active } = reorderDrag;
+    cleanupReorderDrag(true);
+
+    if (active && dropIndex !== dragIndex && callbacks.onCanvasReorder) {
+      callbacks.onCanvasReorder(element, dragIndex, dropIndex);
+    } else if (!active) {
+      // Threshold not met — delay click-through to allow dblclick detection.
+      const clickX = e.clientX;
+      const clickY = e.clientY;
+      const clickElement = element;
+      if (reorderClickTimer) clearTimeout(reorderClickTimer);
+      reorderClickTimer = setTimeout(() => {
+        reorderClickTimer = null;
+        // Find element under cursor and select it
+        selection.style.display = "none";
+        selectionLabel.style.display = "none";
+        hideHandles();
+        const hit = document.elementFromPoint(clickX, clickY);
+        if (hit && hit !== clickElement && !hit.hasAttribute("data-retune-host")) {
+          selectedElement = hit;
+          selectionLabelHidden = false;
+          if (resizeObserver) {
+            resizeObserver.disconnect();
+            resizeObserver.observe(hit);
+          }
+          showSelection();
+          hideHighlight();
+          hoveredElement = null;
+          callbacks.onSelect(hit);
+        } else {
+          selection.style.display = "";
+          selectionLabel.style.display = "";
+          showSelection();
+        }
+      }, 200);
+    }
+  }
+
+  function cleanupReorderDrag(restoreSelection: boolean) {
+    if (!reorderDrag) return;
+
+    // Restore element opacity
+    (reorderDrag.element as HTMLElement).style.opacity = "";
+    if ((reorderDrag.element as HTMLElement).getAttribute("style")?.trim() === "") {
+      (reorderDrag.element as HTMLElement).removeAttribute("style");
+    }
+
+    // Remove ghost + indicator
+    if (reorderDrag.ghost) reorderDrag.ghost.remove();
+    if (reorderDrag.indicator) reorderDrag.indicator.remove();
+
+    reorderDrag = null;
+
+    // Restore selection box
+    if (restoreSelection && selectedElement) {
+      const newRect = selectedElement.getBoundingClientRect();
+      positionBox(selection, selectionLabel, newRect, "solid", "0");
+      positionHandles(newRect);
+      selectionLabel.textContent = formatLabel(selectedElement);
+    }
+  }
+
+  // Fork: reposition for absolute/fixed, reorder for flow elements in flex/grid
+  selection.addEventListener("pointerdown", (e: PointerEvent) => {
+    if (!selectedElement) return;
+
+    // Absolute/fixed → reposition (existing behavior)
+    if (isRepositionable(selectedElement)) {
+      handleRepositionPointerDown(e);
+      return;
+    }
+
+    // Flow element → reorder (don't preventDefault/stopPropagation yet — allows dblclick to work)
+    const context = detectReorderContext(selectedElement);
+    if (!context) return;
+
+    reorderDrag = {
+      element: selectedElement,
+      parent: context.parent,
+      siblings: context.siblings,
+      siblingRects: [],
+      dragIndex: context.index,
+      dropIndex: context.index,
+      horizontal: context.horizontal,
+      startX: e.clientX,
+      startY: e.clientY,
+      startRect: selectedElement.getBoundingClientRect(),
+      active: false,
+      ghost: null,
+      indicator: null,
+    };
+
+    document.addEventListener("pointermove", handleReorderPointerMove, true);
+    document.addEventListener("pointerup", handleReorderPointerUp, true);
+  });
+
+  // Double-click on selection box: cancel pending click-through, trigger inline text editing
+  selection.addEventListener("dblclick", (e: MouseEvent) => {
+    if (!selectedElement) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Cancel pending click-through from first click
+    if (reorderClickTimer) {
+      clearTimeout(reorderClickTimer);
+      reorderClickTimer = null;
+    }
+
+    // Hide overlay elements to find the real page element
+    selection.style.display = "none";
+    selectionLabel.style.display = "none";
+    hideHandles();
+    const hit = document.elementFromPoint(e.clientX, e.clientY);
+    selection.style.display = "";
+    selectionLabel.style.display = "";
+    showSelection();
+
+    callbacks.onDoubleClick?.(hit || selectedElement);
+  });
 
   // ── Spacing measurement lines ──
   // Shows distance between selected and hovered elements
@@ -1352,11 +1712,19 @@ export function createPicker(
     if (!selectedElement) return;
     const rect = selectedElement.getBoundingClientRect();
     positionBox(selection, selectionLabel, rect, "solid", "0");
+    lastSelRect = { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
+
+    // When suspended (e.g. text editing), only update the border position — no handles, badge, or indicators
+    if (suspended) {
+      selectionLabel.style.display = "none";
+      selection.style.pointerEvents = "none";
+      return;
+    }
+
     if (!selectionLabelHidden) {
       selectionLabel.style.display = "";
     }
     selectionLabel.textContent = formatLabel(selectedElement);
-    lastSelRect = { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
     positionHandles(rect);
     updateSelectionCursor();
 
@@ -1401,12 +1769,15 @@ export function createPicker(
     selection.style.left = `${rect.left}px`;
     selection.style.width = `${rect.width}px`;
     selection.style.height = `${rect.height}px`;
+    lastSelRect = { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
+
+    // When suspended (text editing), only update border position
+    if (suspended) return;
 
     const labelY = rect.top > 24 ? rect.top - 24 : rect.bottom + 4;
     selectionLabel.style.top = `${labelY}px`;
     selectionLabel.style.left = `${rect.left}px`;
     selectionLabel.textContent = formatLabel(selectedElement);
-    lastSelRect = { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
     positionHandles(rect);
 
     // Update parent indicator + pin lines
@@ -1533,7 +1904,7 @@ export function createPicker(
   }
 
   function handleMouseMove(e: MouseEvent) {
-    if (!active || suspended || repositionDrag || resizeDrag) return;
+    if (!active || suspended || repositionDrag || resizeDrag || reorderDrag) return;
     // Skip if cursor is over overlay UI (toolbar, panel) inside the shadow root.
     // elementFromPoint on a ShadowRoot falls through to page elements when no
     // shadow element is at the point, so we verify the hit actually belongs to
@@ -1652,9 +2023,24 @@ export function createPicker(
     if (!active || !selectedElement) return;
     e.preventDefault();
     e.stopPropagation();
-    // Find the deepest element at the click point for text editing
-    // (the selected element might be a container)
+
+    // Cancel any pending click-through from reorder single-click
+    if (reorderClickTimer) {
+      clearTimeout(reorderClickTimer);
+      reorderClickTimer = null;
+    }
+
+    // Hide overlay elements so elementFromPoint returns the real page element
+    // (selection box with pointer-events:auto would intercept otherwise)
+    const selDisplay = selection.style.display;
+    selection.style.display = "none";
+    selectionLabel.style.display = "none";
+    hideHandles();
     const deepest = document.elementFromPoint(e.clientX, e.clientY);
+    selection.style.display = selDisplay;
+    selectionLabel.style.display = "";
+    if (selectedElement) showSelection();
+
     callbacks.onDoubleClick?.(deepest || selectedElement);
   }
 
@@ -1747,8 +2133,24 @@ export function createPicker(
     }
   }
 
-  function suspend() { suspended = true; hideHighlight(); hideSelection(); }
-  function resume() { suspended = false; if (selectedElement) showSelection(); }
+  function suspend() {
+    suspended = true;
+    hideHighlight();
+    // Keep selection border visible but hide handles, badge, parent indicator
+    selectionLabel.style.display = "none";
+    selection.style.pointerEvents = "none";
+    selection.style.cursor = "";
+    parentIndicator.style.display = "none";
+    hidePinLines();
+    hideHandles();
+    // Remove cursor override to allow text cursor during editing
+    cursorStyle.textContent = "";
+  }
+  function resume() {
+    suspended = false;
+    cursorStyle.textContent = "* { cursor: default !important; }";
+    if (selectedElement) showSelection();
+  }
 
   /** Update pin lines externally (called by PropertyPanel when pins change) */
   function updatePinLines(authored: { top: boolean; right: boolean; bottom: boolean; left: boolean }) {
