@@ -26,7 +26,7 @@ import { inspectElement, matchesHotkey } from "../ui/helpers";
 import { getSelector, getSelectorCandidates, scoreNamePattern, isHashedClass, type SelectorCandidate } from "../selector/identifier";
 import { getPseudoStateStyles, getStyleSources, getScopedStyles, type ForcedState, type StyleSource } from "../inspector/styles";
 import { PropertyPanel } from "./PropertyPanel";
-import { ElementTree } from "./ElementTree";
+import { ElementTree, type ReparentEntry } from "./ElementTree";
 import { SettingsPanel } from "./SettingsPanel";
 import { IconCursorClick } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconCursorClick";
 import { IconSquareBehindSquare1 } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconSquareBehindSquare1";
@@ -330,6 +330,18 @@ function RetuneInner(props: RetuneConfig) {
   const dragRef = useRef<{ startX: number; startY: number; originX: number; dragging: boolean; lastX: number; lastT: number; velocity: number } | null>(null);
   const [toolbarDragging, setToolbarDragging] = useState(false);
   const [sessionHidden, setSessionHidden] = useState(false);
+  const [reparentEntries, setReparentEntries] = useState<ReparentEntry[]>([]);
+
+  // Reparent DOM state for undo/reset and MutationObserver safety
+  type ReparentDOMEntry = {
+    element: Element;
+    oldParent: Element;
+    oldNextSibling: Element | null; // for restoring exact position on undo
+    newParent: Element;
+    observer: MutationObserver;
+  };
+  const reparentDOMRef = useRef<ReparentDOMEntry[]>([]);
+
   const tabPillFirstRender = useRef(true);
 
   // Selector candidates for the selected element (class-based selectors with match counts)
@@ -485,6 +497,7 @@ function RetuneInner(props: RetuneConfig) {
     // Restore persisted changes from previous session
     if (tracker.restore()) {
       preview.attach();
+      const pendingReparentEntries: ReparentEntry[] = [];
       for (const change of tracker.getPendingChanges()) {
         for (const c of change.changes) {
           if (c.property === "__delete") {
@@ -566,10 +579,72 @@ function RetuneInner(props: RetuneConfig) {
                 }
               }
             } catch {}
+          } else if (c.property === "__reparent") {
+            // Re-apply reparent: move element to new parent
+            try {
+              const el = document.querySelector(change.selector);
+              if (!el) continue;
+              const toAtIdx = c.to.lastIndexOf("@");
+              if (toAtIdx === -1) continue;
+              const newParentSelector = c.to.slice(0, toAtIdx);
+              const insertIndex = parseInt(c.to.slice(toAtIdx + 1), 10);
+              const newParent = document.querySelector(newParentSelector);
+              if (!newParent || el.parentElement === newParent) continue;
+
+              const oldParent = el.parentElement;
+              if (!oldParent) continue;
+              const oldNextSibling = el.nextElementSibling;
+
+              // Perform DOM move
+              const newChildren = Array.from(newParent.children);
+              const refChild = insertIndex < newChildren.length ? newChildren[insertIndex] : null;
+              if (refChild) {
+                newParent.insertBefore(el, refChild);
+              } else {
+                newParent.appendChild(el);
+              }
+
+              // Set up MutationObserver safety net (same as handleTreeReparent)
+              const movedEl = el;
+              const observer = new MutationObserver((mutations) => {
+                for (const m of mutations) {
+                  if (m.type !== "childList") continue;
+                  if (m.target === oldParent) {
+                    for (const added of m.addedNodes) {
+                      if (!(added instanceof Element)) continue;
+                      if (added !== movedEl && added.tagName === movedEl.tagName &&
+                          added.className === movedEl.className && added.textContent === movedEl.textContent) {
+                        try { oldParent.removeChild(added); } catch {}
+                      }
+                    }
+                  }
+                  if (m.target === newParent) {
+                    for (const removed of m.removedNodes) {
+                      if (removed === movedEl && !movedEl.parentElement) {
+                        try {
+                          const cur = Array.from(newParent.children);
+                          const ref = insertIndex < cur.length ? cur[insertIndex] : null;
+                          if (ref) { newParent.insertBefore(movedEl, ref); } else { newParent.appendChild(movedEl); }
+                        } catch {}
+                      }
+                    }
+                  }
+                }
+              });
+              observer.observe(oldParent, { childList: true });
+              observer.observe(newParent, { childList: true });
+
+              reparentDOMRef.current.push({ element: el, oldParent, oldNextSibling, newParent, observer });
+              // Defer reparent entry state update to after this loop
+              pendingReparentEntries.push({ element: el, newParent, insertIndex });
+            } catch {}
           } else {
             preview.applyChange(change.selector, c.property, c.to);
           }
         }
+      }
+      if (pendingReparentEntries.length > 0) {
+        setReparentEntries(pendingReparentEntries);
       }
       setChangeCount(tracker.getPendingChanges().length);
       setCanUndo(tracker.canUndo);
@@ -1931,6 +2006,108 @@ function RetuneInner(props: RetuneConfig) {
     setChangeRevision((r) => r + 1);
   }, []);
 
+  // Tree drag-to-reparent: actual DOM move with MutationObserver safety net
+  const handleTreeReparent = useCallback((element: Element, newParent: Element, insertIndex: number) => {
+    const tracker = trackerRef.current;
+    if (!tracker) return;
+
+    const el = element as HTMLElement;
+    const oldParent = el.parentElement;
+    if (!oldParent || oldParent === newParent) return;
+
+    const elementSelector = getSelector(el);
+    const oldParentSelector = getSelector(oldParent);
+    const newParentSelector = getSelector(newParent);
+
+    // Store original DOM state for undo/reset
+    const oldNextSibling = el.nextElementSibling;
+    const oldSiblings = Array.from(oldParent.children);
+    const oldIndex = oldSiblings.indexOf(el);
+
+    // Track in change tracker
+    const fromValue = `${oldParentSelector}@${oldIndex}`;
+    const toValue = `${newParentSelector}@${insertIndex}`;
+
+    const inspected = selectedElementRef.current;
+    tracker.track(
+      elementSelector, el.tagName.toLowerCase(), el.textContent?.slice(0, 40) || null,
+      Array.from(el.classList),
+      inspected?.reactComponents ?? [], { "__reparent": fromValue }, inspected?.sourceFile ?? null,
+      inspected?.stylingApproach ?? undefined, null, el.id || null,
+      null, null, null,
+      inspected?.domPath ?? "", null, { x: 0, y: 0, width: 0, height: 0 },
+    );
+    tracker.ensureOriginalValue(elementSelector, "__reparent", fromValue);
+    tracker.breakCoalescing();
+    tracker.recordChange(elementSelector, "__reparent", toValue);
+    tracker.persist();
+
+    // ── Perform actual DOM move ──
+    const newChildren = Array.from(newParent.children);
+    const refChild = insertIndex < newChildren.length ? newChildren[insertIndex] : null;
+    if (refChild) {
+      newParent.insertBefore(el, refChild);
+    } else {
+      newParent.appendChild(el);
+    }
+
+    // ── MutationObserver safety net ──
+    // Watch old parent: if React recreates the element (duplicate), remove the duplicate
+    // Watch new parent: if React removes our moved element, re-insert it
+    const movedEl = el;
+    const observer = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        if (m.type !== "childList") continue;
+
+        // Check old parent for duplicates — React recreated the "missing" child
+        if (m.target === oldParent) {
+          for (const added of m.addedNodes) {
+            if (!(added instanceof Element)) continue;
+            // Detect duplicate: same tag, same classes, same text content
+            if (added !== movedEl &&
+                added.tagName === movedEl.tagName &&
+                added.className === movedEl.className &&
+                added.textContent === movedEl.textContent) {
+              // This is a React-created duplicate — remove it
+              try { oldParent.removeChild(added); } catch {}
+            }
+          }
+        }
+
+        // Check new parent: if React removed our moved element, re-insert it
+        if (m.target === newParent) {
+          for (const removed of m.removedNodes) {
+            if (removed === movedEl && !movedEl.parentElement) {
+              // React removed our element — put it back
+              try {
+                const currentChildren = Array.from(newParent.children);
+                const ref = insertIndex < currentChildren.length ? currentChildren[insertIndex] : null;
+                if (ref) {
+                  newParent.insertBefore(movedEl, ref);
+                } else {
+                  newParent.appendChild(movedEl);
+                }
+              } catch {}
+            }
+          }
+        }
+      }
+    });
+    observer.observe(oldParent, { childList: true });
+    observer.observe(newParent, { childList: true });
+
+    // Store for undo/reset
+    reparentDOMRef.current.push({ element: el, oldParent, oldNextSibling, newParent, observer });
+
+    // Update tree visual preview
+    setReparentEntries(prev => [...prev.filter(r => r.element !== element), { element, newParent, insertIndex }]);
+
+    syncTrackerStateRef.current();
+    refreshSelectedElementRef.current();
+    pickerRef.current?.refreshSelection();
+    setChangeRevision((r) => r + 1);
+  }, []);
+
   // Hotkey listener
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -2098,6 +2275,19 @@ function RetuneInner(props: RetuneConfig) {
     reorderModeRef.current = new WeakMap();
     reorderObserverRef.current?.disconnect();
     reorderOriginRef.current = new WeakMap();
+    // Restore reparented elements to their original parents
+    for (const entry of reparentDOMRef.current) {
+      entry.observer.disconnect();
+      try {
+        if (entry.oldNextSibling && entry.oldNextSibling.parentElement === entry.oldParent) {
+          entry.oldParent.insertBefore(entry.element, entry.oldNextSibling);
+        } else {
+          entry.oldParent.appendChild(entry.element);
+        }
+      } catch {}
+    }
+    reparentDOMRef.current = [];
+    setReparentEntries([]);
     // Clean up forced pseudo-state inline styles before clearing
     if (forcedStateRef.current) clearForcedInlineStyles();
     preview.clearAll();
@@ -2548,7 +2738,9 @@ function RetuneInner(props: RetuneConfig) {
                 onSelect={handleTreeSelect}
                 onHover={handleTreeHover}
                 visualOrderMap={visualOrderMap}
+                reparentEntries={reparentEntries}
                 onTreeReorder={handleTreeReorder}
+                onTreeReparent={handleTreeReparent}
               />
             )}
             {panelTab === "design" && selectedElement && (

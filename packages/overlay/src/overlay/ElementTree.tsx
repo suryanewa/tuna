@@ -8,6 +8,12 @@
 import { useState, useCallback, useRef, useEffect, memo } from "react";
 import { getDirectReactComponent } from "../selector/identifier";
 
+export interface ReparentEntry {
+  element: Element;
+  newParent: Element;
+  insertIndex: number;
+}
+
 export interface ElementTreeProps {
   /** Currently selected DOM element (if any) */
   selectedElement: Element | null;
@@ -17,6 +23,8 @@ export interface ElementTreeProps {
   onHover: (element: Element | null) => void;
   /** Visual order overrides for reordered containers (parent → ordered children) */
   visualOrderMap?: Map<Element, Element[]>;
+  /** Pending reparent operations for tree visual preview */
+  reparentEntries?: ReparentEntry[];
   /** Called when user drag-reorders within siblings */
   onTreeReorder?: (element: Element, fromIndex: number, toIndex: number) => void;
   /** Called when user drags into a different parent (Phase 2) */
@@ -26,11 +34,13 @@ export interface ElementTreeProps {
 /** Stable key generation for tree nodes — avoids index-based keys that break during reorder */
 let _nextStableId = 0;
 const _stableKeys = new WeakMap<Element, number>();
+const _stableKeyReverse = new Map<number, Element>();
 function getStableKey(el: Element): number {
   let id = _stableKeys.get(el);
   if (id === undefined) {
     id = _nextStableId++;
     _stableKeys.set(el, id);
+    _stableKeyReverse.set(id, el);
   }
   return id;
 }
@@ -52,15 +62,33 @@ function isRetuneElement(el: Element): boolean {
 }
 
 /** Get visible children of an element, filtering out Retune overlay and skip tags.
- *  Uses visual order override if available (for reordered containers). */
-export function getVisibleChildren(el: Element, visualOrderMap?: Map<Element, Element[]>): Element[] {
+ *  Uses visual order override if available (for reordered containers).
+ *  Applies reparent entries: removes reparented-away children, inserts reparented-in children. */
+export function getVisibleChildren(el: Element, visualOrderMap?: Map<Element, Element[]>, reparentEntries?: ReparentEntry[]): Element[] {
   const source = visualOrderMap?.get(el) ?? Array.from(el.children);
   const children: Element[] = [];
+  // Set of elements reparented away from this parent
+  const reparentedAway = reparentEntries
+    ? new Set(reparentEntries.filter(r => r.element.parentElement === el && r.newParent !== el).map(r => r.element))
+    : null;
+
   for (const child of source) {
     if (SKIP_TAGS.has(child.tagName)) continue;
     if (isRetuneElement(child)) continue;
+    if (reparentedAway?.has(child)) continue;
     children.push(child);
   }
+
+  // Insert elements reparented INTO this element
+  if (reparentEntries) {
+    for (const entry of reparentEntries) {
+      if (entry.newParent === el && entry.element.parentElement !== el) {
+        const idx = Math.min(entry.insertIndex, children.length);
+        children.splice(idx, 0, entry.element);
+      }
+    }
+  }
+
   return children;
 }
 
@@ -123,6 +151,7 @@ interface TreeNodeProps {
   selectedElement: Element | null;
   expandedSet: Set<Element>;
   visualOrderMap?: Map<Element, Element[]>;
+  reparentEntries?: ReparentEntry[];
   onToggle: (el: Element) => void;
   onSelect: (el: Element) => void;
   onHover: (el: Element | null) => void;
@@ -137,6 +166,7 @@ const TreeNode = memo(function TreeNode({
   selectedElement,
   expandedSet,
   visualOrderMap,
+  reparentEntries,
   onToggle,
   onSelect,
   onHover,
@@ -144,7 +174,8 @@ const TreeNode = memo(function TreeNode({
   isDragging,
   treeNodeRefs,
 }: TreeNodeProps) {
-  const children = getVisibleChildren(element, visualOrderMap);
+  const children = getVisibleChildren(element, visualOrderMap, reparentEntries);
+  const isReparented = reparentEntries?.some(r => r.element === element && r.newParent !== element.parentElement);
   const hasChildren = children.length > 0;
   const isExpanded = expandedSet.has(element);
   const isSelected = element === selectedElement;
@@ -180,6 +211,7 @@ const TreeNode = memo(function TreeNode({
         </span>
         <span className="retune-tree-tag">{tag}</span>
         {qualifier && <span className="retune-tree-qualifier">{qualifier}</span>}
+        {isReparented && <span className="retune-tree-moved">moved</span>}
         {component && <span className="retune-tree-component">&lt;{component}&gt;</span>}
       </div>
       {isExpanded && children.map((child) => (
@@ -190,6 +222,7 @@ const TreeNode = memo(function TreeNode({
           selectedElement={selectedElement}
           expandedSet={expandedSet}
           visualOrderMap={visualOrderMap}
+          reparentEntries={reparentEntries}
           onToggle={onToggle}
           onSelect={onSelect}
           onHover={onHover}
@@ -204,7 +237,7 @@ const TreeNode = memo(function TreeNode({
 
 // ── Element Tree ──
 
-export function ElementTree({ selectedElement, onSelect, onHover, visualOrderMap, onTreeReorder, onTreeReparent }: ElementTreeProps) {
+export function ElementTree({ selectedElement, onSelect, onHover, visualOrderMap, reparentEntries, onTreeReorder, onTreeReparent }: ElementTreeProps) {
   const [expandedSet, setExpandedSet] = useState<Set<Element>>(() => new Set());
   const [isDragging, setIsDragging] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -228,6 +261,13 @@ export function ElementTree({ selectedElement, onSelect, onHover, visualOrderMap
     ghost: HTMLDivElement | null;
     indicator: HTMLDivElement | null;
     scrollRaf: number | null;
+    // Reparent state
+    mode: "reorder" | "reparent" | null;
+    reparentTarget: Element | null;
+    reparentIndex: number;
+    expandTimer: ReturnType<typeof setTimeout> | null;
+    lastHoverKey: number | null;
+    highlightedNode: HTMLDivElement | null;
   } | null>(null);
 
   // Auto-expand ancestors when selection changes
@@ -337,30 +377,44 @@ export function ElementTree({ selectedElement, onSelect, onHover, visualOrderMap
     const drag = dragRef.current;
     if (!drag) return;
 
-    // Remove ghost
     if (drag.ghost) drag.ghost.remove();
+    if (drag.indicator) { drag.indicator.style.display = "none"; drag.indicator.remove(); }
+    if (drag.highlightedNode) drag.highlightedNode.classList.remove("reparent-target");
+    if (drag.expandTimer) clearTimeout(drag.expandTimer);
 
-    // Hide indicator
-    if (drag.indicator) {
-      drag.indicator.style.display = "none";
-      drag.indicator.remove();
-    }
-
-    // Remove dragging class from source node
     const sourceNode = treeNodeRefs.get(drag.element);
     if (sourceNode) sourceNode.classList.remove("dragging");
 
-    // Cancel auto-scroll
     if (drag.scrollRaf) cancelAnimationFrame(drag.scrollRaf);
-
-    // Restore expand state if drag was cancelled
-    if (drag.wasExpanded && drag.active) {
-      // Only restore if the drop didn't happen (dropIndex === dragIndex means no-op/cancel)
-    }
 
     dragRef.current = null;
     setIsDragging(false);
   }, [treeNodeRefs]);
+
+  /** Find the DOM element corresponding to a tree node div under the cursor */
+  const findTargetElement = useCallback((e: PointerEvent): { element: Element; treeNode: HTMLDivElement } | null => {
+    const root = scrollRef.current?.getRootNode();
+    if (!(root instanceof ShadowRoot)) return null;
+    const hit = root.elementFromPoint(e.clientX, e.clientY);
+    const treeNode = hit?.closest?.("[data-retune-tree-key]") as HTMLDivElement | null;
+    if (!treeNode) return null;
+    const key = parseInt(treeNode.getAttribute("data-retune-tree-key") || "", 10);
+    if (isNaN(key)) return null;
+    const element = _stableKeyReverse.get(key);
+    if (!element) return null;
+    return { element, treeNode };
+  }, []);
+
+  /** Compute depth of an element in the DOM tree (body = 0) */
+  const getElementDepth = useCallback((el: Element): number => {
+    let depth = 0;
+    let current: Element | null = el.parentElement;
+    while (current && current !== document.body) {
+      depth++;
+      current = current.parentElement;
+    }
+    return depth;
+  }, []);
 
   const handlePointerMove = useCallback((e: PointerEvent) => {
     const drag = dragRef.current;
@@ -387,25 +441,20 @@ export function ElementTree({ selectedElement, onSelect, onHover, visualOrderMap
           next.delete(drag.element);
           return next;
         });
-        // Need to wait for React to re-render before snapshotting rects
-        requestAnimationFrame(() => {
-          snapshotSiblingRects();
-        });
+        requestAnimationFrame(() => { snapshotSiblingRects(); });
       } else {
         snapshotSiblingRects();
       }
 
-      // Dim the source node
       const sourceNode = treeNodeRefs.get(drag.element);
       if (sourceNode) sourceNode.classList.add("dragging");
 
-      // Create ghost + indicator
       drag.ghost = createGhost(drag.element, e.clientX, e.clientY);
       drag.indicator = createIndicator();
       return;
     }
 
-    // Verify element still connected (React reconciliation safety)
+    // React reconciliation safety
     if (!drag.element.isConnected) {
       cleanupDrag();
       document.removeEventListener("pointermove", handlePointerMove, true);
@@ -419,14 +468,109 @@ export function ElementTree({ selectedElement, onSelect, onHover, visualOrderMap
       drag.ghost.style.top = `${e.clientY - 12}px`;
     }
 
-    // Compute drop index
-    const newDropIndex = computeDropIndex(e.clientY, drag.siblingRects);
-    drag.dropIndex = newDropIndex;
+    // Clear previous reparent highlight
+    if (drag.highlightedNode) {
+      drag.highlightedNode.classList.remove("reparent-target");
+      drag.highlightedNode = null;
+    }
 
-    // Position indicator
-    if (drag.indicator) {
-      const visualDrop = newDropIndex > drag.dragIndex ? newDropIndex + 1 : newDropIndex;
-      positionIndicator(drag.indicator, visualDrop, drag.siblingDepth);
+    // Find which tree node the cursor is over
+    const target = findTargetElement(e);
+
+    if (!target || target.element === drag.element || isAncestor(drag.element, target.element)) {
+      // Over self, descendant, or nothing — hide indicators
+      if (drag.indicator) drag.indicator.style.display = "none";
+      drag.mode = null;
+      drag.reparentTarget = null;
+      // Clear expand timer
+      if (drag.expandTimer) { clearTimeout(drag.expandTimer); drag.expandTimer = null; }
+      drag.lastHoverKey = null;
+    } else {
+      const targetParent = target.element.parentElement;
+      const isSibling = targetParent === drag.parentElement;
+
+      if (isSibling) {
+        // ── REORDER among siblings ──
+        drag.mode = "reorder";
+        drag.reparentTarget = null;
+        if (drag.expandTimer) { clearTimeout(drag.expandTimer); drag.expandTimer = null; }
+        drag.lastHoverKey = null;
+
+        const newDropIndex = computeDropIndex(e.clientY, drag.siblingRects);
+        drag.dropIndex = newDropIndex;
+
+        if (drag.indicator) {
+          const visualDrop = newDropIndex > drag.dragIndex ? newDropIndex + 1 : newDropIndex;
+          positionIndicator(drag.indicator, visualDrop, drag.siblingDepth);
+        }
+      } else {
+        // ── REPARENT into different parent ──
+        const rect = target.treeNode.getBoundingClientRect();
+        const relY = (e.clientY - rect.top) / rect.height;
+        const targetDepth = getElementDepth(target.element);
+
+        if (relY < 0.25 && targetParent) {
+          // Before target — insert in target's parent before target
+          drag.mode = "reparent";
+          drag.reparentTarget = targetParent;
+          const targetSiblings = getVisibleChildren(targetParent, visualOrderMap);
+          drag.reparentIndex = targetSiblings.indexOf(target.element);
+          if (drag.reparentIndex === -1) drag.reparentIndex = 0;
+
+          if (drag.indicator) {
+            const innerRect = innerRef.current?.getBoundingClientRect();
+            if (innerRect) {
+              const indent = 12 + targetDepth * 16;
+              drag.indicator.style.display = "block";
+              drag.indicator.style.top = `${rect.top - innerRect.top - 1}px`;
+              drag.indicator.style.left = `${indent}px`;
+            }
+          }
+        } else if (relY > 0.75 && targetParent) {
+          // After target — insert in target's parent after target
+          drag.mode = "reparent";
+          drag.reparentTarget = targetParent;
+          const targetSiblings = getVisibleChildren(targetParent, visualOrderMap);
+          drag.reparentIndex = targetSiblings.indexOf(target.element) + 1;
+
+          if (drag.indicator) {
+            const innerRect = innerRef.current?.getBoundingClientRect();
+            if (innerRect) {
+              const indent = 12 + targetDepth * 16;
+              drag.indicator.style.display = "block";
+              drag.indicator.style.top = `${rect.bottom - innerRect.top - 1}px`;
+              drag.indicator.style.left = `${indent}px`;
+            }
+          }
+        } else {
+          // Middle — reparent INTO target as last child
+          drag.mode = "reparent";
+          drag.reparentTarget = target.element;
+          drag.reparentIndex = getVisibleChildren(target.element, visualOrderMap).length;
+
+          // Hide indicator line, show highlight on target node
+          if (drag.indicator) drag.indicator.style.display = "none";
+          target.treeNode.classList.add("reparent-target");
+          drag.highlightedNode = target.treeNode;
+        }
+
+        // Expand-on-hover: auto-expand collapsed nodes after 500ms
+        const targetKey = getStableKey(target.element);
+        if (targetKey !== drag.lastHoverKey) {
+          if (drag.expandTimer) clearTimeout(drag.expandTimer);
+          drag.lastHoverKey = targetKey;
+          const hasChildren = getVisibleChildren(target.element, visualOrderMap).length > 0;
+          if (hasChildren && !expandedSet.has(target.element)) {
+            drag.expandTimer = setTimeout(() => {
+              setExpandedSet(prev => {
+                const next = new Set(prev);
+                next.add(target.element);
+                return next;
+              });
+            }, 500);
+          }
+        }
+      }
     }
 
     // Auto-scroll
@@ -437,16 +581,14 @@ export function ElementTree({ selectedElement, onSelect, onHover, visualOrderMap
       const distFromBottom = scrollRect.bottom - e.clientY;
 
       if (distFromTop < AUTO_SCROLL_ZONE && scrollEl.scrollTop > 0) {
-        const speed = AUTO_SCROLL_SPEED * (1 - distFromTop / AUTO_SCROLL_ZONE);
-        scrollEl.scrollTop -= speed;
+        scrollEl.scrollTop -= AUTO_SCROLL_SPEED * (1 - distFromTop / AUTO_SCROLL_ZONE);
         snapshotSiblingRects();
       } else if (distFromBottom < AUTO_SCROLL_ZONE) {
-        const speed = AUTO_SCROLL_SPEED * (1 - distFromBottom / AUTO_SCROLL_ZONE);
-        scrollEl.scrollTop += speed;
+        scrollEl.scrollTop += AUTO_SCROLL_SPEED * (1 - distFromBottom / AUTO_SCROLL_ZONE);
         snapshotSiblingRects();
       }
     }
-  }, [expandedSet, treeNodeRefs, snapshotSiblingRects, createGhost, createIndicator, positionIndicator, cleanupDrag]);
+  }, [expandedSet, treeNodeRefs, snapshotSiblingRects, createGhost, createIndicator, positionIndicator, cleanupDrag, findTargetElement, getElementDepth, visualOrderMap]);
 
   const handlePointerUp = useCallback((e: PointerEvent) => {
     document.removeEventListener("pointermove", handlePointerMove, true);
@@ -462,36 +604,33 @@ export function ElementTree({ selectedElement, onSelect, onHover, visualOrderMap
       return;
     }
 
-    const { element, dragIndex, dropIndex } = drag;
+    const { element, dragIndex, dropIndex, mode, reparentTarget, reparentIndex, wasExpanded } = drag;
     cleanupDrag();
 
-    // Execute reorder if position changed
-    if (dropIndex !== dragIndex && onTreeReorder) {
+    if (mode === "reparent" && reparentTarget && onTreeReparent) {
+      // Reparent: move element to a different parent
+      onTreeReparent(element, reparentTarget, reparentIndex);
+    } else if (mode === "reorder" && dropIndex !== dragIndex && onTreeReorder) {
+      // Reorder within siblings
       onTreeReorder(element, dragIndex, dropIndex);
-    } else if (drag.wasExpanded) {
-      // Restore expand state on no-op / cancel
+    } else if (wasExpanded) {
+      // No-op / cancel — restore expand state
       setExpandedSet(prev => {
         const next = new Set(prev);
         next.add(element);
         return next;
       });
     }
-  }, [onSelect, onTreeReorder, cleanupDrag, handlePointerMove]);
+  }, [onSelect, onTreeReorder, onTreeReparent, cleanupDrag, handlePointerMove]);
 
   const handleDragStart = useCallback((e: PointerEvent, element: Element) => {
-    // Don't drag if no reorder handler
-    if (!onTreeReorder) return;
-
-    // Don't drag absolute/fixed elements — CSS order won't visually move them
-    const pos = getComputedStyle(element).position;
-    if (pos === "absolute" || pos === "fixed") return;
+    // Don't drag if no handlers at all
+    if (!onTreeReorder && !onTreeReparent) return;
 
     const parent = element.parentElement;
     if (!parent) return;
 
     const siblings = getVisibleChildren(parent, visualOrderMap);
-    if (siblings.length < 2) return;
-
     const dragIndex = siblings.indexOf(element);
     if (dragIndex === -1) return;
 
@@ -521,14 +660,20 @@ export function ElementTree({ selectedElement, onSelect, onHover, visualOrderMap
       ghost: null,
       indicator: null,
       scrollRaf: null,
+      mode: null,
+      reparentTarget: null,
+      reparentIndex: 0,
+      expandTimer: null,
+      lastHoverKey: null,
+      highlightedNode: null,
     };
 
     document.addEventListener("pointermove", handlePointerMove, true);
     document.addEventListener("pointerup", handlePointerUp, true);
-  }, [onTreeReorder, visualOrderMap, handlePointerMove, handlePointerUp]);
+  }, [onTreeReorder, onTreeReparent, visualOrderMap, handlePointerMove, handlePointerUp]);
 
   const bodyChildren = typeof document !== "undefined"
-    ? getVisibleChildren(document.body)
+    ? getVisibleChildren(document.body, undefined, reparentEntries)
     : [];
 
   return (
@@ -542,6 +687,7 @@ export function ElementTree({ selectedElement, onSelect, onHover, visualOrderMap
             selectedElement={selectedElement}
             expandedSet={expandedSet}
             visualOrderMap={visualOrderMap}
+            reparentEntries={reparentEntries}
             onToggle={handleToggle}
             onSelect={onSelect}
             onHover={onHover}

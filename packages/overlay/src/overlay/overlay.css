@@ -728,6 +728,16 @@
   flex-shrink: 0;
 }
 
+.retune-tree-moved {
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--retune-blue-500);
+  background: var(--retune-blue-bg);
+  padding: 1px 4px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
 /* ── Tree drag states ── */
 
 .retune-tree-node.dragging {

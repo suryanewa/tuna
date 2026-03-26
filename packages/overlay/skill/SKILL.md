@@ -174,6 +174,18 @@ Moved from position 5 to position 1 within its parent container.
 
 Move the element's JSX block to the new position among its siblings. If the children are rendered from a `.map()` call over an array, reorder the array items instead. If they're static JSX, move the entire JSX block (opening tag through closing tag, including all props and children).
 
+### Reparent Element
+
+```
+### Action: Reparent Element
+
+Move this element from its current parent to a new parent container.
+**From:** `.old-parent`
+**To:** `.new-parent` (as child at position 2)
+```
+
+Move the element's JSX block from its current parent to the new parent container at the specified position. Use the **From** selector to locate the current parent and the **To** selector to locate the target parent. The position index (0-based) indicates where among the new parent's children the element should be inserted. If the children are rendered from a `.map()` call, update the data source accordingly. If they're static JSX, physically move the JSX block.
+
 ### Resize (Width/Height Changes)
 
 Width and height changes from drag-to-resize appear as regular property changes in the changes table. Apply them using the project's styling approach — don't add inline styles if the project uses CSS classes or stylesheets.
@@ -195,6 +207,6 @@ If you don't clear, the overlay will still show the old changes and the user may
    a. Check if an exact token/class/variable match exists
    b. Apply using the project's styling approach
    c. Watch for competing rules and scope
-4. For structural actions (delete, text edit, reorder): apply the DOM change to the JSX source
+4. For structural actions (delete, text edit, reorder, reparent): apply the DOM change to the JSX source
 5. Verify the change makes sense in context (don't blindly apply if something looks wrong)
 6. **Call `retune_clear_changes`** to clear the applied changes from the overlay

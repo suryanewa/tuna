@@ -233,6 +233,25 @@ function formatSingleChange(change: ElementChange, fidelity: Fidelity, tokenMap:
     return lines.join("\n");
   }
 
+  // Check for reparent
+  const reparentChange = change.changes.find(c => c.property === "__reparent");
+  if (reparentChange) {
+    // Parse "selector@index" format — use lastIndexOf to handle selectors with special chars
+    const fromAtIdx = reparentChange.from.lastIndexOf("@");
+    const fromSelector = fromAtIdx !== -1 ? reparentChange.from.slice(0, fromAtIdx) : reparentChange.from;
+    const toAtIdx = reparentChange.to.lastIndexOf("@");
+    const toSelector = toAtIdx !== -1 ? reparentChange.to.slice(0, toAtIdx) : reparentChange.to;
+    const toIndex = toAtIdx !== -1 ? reparentChange.to.slice(toAtIdx + 1) : "0";
+    lines.push("");
+    lines.push("### Action: Reparent Element");
+    lines.push("");
+    lines.push("Move this element from its current parent to a new parent container.");
+    lines.push(`**From:** \`${fromSelector}\``);
+    lines.push(`**To:** \`${toSelector}\` (as child at position ${toIndex})`);
+    lines.push("");
+    return lines.join("\n");
+  }
+
   // Check for reorder
   const reorderChange = change.changes.find(c => c.property === "__reorder");
   if (reorderChange) {
