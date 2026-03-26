@@ -1847,6 +1847,90 @@ function RetuneInner(props: RetuneConfig) {
     setChangeRevision((r) => r + 1);
   }, []);
 
+  // Tree drag-to-reorder: arbitrary from/to index jumps
+  const handleTreeReorder = useCallback((element: Element, fromIndex: number, toIndex: number) => {
+    const parent = element.parentElement;
+    if (!parent) return;
+    const children = Array.from(parent.children) as HTMLElement[];
+    const el = element as HTMLElement;
+
+    // Determine reorder mode
+    const parentDisplay = getComputedStyle(parent).display;
+    const isFlex = parentDisplay === "flex" || parentDisplay === "inline-flex";
+    const isGrid = parentDisplay === "grid" || parentDisplay === "inline-grid";
+    const mode = (isFlex || isGrid) ? "order" as const : "translate" as const;
+
+    if (!reorderModeRef.current.has(parent)) {
+      reorderModeRef.current.set(parent, mode);
+    }
+
+    if (mode === "order") {
+      ensureExplicitOrder(parent);
+    } else {
+      ensureOriginalRects(parent);
+    }
+
+    // Track via __reorder pseudo-property
+    const domIndex = children.indexOf(el);
+    const tracker = trackerRef.current;
+    if (tracker) {
+      const origin = reorderOriginRef.current.get(el);
+      const proxySelector = origin?.selector ?? getSelector(el);
+      const originalIndex = origin?.originalIndex ?? domIndex;
+      if (!origin) {
+        reorderOriginRef.current.set(el, { selector: proxySelector, originalIndex: domIndex });
+      }
+
+      const inspected = selectedElementRef.current;
+      tracker.track(
+        proxySelector, el.tagName.toLowerCase(), el.textContent?.slice(0, 40) || null,
+        Array.from(el.classList),
+        inspected?.reactComponents ?? [], { "__reorder": String(originalIndex) }, inspected?.sourceFile ?? null,
+        inspected?.stylingApproach ?? undefined, null, el.id || null,
+        null, null, null,
+        inspected?.domPath ?? "", null, { x: 0, y: 0, width: 0, height: 0 },
+      );
+      tracker.ensureOriginalValue(proxySelector, "__reorder", String(originalIndex));
+      tracker.breakCoalescing();
+      tracker.recordChange(proxySelector, "__reorder", String(toIndex));
+      tracker.persist();
+    }
+
+    // Save ALL children's state for undo (multi-position jump affects intermediate elements)
+    const undoEntry: ReorderUndoEntry = children.map(c => ({
+      element: c,
+      prevOrder: c.style.order,
+      prevTranslate: c.style.translate,
+    }));
+    reorderStackRef.current.push(undoEntry);
+    reorderRedoStackRef.current = [];
+
+    if (mode === "order") {
+      // Splice visual order array and reassign all order values
+      const visualOrder = getVisualOrder(parent);
+      const [moved] = visualOrder.splice(fromIndex, 1);
+      visualOrder.splice(toIndex > fromIndex ? toIndex - 1 : toIndex, 0, moved);
+      for (let i = 0; i < visualOrder.length; i++) {
+        visualOrder[i].style.order = String(i);
+      }
+    } else {
+      // Splice in desired order array and recompute translates
+      const desired = reorderVisualOrderRef.current.get(parent);
+      if (desired) {
+        const [moved] = desired.splice(fromIndex, 1);
+        desired.splice(toIndex > fromIndex ? toIndex - 1 : toIndex, 0, moved);
+        applyTranslateOrder(parent);
+      }
+    }
+
+    if (el instanceof HTMLElement) el.blur();
+
+    syncTrackerStateRef.current();
+    refreshSelectedElementRef.current();
+    pickerRef.current?.refreshSelection();
+    setChangeRevision((r) => r + 1);
+  }, []);
+
   // Hotkey listener
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -2464,6 +2548,7 @@ function RetuneInner(props: RetuneConfig) {
                 onSelect={handleTreeSelect}
                 onHover={handleTreeHover}
                 visualOrderMap={visualOrderMap}
+                onTreeReorder={handleTreeReorder}
               />
             )}
             {panelTab === "design" && selectedElement && (
