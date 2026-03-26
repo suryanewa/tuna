@@ -2087,17 +2087,19 @@ export function createPicker(
     box.style.background = `rgba(13, 153, 255, ${bgAlpha})`;
     box.style.display = "";
 
-    const labelY = rect.top > 24 ? rect.top - 24 : rect.bottom + 4;
+    // Badge: below selection centered, flip to above if near bottom edge
+    const viewportH = window.innerHeight;
+    const labelY = rect.bottom + 4 + 20 < viewportH ? rect.bottom + 4 : rect.top - 24;
     labelEl.style.top = `${labelY}px`;
-    labelEl.style.left = `${rect.left}px`;
+    labelEl.style.left = `${rect.left + rect.width / 2}px`;
+    labelEl.style.transform = "translateX(-50%)";
     labelEl.style.background = "#0D99FF";
   }
 
   function updateHighlight(el: Element) {
     const rect = el.getBoundingClientRect();
     positionBox(highlight, label, rect, "solid", "0");
-    label.style.display = "";
-    label.textContent = formatLabel(el);
+    label.style.display = "none";
   }
 
   function showSelection() {
@@ -2169,9 +2171,11 @@ export function createPicker(
     // When suspended (text editing), only update border position
     if (suspended) return;
 
-    const labelY = rect.top > 24 ? rect.top - 24 : rect.bottom + 4;
+    const viewportH = window.innerHeight;
+    const labelY = rect.bottom + 4 + 20 < viewportH ? rect.bottom + 4 : rect.top - 24;
     selectionLabel.style.top = `${labelY}px`;
-    selectionLabel.style.left = `${rect.left}px`;
+    selectionLabel.style.left = `${rect.left + rect.width / 2}px`;
+    selectionLabel.style.transform = "translateX(-50%)";
     selectionLabel.textContent = formatLabel(selectedElement);
     positionHandles(rect);
 
@@ -2192,14 +2196,8 @@ export function createPicker(
   }
 
   function formatLabel(el: Element): string {
-    const tag = el.tagName.toLowerCase();
-    const id = el.id ? `#${el.id}` : "";
-    const cls = el.className && typeof el.className === "string"
-      ? "." + el.className.trim().split(/\s+/).slice(0, 2).join(".")
-      : "";
     const rect = el.getBoundingClientRect();
-    const dims = `${Math.round(rect.width)}×${Math.round(rect.height)}`;
-    return `${tag}${id}${cls} ${dims}`;
+    return `${Math.round(rect.width)} × ${Math.round(rect.height)}`;
   }
 
   function hideHighlight() {
