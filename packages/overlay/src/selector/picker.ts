@@ -29,6 +29,39 @@ export interface PickerCallbacks {
   onCanvasReparent?: (element: Element, newParent: Element, insertIndex: number) => void;
 }
 
+/** Compute drop index using filtered rects (dragged element excluded).
+ *  Returns index in the FULL siblings array. */
+export function computeCanvasDropIndex(
+  cursorX: number, cursorY: number,
+  otherRects: DOMRect[], otherIndices: number[],
+  horizontal: boolean, dragIndex: number
+): number {
+  const cursor = horizontal ? cursorX : cursorY;
+  let insertBefore = otherRects.length;
+
+  for (let i = 0; i < otherRects.length; i++) {
+    const mid = horizontal
+      ? otherRects[i].left + otherRects[i].width / 2
+      : otherRects[i].top + otherRects[i].height / 2;
+    if (cursor < mid) { insertBefore = i; break; }
+  }
+
+  if (insertBefore >= otherIndices.length) {
+    return otherIndices.length > 0 ? otherIndices[otherIndices.length - 1] + 1 : dragIndex;
+  }
+  return otherIndices[insertBefore];
+}
+
+/** Check if drop index is effectively the same position. */
+export function isEffectiveNoOp(dragIndex: number, dropIndex: number): boolean {
+  return dragIndex === dropIndex;
+}
+
+/** Format selection label as dimensions only. */
+export function formatSelectionLabel(width: number, height: number): string {
+  return `${Math.round(width)} × ${Math.round(height)}`;
+}
+
 export function createPicker(
   shadowRoot: ShadowRoot,
   callbacks: PickerCallbacks
@@ -1268,34 +1301,7 @@ export function createPicker(
     return { parent, siblings, horizontal, index };
   }
 
-  /** Compute drop index using filtered rects (dragged element excluded).
-   *  Returns index in the FULL siblings array (0..siblings.length). */
-  function computeCanvasDropIndex(
-    cursorX: number, cursorY: number,
-    otherRects: DOMRect[], otherIndices: number[],
-    horizontal: boolean, dragIndex: number
-  ): number {
-    const cursor = horizontal ? cursorX : cursorY;
-    let insertBefore = otherRects.length;
 
-    for (let i = 0; i < otherRects.length; i++) {
-      const mid = horizontal
-        ? otherRects[i].left + otherRects[i].width / 2
-        : otherRects[i].top + otherRects[i].height / 2;
-      if (cursor < mid) { insertBefore = i; break; }
-    }
-
-    // Convert from filtered index to full siblings index
-    if (insertBefore >= otherIndices.length) {
-      return otherIndices.length > 0 ? otherIndices[otherIndices.length - 1] + 1 : dragIndex;
-    }
-    return otherIndices[insertBefore];
-  }
-
-  /** Check if drop index is effectively the same position (no real move). */
-  function isEffectiveNoOp(dragIndex: number, dropIndex: number): boolean {
-    return dragIndex === dropIndex;
-  }
 
   /** Check if cursor is inside the parent's bounding rect (with buffer to prevent flickering at edges) */
   function isCursorInParent(x: number, y: number, parent: Element): boolean {
@@ -2197,7 +2203,7 @@ export function createPicker(
 
   function formatLabel(el: Element): string {
     const rect = el.getBoundingClientRect();
-    return `${Math.round(rect.width)} × ${Math.round(rect.height)}`;
+    return formatSelectionLabel(rect.width, rect.height);
   }
 
   function hideHighlight() {
