@@ -1331,17 +1331,25 @@ export function createPicker(
         || display === "grid" || display === "inline-grid"
         || display === "block" || display === "inline-block" || display === "flow-root";
 
-      // Reject void/self-closing elements and text-only elements that can't contain block children
+      // Reject void/self-closing elements
       const tag = current.tagName;
-      const cantContain = new Set([
+      const voidElements = new Set([
         "INPUT", "IMG", "BR", "HR", "AREA", "BASE", "COL", "EMBED",
         "LINK", "META", "PARAM", "SOURCE", "TRACK", "WBR",
-        "P", "H1", "H2", "H3", "H4", "H5", "H6", "SPAN", "A",
-        "STRONG", "EM", "B", "I", "U", "SMALL", "SUB", "SUP",
-        "LABEL", "BUTTON", "TEXTAREA", "SELECT", "OPTION",
+        "TEXTAREA", "SELECT",
       ]);
+      if (voidElements.has(tag)) { current = current.parentElement; continue; }
 
-      if (isContainer && !cantContain.has(tag) && !isAncestor(draggedEl, current)) {
+      // Reject text layers: elements with only text content and no child elements
+      // (unless they're flex/grid — those are explicitly layout containers even if empty)
+      const isFlexOrGrid = display === "flex" || display === "inline-flex"
+        || display === "grid" || display === "inline-grid";
+      const isTextLayer = current.childElementCount === 0
+        && (current.textContent?.trim().length ?? 0) > 0
+        && !isFlexOrGrid;
+      if (isTextLayer) { current = current.parentElement; continue; }
+
+      if (isContainer && !isAncestor(draggedEl, current)) {
         // Compute insert index from cursor position relative to children
         const children = Array.from(current.children).filter(c => {
           const cs = getComputedStyle(c);
