@@ -513,7 +513,7 @@ function RetuneInner(props: RetuneConfig) {
               }
             } catch {}
           } else if (c.property === "__reorder") {
-            // Re-apply reorder preview
+            // Re-apply reorder using the same logic as handleTreeReorder
             try {
               const el = document.querySelector(change.selector) as HTMLElement;
               if (el?.parentElement) {
@@ -525,40 +525,44 @@ function RetuneInner(props: RetuneConfig) {
                   const parentDisplay = getComputedStyle(parent).display;
                   const isFlex = parentDisplay === "flex" || parentDisplay === "inline-flex";
                   const isGrid = parentDisplay === "grid" || parentDisplay === "inline-grid";
+                  const mode = (isFlex || isGrid) ? "order" as const : "translate" as const;
 
-                  if (isFlex || isGrid) {
-                    // Flex/grid: use CSS order
+                  if (!reorderModeRef.current.has(parent)) {
+                    reorderModeRef.current.set(parent, mode);
+                  }
+
+                  if (mode === "order") {
                     ensureExplicitOrder(parent);
-                    const visualOrder = [...children];
-                    visualOrder.splice(domIndex, 1);
-                    visualOrder.splice(targetIndex, 0, el);
-                    const undoEntry: ReorderUndoEntry = [];
-                    for (let i = 0; i < visualOrder.length; i++) {
-                      undoEntry.push({ element: visualOrder[i], prevOrder: visualOrder[i].style.order, prevTranslate: "" });
-                      visualOrder[i].style.order = String(i);
-                    }
-                    reorderStackRef.current.push(undoEntry);
-                    reorderModeRef.current.set(parent, "order");
-                  } else {
-                    // Block: use translate
-                    ensureOriginalRects(parent);
-                    reorderModeRef.current.set(parent, "translate");
-                    // Apply sequential translate swaps from domIndex to targetIndex
-                    const step = targetIndex > domIndex ? 1 : -1;
-                    for (let i = domIndex; i !== targetIndex; i += step) {
-                      const a = children[i];
-                      const b = children[i + step];
-                      if (!a || !b) break;
-                      const rects = reorderOriginalRectsRef.current.get(parent);
-                      const rectA = rects?.get(a);
-                      const rectB = rects?.get(b);
-                      if (rectA && rectB) {
-                        const delta = rectB.top - rectA.top;
-                        const aY = parseFloat(a.style.translate?.split(" ")[1] || "0") || 0;
-                        const bY = parseFloat(b.style.translate?.split(" ")[1] || "0") || 0;
-                        a.style.translate = `0 ${aY + delta}px`;
-                        b.style.translate = `0 ${bY - delta}px`;
+                    const visualOrder = getVisualOrder(parent);
+                    const fromIdx = visualOrder.indexOf(el);
+                    if (fromIdx !== -1) {
+                      const [moved] = visualOrder.splice(fromIdx, 1);
+                      // targetIndex is the FINAL visual position (not pre-removal), so no -1 adjustment
+                      visualOrder.splice(Math.min(targetIndex, visualOrder.length), 0, moved);
+                      const undoEntry: ReorderUndoEntry = children.map(ch => ({
+                        element: ch, prevOrder: ch.style.order, prevTranslate: "",
+                      }));
+                      for (let i = 0; i < visualOrder.length; i++) {
+                        visualOrder[i].style.order = String(i);
                       }
+                      reorderStackRef.current.push(undoEntry);
+                    }
+                  } else {
+                    ensureOriginalRects(parent);
+                    if (!reorderVisualOrderRef.current.has(parent)) {
+                      reorderVisualOrderRef.current.set(parent, [...children]);
+                    }
+                    const desired = reorderVisualOrderRef.current.get(parent)!;
+                    const fromIdx = desired.indexOf(el);
+                    if (fromIdx !== -1) {
+                      const undoEntry: ReorderUndoEntry = children.map(ch => ({
+                        element: ch, prevOrder: "", prevTranslate: (ch as HTMLElement).style.translate || "",
+                      }));
+                      const [moved] = desired.splice(fromIdx, 1);
+                      // targetIndex is the FINAL visual position (not pre-removal), so no -1 adjustment
+                      desired.splice(Math.min(targetIndex, desired.length), 0, moved);
+                      applyTranslateOrder(parent);
+                      reorderStackRef.current.push(undoEntry);
                     }
                   }
                 }
