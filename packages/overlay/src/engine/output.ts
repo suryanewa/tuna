@@ -48,8 +48,9 @@ export function describeSelectorScope(selector: string): string | null {
   // Ancestor-scoped selectors: contain descendant combinator (space between class parts)
   // e.g. ".message-row--unread .message-row__subject"
   const noParen = base.replace(/\([^)]*\)/g, ""); // ignore spaces inside pseudo-functions
-  const hasDescendant = /\.[a-zA-Z][\w-]*\s+\.[a-zA-Z]/.test(noParen);
-  const hasChild = /\.[a-zA-Z][\w-]*\s*>\s*\.[a-zA-Z]/.test(noParen);
+  // Match descendant/child combinators between any selector parts (classes, attributes, pseudo-functions)
+  const hasDescendant = /[.\])\w]\s+[.\[:]/.test(noParen);
+  const hasChild = /[.\])\w]\s*>\s*[.\[:]/.test(noParen);
 
   if (base.startsWith(".") || base.startsWith(":") || base.startsWith("[")) {
     try {

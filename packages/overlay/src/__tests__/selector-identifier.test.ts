@@ -5,6 +5,7 @@ import {
   getPropertyFamily,
   countAuthoredProperties,
   scoreNamePattern,
+  humanizeAncestorPart,
 } from "../selector/identifier";
 
 describe("scoreNamePattern (multi-signal name scoring)", () => {
@@ -440,3 +441,53 @@ function createMockStyle(properties: string[]): CSSStyleDeclaration {
 
   return style;
 }
+
+// ---- Ancestor scope humanization ----
+
+describe("humanizeAncestorPart", () => {
+  it("humanizes ARIA attributes with lookup", () => {
+    expect(humanizeAncestorPart('[aria-expanded="true"]')).toBe("Expanded");
+    expect(humanizeAncestorPart('[aria-expanded="false"]')).toBe("Collapsed");
+    expect(humanizeAncestorPart('[aria-selected="true"]')).toBe("Selected");
+    expect(humanizeAncestorPart('[aria-disabled="true"]')).toBe("Disabled");
+    expect(humanizeAncestorPart('[aria-current="page"]')).toBe("Current Page");
+    expect(humanizeAncestorPart('[aria-checked="mixed"]')).toBe("Partially Checked");
+    expect(humanizeAncestorPart('[aria-busy="true"]')).toBe("Loading");
+  });
+
+  it("humanizes data attributes with value", () => {
+    expect(humanizeAncestorPart('[data-state="open"]')).toBe("Open");
+    expect(humanizeAncestorPart('[data-state="closed"]')).toBe("Closed");
+    expect(humanizeAncestorPart('[data-variant="primary"]')).toBe("Primary");
+    expect(humanizeAncestorPart('[data-size="small"]')).toBe("Small");
+  });
+
+  it("humanizes boolean data attributes", () => {
+    expect(humanizeAncestorPart("[data-open]")).toBe("Open");
+    expect(humanizeAncestorPart("[data-disabled]")).toBe("Disabled");
+    expect(humanizeAncestorPart("[data-selected]")).toBe("Selected");
+  });
+
+  it("humanizes BEM modifiers", () => {
+    expect(humanizeAncestorPart(".message-row--unread")).toBe("Unread");
+    expect(humanizeAncestorPart(".card--featured")).toBe("Featured");
+    expect(humanizeAncestorPart(".nav--collapsed")).toBe("Collapsed");
+    expect(humanizeAncestorPart(".btn--large")).toBe("Large");
+  });
+
+  it("humanizes state prefix classes", () => {
+    expect(humanizeAncestorPart(".is-open")).toBe("Open");
+    expect(humanizeAncestorPart(".is-active")).toBe("Active");
+    expect(humanizeAncestorPart(".has-error")).toBe("Error");
+  });
+
+  it("humanizes plain class names", () => {
+    expect(humanizeAncestorPart(".sidebar")).toBe("Sidebar");
+    expect(humanizeAncestorPart(".theme-dark")).toBe("Theme Dark");
+  });
+
+  it("humanizes multi-word kebab values", () => {
+    expect(humanizeAncestorPart('[data-state="not-found"]')).toBe("Not Found");
+    expect(humanizeAncestorPart(".card--extra-large")).toBe("Extra Large");
+  });
+});

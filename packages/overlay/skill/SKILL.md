@@ -188,6 +188,8 @@ Moved from position 5 to position 1 within its parent container.
 
 Move the element's JSX block to the new position among its siblings. If the children are rendered from a `.map()` call over an array, reorder the array items instead. If they're static JSX, move the entire JSX block (opening tag through closing tag, including all props and children).
 
+When the output says **"This is a component-level change affecting N instances"**, the reorder applies to the component's JSX template, not a single rendered instance. Find the component definition and reorder the children there — all N instances will update automatically because they share the same template.
+
 ### Reparent Element
 
 ```
@@ -199,6 +201,8 @@ Move this element from its current parent to a new parent container.
 ```
 
 Move the element's JSX block from its current parent to the new parent container at the specified position. Use the **From** selector to locate the current parent and the **To** selector to locate the target parent. The position index (0-based) indicates where among the new parent's children the element should be inserted. If the children are rendered from a `.map()` call, update the data source accordingly. If they're static JSX, physically move the JSX block.
+
+When the output says **"This is a component-level change affecting N instances"**, the reparent applies to the component's JSX template. Move the element in the component definition — all N instances will update automatically.
 
 ### Resize (Width/Height Changes)
 

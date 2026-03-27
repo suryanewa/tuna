@@ -194,5 +194,31 @@ describe("describeSelectorScope", () => {
     const result = describeSelectorScope("button");
     expect(result).toBeNull();
   });
+
+  it("returns ancestor-scoped for descendant class selector", () => {
+    const result = describeSelectorScope(".message-row--unread .message-row__subject");
+    expect(result).toMatch(/ancestor-scoped/);
+  });
+
+  it("returns ancestor-scoped for child combinator class selector", () => {
+    const result = describeSelectorScope(".card > .card__title");
+    expect(result).toMatch(/ancestor-scoped/);
+  });
+
+  it("returns ancestor-scoped for :where() with descendant", () => {
+    const result = describeSelectorScope(':where([data-theme="dark"]) .card');
+    expect(result).toMatch(/ancestor-scoped/);
+  });
+
+  it("returns ancestor-scoped for attribute selector ancestor", () => {
+    const result = describeSelectorScope('[data-state="open"] .content');
+    expect(result).toMatch(/ancestor-scoped/);
+  });
+
+  it("returns class-scoped (not ancestor) for compound without combinator", () => {
+    const result = describeSelectorScope(".btn.btn-primary");
+    expect(result).toMatch(/class-scoped/);
+    expect(result).not.toMatch(/ancestor/);
+  });
 });
 
