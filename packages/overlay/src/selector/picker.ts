@@ -132,6 +132,31 @@ export function createPicker(
     }
   }
 
+  function showChildOutlines(parent: Element) {
+    const children = Array.from(parent.children).filter(c => {
+      if (c.hasAttribute("data-retune-host")) return false;
+      const cs = getComputedStyle(c);
+      if (cs.display === "none" || cs.visibility === "hidden") return false;
+      return true;
+    });
+
+    let poolIdx = 0;
+    for (const child of children) {
+      if (poolIdx >= siblingOutlinePool.length) break;
+      const r = child.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0) continue;
+      const outline = siblingOutlinePool[poolIdx++];
+      outline.style.top = `${r.top}px`;
+      outline.style.left = `${r.left}px`;
+      outline.style.width = `${r.width}px`;
+      outline.style.height = `${r.height}px`;
+      outline.style.display = "block";
+    }
+    for (let i = poolIdx; i < siblingOutlinePool.length; i++) {
+      siblingOutlinePool[i].style.display = "none";
+    }
+  }
+
   function hideSiblingOutlines() {
     for (const outline of siblingOutlinePool) {
       outline.style.display = "none";
@@ -2361,11 +2386,14 @@ export function createPicker(
           else hideSpacing();
           showSiblingOutlines(el, selectedElement);
         } else {
-          // Sibling or unrelated
+          // Sibling or unrelated — show children outlines for the hovered element
           if (altKey) showSpacing(selectedElement.getBoundingClientRect(), el.getBoundingClientRect());
           else hideSpacing();
-          hideSiblingOutlines();
+          showChildOutlines(el);
         }
+      } else {
+        // No selection — show children outlines for the hovered element
+        showChildOutlines(el);
       }
     }
 
