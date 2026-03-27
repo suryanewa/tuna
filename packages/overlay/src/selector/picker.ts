@@ -1020,6 +1020,7 @@ export function createPicker(
       hideSnapGuides();
     }
     refreshPinLines();
+    refreshScopeHighlights();
   }
 
   function handleResizePointerUp(e: PointerEvent) {
@@ -2239,6 +2240,9 @@ export function createPicker(
       cachedPinState = null;
       hidePinLines();
     }
+
+    // Keep scope highlights in sync with layout changes (resize, property edits)
+    refreshScopeHighlights();
   }
 
   // Lightweight position-only update for scroll/resize tracking
