@@ -690,7 +690,8 @@ function RetuneInner(props: RetuneConfig) {
       if (pendingReparentEntries.length > 0) {
         setReparentEntries(pendingReparentEntries);
       }
-      setChangeCount(tracker.getPendingChanges().length);
+      const restored = tracker.getPendingChanges();
+      setChangeCount(restored.filter(c => !c.changes.some(p => p.property === "__bulkOf")).length);
       setCanUndo(tracker.canUndo);
       setCanRedo(tracker.canRedo);
     }
