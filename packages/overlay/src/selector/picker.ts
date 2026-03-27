@@ -150,6 +150,9 @@ export function createPicker(
     scopeHighlightPool.push(outline);
   }
 
+  // Track active scope for repositioning on scroll
+  let activeScopeElements: Element[] = [];
+
   function showScopeHighlights(selector: string, excludeElement: Element | null) {
     let elements: Element[];
     try {
@@ -159,7 +162,7 @@ export function createPicker(
       return;
     }
 
-    elements = elements.filter(el => {
+    activeScopeElements = elements.filter(el => {
       if (el === excludeElement) return false;
       if (el.closest("[data-retune-host]")) return false;
       const cs = getComputedStyle(el);
@@ -167,8 +170,12 @@ export function createPicker(
       return true;
     });
 
+    refreshScopeHighlights();
+  }
+
+  function refreshScopeHighlights() {
     let poolIdx = 0;
-    for (const el of elements) {
+    for (const el of activeScopeElements) {
       if (poolIdx >= scopeHighlightPool.length) break;
       const r = el.getBoundingClientRect();
       if (r.width === 0 || r.height === 0) continue;
@@ -185,6 +192,7 @@ export function createPicker(
   }
 
   function hideScopeHighlights() {
+    activeScopeElements = [];
     for (const outline of scopeHighlightPool) {
       outline.style.display = "none";
     }
@@ -2288,6 +2296,7 @@ export function createPicker(
 
   function handleScroll() {
     scheduleTrack();
+    refreshScopeHighlights();
     if (hoveredElement) {
       hoveredElement = null;
       hideHighlight();

@@ -2505,13 +2505,24 @@ function RetuneInner(props: RetuneConfig) {
     }
   }, [migrateSelector, syncForcedInlineStyles, refreshSelectedElement]);
 
-  /** Show/hide dotted outlines on all elements matching a scope level's selector */
+  /** Show/hide dotted outlines on all elements matching a scope level's selector.
+   *  On pointer leave (index=null), revert to showing the active scope's highlights. */
   const handleScopeLevelHover = useCallback((index: number | null) => {
     const picker = pickerRef.current;
     if (!picker) return;
 
     if (index === null) {
-      picker.hideScopeHighlights();
+      // Revert to active scope highlights instead of hiding
+      const levels = scopeLevelsRef.current;
+      const activeLevel = levels[activeLevelIndexRef.current];
+      if (activeLevel?.selector) {
+        picker.showScopeHighlights(
+          activeLevel.selector,
+          selectedElementRef.current?.element ?? null,
+        );
+      } else {
+        picker.hideScopeHighlights();
+      }
       return;
     }
 
