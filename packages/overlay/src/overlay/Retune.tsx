@@ -1972,10 +1972,13 @@ function RetuneInner(props: RetuneConfig) {
         return child.tagName.toLowerCase();
       });
 
-      // Check overlap: at least 50% of child selectors should match
+      // Check overlap: at least 70% of BOTH sides' children should match
+      // This prevents propagating between structural variants (e.g., folder items vs label items)
       const primarySet = new Set(childSelectors);
+      const otherSet = new Set(otherChildSelectors);
       const matchCount = otherChildSelectors.filter(s => primarySet.has(s)).length;
-      if (matchCount < Math.min(childSelectors.length, otherChildSelectors.length) * 0.5) continue;
+      const reverseMatchCount = childSelectors.filter(s => otherSet.has(s)).length;
+      if (matchCount < otherChildSelectors.length * 0.7 || reverseMatchCount < childSelectors.length * 0.7) continue;
 
       // Determine mode for this parent
       const display = getComputedStyle(otherParent).display;
