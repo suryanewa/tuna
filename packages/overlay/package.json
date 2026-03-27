@@ -36,6 +36,7 @@
   "dependencies": {
     "@medv/finder": "^3.2.0",
     "@modelcontextprotocol/sdk": "^1.12.1",
+    "parsel-js": "^1.2.2",
     "ws": "^8.18.0",
     "zod": "^3.24.0"
   },

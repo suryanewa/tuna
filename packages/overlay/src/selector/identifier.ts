@@ -4,6 +4,7 @@
  */
 
 import { finder } from "@medv/finder";
+import { parse as parseSelector } from "parsel-js";
 
 /** Generate a unique, readable CSS selector for an element */
 export function getSelector(element: Element): string {
@@ -741,4 +742,207 @@ export function getReactProps(element: Element): Record<string, unknown> | null 
   }
 
   return null;
+}
+
+// ---- Ancestor scope extraction ----
+
+export interface AncestorScope {
+  /** Full CSS selector e.g. ".message-row--unread .message-row__subject" */
+  fullSelector: string;
+  /** Just the ancestor portion e.g. ".message-row--unread" */
+  ancestorPart: string;
+  /** Humanized label e.g. "Unread" */
+  label: string;
+  /** Number of elements matching fullSelector */
+  count: number;
+}
+
+// ── ARIA attribute humanization lookup ──
+
+const ARIA_LABELS: Record<string, Record<string, string>> = {
+  "aria-expanded": { "true": "Expanded", "false": "Collapsed" },
+  "aria-selected": { "true": "Selected", "false": "Deselected" },
+  "aria-disabled": { "true": "Disabled" },
+  "aria-checked": { "true": "Checked", "mixed": "Partially Checked" },
+  "aria-pressed": { "true": "Pressed", "mixed": "Partially Pressed" },
+  "aria-current": { "page": "Current Page", "step": "Current Step", "true": "Current" },
+  "aria-hidden": { "true": "Hidden" },
+  "aria-busy": { "true": "Loading" },
+  "aria-invalid": { "true": "Invalid", "grammar": "Grammar Error", "spelling": "Spelling Error" },
+  "aria-required": { "true": "Required" },
+  "aria-modal": { "true": "Modal" },
+};
+
+/** Humanize an ancestor selector part for display in the Target rail */
+export function humanizeAncestorPart(ancestor: string): string {
+  // Try ARIA attribute: [aria-expanded="true"] → "Expanded"
+  const ariaMatch = ancestor.match(/\[aria-([\w-]+)(?:="([^"]*)")?\]/);
+  if (ariaMatch) {
+    const [, attr, val] = ariaMatch;
+    const key = `aria-${attr}`;
+    if (ARIA_LABELS[key]) {
+      return ARIA_LABELS[key][val || "true"] || titleCase(val || attr);
+    }
+    return titleCase(val || attr);
+  }
+
+  // Try data attribute with value: [data-state="open"] → "Open"
+  const dataValMatch = ancestor.match(/\[data-[\w-]+=["']?([^"'\]]+)["']?\]/);
+  if (dataValMatch) return titleCase(dataValMatch[1]);
+
+  // Try boolean data attribute: [data-open] → "Open"
+  const dataBoolMatch = ancestor.match(/\[data-([\w-]+)\]/);
+  if (dataBoolMatch) return titleCase(dataBoolMatch[1]);
+
+  // Try BEM modifier: .block--modifier → "Modifier"
+  const bemMatch = ancestor.match(/\.([\w-]+)--([\w-]+)/);
+  if (bemMatch) return titleCase(bemMatch[2]);
+
+  // Try state prefix: .is-open → "Open", .has-error → "Error"
+  const stateMatch = ancestor.match(/\.(is|has)-([\w-]+)/);
+  if (stateMatch) return titleCase(stateMatch[2]);
+
+  // Try class name: .sidebar → "Sidebar"
+  const classMatch = ancestor.match(/\.([\w-]+)/);
+  if (classMatch) return titleCase(classMatch[1]);
+
+  // Fallback: return cleaned-up selector text
+  return ancestor.replace(/[.\[\]="']/g, " ").trim();
+}
+
+function titleCase(s: string): string {
+  return s
+    .split("-")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+// ── Noise filtering ──
+
+/** Filter out framework scoping attributes and CSS-in-JS hashes from ancestor parts */
+function isNoiseAncestor(selectorText: string): boolean {
+  // Vue scoped attributes
+  if (/\[data-v-[a-f0-9]+\]/.test(selectorText)) return true;
+  // Angular scoping
+  if (/\[_ng(host|content)-[\w-]+\]/.test(selectorText)) return true;
+  // CSS-in-JS hashed classes (e.g. .css-1a2b3c, .sc-abc123)
+  if (/\.(css|sc|emotion)-[a-zA-Z0-9]{4,}/.test(selectorText) && !/[A-Z]/.test(selectorText)) return true;
+  return false;
+}
+
+// ── Selector splitting via parsel-js ──
+
+interface SplitResult {
+  ancestorPart: string;
+  elementPart: string;
+}
+
+/**
+ * Split a CSS selector at the last top-level descendant/child combinator.
+ * Returns the ancestor part and element part, or null if no split possible.
+ */
+function splitSelector(selectorText: string): SplitResult | null {
+  let ast: any;
+  try {
+    ast = parseSelector(selectorText, { recursive: true });
+  } catch {
+    return null;
+  }
+  if (!ast || ast.type !== "complex") return null;
+
+  // The rightmost part of the complex selector is the element part
+  const rightContent = ast.right?.content;
+  if (!rightContent) return null;
+
+  // Everything left of the rightmost combinator is the ancestor
+  const full = selectorText.trim();
+  const rightIdx = full.lastIndexOf(rightContent);
+  if (rightIdx <= 0) return null;
+
+  const ancestorRaw = full.slice(0, rightIdx).trim();
+  // Remove trailing combinator character (> + ~ or space)
+  const ancestorPart = ancestorRaw.replace(/[>+~\s]+$/, "").trim();
+  if (!ancestorPart) return null;
+
+  return { ancestorPart, elementPart: rightContent };
+}
+
+/** Check if a selector's element part references one of the element's own classes or tag */
+function elementPartMatchesElement(elementPart: string, element: Element): boolean {
+  const partClasses = elementPart.match(/\.([a-zA-Z0-9_-]+)/g)?.map((c) => c.slice(1)) || [];
+  if (partClasses.length === 0) {
+    // Element part might be a tag selector
+    const tag = elementPart.replace(/[:\[].*/g, "").trim().toLowerCase();
+    return tag === element.tagName.toLowerCase();
+  }
+  return partClasses.some((c) => element.classList.contains(c));
+}
+
+/**
+ * Extract ancestor-based compound selectors from CSS rules that match the element.
+ * Returns scopes sorted by count (broadest first).
+ */
+export function getAncestorScopes(element: Element): AncestorScope[] {
+  const seen = new Map<string, AncestorScope>();
+
+  for (const sheet of document.styleSheets) {
+    let rules: CSSRuleList;
+    try { rules = sheet.cssRules; } catch { continue; }
+    walkRulesForAncestors(rules, element, seen);
+  }
+
+  const result = Array.from(seen.values());
+  result.sort((a, b) => b.count - a.count);
+  return result;
+}
+
+function walkRulesForAncestors(
+  rules: CSSRuleList,
+  element: Element,
+  seen: Map<string, AncestorScope>,
+): void {
+  for (let i = 0; i < rules.length; i++) {
+    const rule = rules[i];
+
+    if (rule instanceof CSSGroupingRule ||
+        (typeof CSSLayerBlockRule !== "undefined" && rule instanceof CSSLayerBlockRule)) {
+      walkRulesForAncestors((rule as CSSGroupingRule).cssRules, element, seen);
+      continue;
+    }
+
+    if (!(rule instanceof CSSStyleRule)) continue;
+
+    const sel = rule.selectorText;
+    if (sel.includes(":hover") || sel.includes(":focus") || sel.includes(":active")) continue;
+
+    try { if (!element.matches(sel)) continue; } catch { continue; }
+
+    // Handle comma-separated selectors
+    for (const part of sel.split(",")) {
+      const trimmed = part.trim();
+
+      // Quick check: skip if no whitespace or > outside parens (no combinator)
+      const noParen = trimmed.replace(/\([^)]*\)/g, "");
+      if (!/[\s>]/.test(noParen)) continue;
+
+      const split = splitSelector(trimmed);
+      if (!split) continue;
+      if (!elementPartMatchesElement(split.elementPart, element)) continue;
+      if (isNoiseAncestor(split.ancestorPart)) continue;
+
+      const fullSelector = trimmed;
+      if (seen.has(fullSelector)) continue;
+
+      let count: number;
+      try { count = document.querySelectorAll(fullSelector).length; } catch { continue; }
+      if (count <= 0) continue;
+
+      seen.set(fullSelector, {
+        fullSelector,
+        ancestorPart: split.ancestorPart,
+        label: humanizeAncestorPart(split.ancestorPart),
+        count,
+      });
+    }
+  }
 }

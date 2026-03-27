@@ -138,6 +138,58 @@ export function createPicker(
     }
   }
 
+  // Scope highlight outlines — solid outlines on all elements matching the active/hovered scope
+  const scopeHighlightPool: HTMLDivElement[] = [];
+  for (let i = 0; i < 50; i++) {
+    const outline = document.createElement("div");
+    outline.style.cssText = `
+      position:fixed;display:none;pointer-events:none;z-index:2147483643;
+      border:1px solid #0D99FF;background:none;
+    `;
+    shadowRoot.appendChild(outline);
+    scopeHighlightPool.push(outline);
+  }
+
+  function showScopeHighlights(selector: string, excludeElement: Element | null) {
+    let elements: Element[];
+    try {
+      elements = Array.from(document.querySelectorAll(selector));
+    } catch {
+      hideScopeHighlights();
+      return;
+    }
+
+    elements = elements.filter(el => {
+      if (el === excludeElement) return false;
+      if (el.closest("[data-retune-host]")) return false;
+      const cs = getComputedStyle(el);
+      if (cs.display === "none" || cs.visibility === "hidden") return false;
+      return true;
+    });
+
+    let poolIdx = 0;
+    for (const el of elements) {
+      if (poolIdx >= scopeHighlightPool.length) break;
+      const r = el.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0) continue;
+      const outline = scopeHighlightPool[poolIdx++];
+      outline.style.top = `${r.top}px`;
+      outline.style.left = `${r.left}px`;
+      outline.style.width = `${r.width}px`;
+      outline.style.height = `${r.height}px`;
+      outline.style.display = "block";
+    }
+    for (let i = poolIdx; i < scopeHighlightPool.length; i++) {
+      scopeHighlightPool[i].style.display = "none";
+    }
+  }
+
+  function hideScopeHighlights() {
+    for (const outline of scopeHighlightPool) {
+      outline.style.display = "none";
+    }
+  }
+
   // Pin lines — dashed lines from element to parent edges for pinned sides
   const pinLines: Record<string, HTMLDivElement> = {};
   for (const side of ["top", "right", "bottom", "left"] as const) {
@@ -2526,6 +2578,7 @@ export function createPicker(
     elementStack = [];
     stackIndex = -1;
     hideSelection(); // also hides handles
+    hideScopeHighlights();
   }
 
   function destroy() {
@@ -2598,5 +2651,5 @@ export function createPicker(
     }
   }
 
-  return { activate, deactivate, destroy, hideHighlight, clearSelection, selectElement, highlightElement, refreshSelection: showSelection, updatePinLines, suspend, resume };
+  return { activate, deactivate, destroy, hideHighlight, clearSelection, selectElement, highlightElement, refreshSelection: showSelection, updatePinLines, suspend, resume, showScopeHighlights, hideScopeHighlights };
 }

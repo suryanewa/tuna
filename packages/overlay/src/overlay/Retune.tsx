@@ -23,7 +23,7 @@ import { ChangeTracker } from "../engine/change-tracker";
 import { formatChanges, collapseShorthands, type Fidelity } from "../engine/output";
 import { BridgeClient } from "../bridge/ws-client";
 import { inspectElement, matchesHotkey } from "../ui/helpers";
-import { getSelector, getSelectorCandidates, scoreNamePattern, isHashedClass, type SelectorCandidate } from "../selector/identifier";
+import { getSelector, getSelectorCandidates, getAncestorScopes, scoreNamePattern, isHashedClass, type SelectorCandidate, type AncestorScope } from "../selector/identifier";
 import { getPseudoStateStyles, getStyleSources, getScopedStyles, type ForcedState, type StyleSource } from "../inspector/styles";
 import { PropertyPanel } from "./PropertyPanel";
 import { ElementTree, type ReparentEntry } from "./ElementTree";
@@ -105,6 +105,7 @@ interface ScopeLevel {
   label: string;           // Display name: class name or "This instance"
   selector: string | null; // Compound CSS selector, null = element-specific path
   count: number;           // querySelectorAll match count
+  kind?: "class" | "ancestor" | "element"; // default "class" for backward compat
 }
 
 
@@ -199,21 +200,34 @@ function buildParentScopeLevel(element: Element): ScopeLevel | null {
 
 /** Build scope levels from candidates (sorted broadest-first).
  *  Each level accumulates classes into a compound selector.
- *  Falls back to parent-scoped selectors when no semantic classes exist. */
-function buildScopeLevels(candidates: SelectorCandidate[], element: Element): ScopeLevel[] {
+ *  Falls back to parent-scoped selectors when no semantic classes exist.
+ *  Ancestor scopes are inserted between class scopes and "This instance". */
+function buildScopeLevels(candidates: SelectorCandidate[], element: Element, ancestorScopes: AncestorScope[] = []): ScopeLevel[] {
   const meaningful = candidates.filter(c => c.verdict === "semantic");
   if (meaningful.length === 0) {
     // Strategy 1: compound class fingerprint (utility-class elements)
     const fingerprint = buildCompoundFingerprint(element);
     if (fingerprint) {
-      return [fingerprint, { label: "This instance", selector: null, count: 1 }];
+      const levels: ScopeLevel[] = [fingerprint];
+      appendAncestorLevels(levels, ancestorScopes);
+      levels.push({ label: "This instance", selector: null, count: 1, kind: "element" });
+      return levels;
     }
     // Strategy 2: parent-scoped tag selector (classless elements)
     const parentLevel = buildParentScopeLevel(element);
     if (parentLevel) {
-      return [parentLevel, { label: "This instance", selector: null, count: 1 }];
+      const levels: ScopeLevel[] = [parentLevel];
+      appendAncestorLevels(levels, ancestorScopes);
+      levels.push({ label: "This instance", selector: null, count: 1, kind: "element" });
+      return levels;
     }
-    return [{ label: "This instance", selector: null, count: 1 }];
+    if (ancestorScopes.length > 0) {
+      const levels: ScopeLevel[] = [];
+      appendAncestorLevels(levels, ancestorScopes);
+      levels.push({ label: "This instance", selector: null, count: 1, kind: "element" });
+      return levels;
+    }
+    return [{ label: "This instance", selector: null, count: 1, kind: "element" }];
   }
   const levels: ScopeLevel[] = [];
   const parts: string[] = [];
@@ -224,10 +238,33 @@ function buildScopeLevels(candidates: SelectorCandidate[], element: Element): Sc
     const compound = parts.slice().sort().map(c => `.${CSS.escape(c)}`).join('');
     let count: number;
     try { count = document.querySelectorAll(compound).length; } catch { count = 0; }
-    levels.push({ label: humanizeScopeLabel(className, prevClassName), selector: compound, count });
+    levels.push({ label: humanizeScopeLabel(className, prevClassName), selector: compound, count, kind: "class" });
   }
-  levels.push({ label: "This instance", selector: null, count: 1 });
+  appendAncestorLevels(levels, ancestorScopes);
+  levels.push({ label: "This instance", selector: null, count: 1, kind: "element" });
   return levels;
+}
+
+/** Append ancestor scope levels, filtering out those that are redundant with existing levels */
+function appendAncestorLevels(levels: ScopeLevel[], ancestorScopes: AncestorScope[]): void {
+  // Get the narrowest class-level count for filtering
+  const narrowestClassCount = levels.length > 0 ? levels[levels.length - 1].count : Infinity;
+
+  for (const scope of ancestorScopes) {
+    // Skip if same count as narrowest class scope (redundant)
+    if (scope.count >= narrowestClassCount) continue;
+    // Skip if count is 1 (same as "This instance")
+    if (scope.count <= 1) continue;
+    // Skip if a level with same count already exists
+    if (levels.some(l => l.count === scope.count && l.selector === scope.fullSelector)) continue;
+
+    levels.push({
+      label: scope.label,
+      selector: scope.fullSelector,
+      count: scope.count,
+      kind: "ancestor",
+    });
+  }
 }
 
 export function Retune(props: RetuneConfig = {}) {
@@ -668,8 +705,9 @@ function RetuneInner(props: RetuneConfig) {
         setStyleSources(getStyleSources(element));
         const candidates = getSelectorCandidates(element);
         setSelectorCandidates(candidates);
-        // Build scope levels and default to the narrowest class level
-        const levels = buildScopeLevels(candidates, element);
+        // Build scope levels with ancestor scopes and default to the narrowest class level
+        const ancestors = getAncestorScopes(element);
+        const levels = buildScopeLevels(candidates, element, ancestors);
         setScopeLevels(levels);
         scopeLevelsRef.current = levels;
         const defaultIndex = levels.length >= 2 ? levels.length - 2 : 0;
@@ -677,6 +715,12 @@ function RetuneInner(props: RetuneConfig) {
         activeLevelIndexRef.current = defaultIndex;
         const newActiveSelector = levels[defaultIndex]?.selector ?? null;
         activeSelectorRef.current = newActiveSelector;
+
+        // Show scope highlights for the default level on initial selection
+        const defaultLevel = levels[defaultIndex];
+        if (defaultLevel?.selector && pickerRef.current) {
+          pickerRef.current.showScopeHighlights(defaultLevel.selector, element);
+        }
 
         // Apply scoped styles if a class selector is the default (skip for parent-scoped selectors)
         const isParentScoped = newActiveSelector && newActiveSelector.includes(' ');
@@ -2448,7 +2492,41 @@ function RetuneInner(props: RetuneConfig) {
     skipOwnedUpdateRef.current = true;
     if (forcedStateRef.current) syncForcedInlineStyles();
     refreshSelectedElement();
+
+    // Show scope highlights for the newly active level
+    const newLevel = levels[index];
+    if (newLevel?.selector && pickerRef.current) {
+      pickerRef.current.showScopeHighlights(
+        newLevel.selector,
+        el.element ?? null,
+      );
+    } else {
+      pickerRef.current?.hideScopeHighlights();
+    }
   }, [migrateSelector, syncForcedInlineStyles, refreshSelectedElement]);
+
+  /** Show/hide dotted outlines on all elements matching a scope level's selector */
+  const handleScopeLevelHover = useCallback((index: number | null) => {
+    const picker = pickerRef.current;
+    if (!picker) return;
+
+    if (index === null) {
+      picker.hideScopeHighlights();
+      return;
+    }
+
+    const levels = scopeLevelsRef.current;
+    const level = levels[index];
+    if (!level || level.selector === null) {
+      picker.hideScopeHighlights();
+      return;
+    }
+
+    picker.showScopeHighlights(
+      level.selector,
+      selectedElementRef.current?.element ?? null,
+    );
+  }, []);
 
   const handleCopy = useCallback(() => {
     const tracker = trackerRef.current;
@@ -2822,6 +2900,7 @@ function RetuneInner(props: RetuneConfig) {
                 scopeLevels={scopeLevels}
                 activeLevelIndex={activeLevelIndex}
                 onScopeLevelChange={handleScopeLevelChange}
+                onScopeLevelHover={handleScopeLevelHover}
                 ownedProperties={ownedProperties}
                 styleSources={styleSources}
                 forcedState={forcedState}

@@ -153,7 +153,7 @@ const LIST_STYLE_OPTIONS: SegmentedOption[] = [
 type ForcedState = ":hover" | ":focus" | ":active" | null;
 
 type SelectorCandidate = { selector: string; count: number; verdict: "semantic" | "utility" | "ambiguous" };
-type ScopeLevel = { label: string; selector: string | null; count: number };
+type ScopeLevel = { label: string; selector: string | null; count: number; kind?: string };
 type StyleSource = { selector: string; value: string };
 
 export function PropertyPanel({
@@ -174,6 +174,7 @@ export function PropertyPanel({
   scopeLevels = [] as ScopeLevel[],
   activeLevelIndex = 0,
   onScopeLevelChange,
+  onScopeLevelHover,
   ownedProperties,
   styleSources = {},
   forcedState = null,
@@ -203,6 +204,7 @@ export function PropertyPanel({
   scopeLevels?: ScopeLevel[];
   activeLevelIndex?: number;
   onScopeLevelChange?: (index: number) => void;
+  onScopeLevelHover?: (index: number | null) => void;
   /** Properties owned by CSS rules matching the active scope. undefined = show all. */
   ownedProperties?: Set<string>;
   styleSources?: Record<string, StyleSource>;
@@ -863,6 +865,8 @@ export function PropertyPanel({
                         className={`retune-selector-tag${isActive ? " active" : ""}${isIncluded ? " included" : ""}`}
                         data-level-index={index}
                         onClick={() => onScopeLevelChange(index)}
+                        onPointerEnter={() => onScopeLevelHover?.(index)}
+                        onPointerLeave={() => onScopeLevelHover?.(null)}
                       >
                         {level.label.length > 24 ? (
                           <Tooltip content={level.label} side="bottom" delay={300}>
