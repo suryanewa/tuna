@@ -1568,6 +1568,18 @@ function RetuneInner(props: RetuneConfig) {
     setChangeRevision((r) => r + 1);
   }, []);
 
+  /** Revert all bulk tracker entries for a structural property type (__reorder or __reparent) */
+  function revertBulkTrackerEntries(tracker: any, property: string) {
+    const pending = tracker.getPendingChanges();
+    for (const change of pending) {
+      if (change.changes.some((c: any) => c.property === "__bulkOf")) {
+        tracker.removeProperty(change.selector, property);
+        tracker.removeProperty(change.selector, "__bulkOf");
+      }
+    }
+    tracker.persist();
+  }
+
   const handleUndo = useCallback(() => {
     const tracker = trackerRef.current;
     const preview = previewRef.current;
@@ -1600,6 +1612,8 @@ function RetuneInner(props: RetuneConfig) {
         }
         reorderRedoStackRef.current.push(redoEntry);
       }
+      // Remove bulk __reorder entries from the tracker
+      revertBulkTrackerEntries(tracker, "__reorder");
       syncTrackerStateRef.current();
       refreshSelectedElementRef.current();
       pickerRef.current?.refreshSelection();
@@ -1624,6 +1638,8 @@ function RetuneInner(props: RetuneConfig) {
         } catch {}
         undoneElements.push(entry.element);
       }
+      // Remove bulk __reparent entries from the tracker
+      revertBulkTrackerEntries(tracker, "__reparent");
       // Update reparent entries for tree visual preview
       setReparentEntries(prev => prev.filter(r => !undoneElements.includes(r.element)));
       syncTrackerStateRef.current();
@@ -2013,10 +2029,10 @@ function RetuneInner(props: RetuneConfig) {
               null, null, null, "", null, { x: 0, y: 0, width: 0, height: 0 },
             );
             tracker.ensureOriginalValue(bulkSelector, "__reorder", String(i));
-            tracker.recordChange(bulkSelector, "__reorder", String(targetIdx));
+            tracker.recordChangeSilent(bulkSelector, "__reorder", String(targetIdx));
             // Mark as bulk instance so output formatter consolidates
             tracker.ensureOriginalValue(bulkSelector, "__bulkOf", "");
-            tracker.recordChange(bulkSelector, "__bulkOf", "reorder");
+            tracker.recordChangeSilent(bulkSelector, "__bulkOf", "reorder");
             break; // one entry per parent is enough for restoration
           }
         }
@@ -2185,10 +2201,10 @@ function RetuneInner(props: RetuneConfig) {
           null, null, null, "", null, { x: 0, y: 0, width: 0, height: 0 },
         );
         tracker.ensureOriginalValue(bulkSelector, "__reparent", `${bulkOldParentSelector}@${bulkOldIndex}`);
-        tracker.recordChange(bulkSelector, "__reparent", `${bulkNewParentSelector}@${insertIndex}`);
+        tracker.recordChangeSilent(bulkSelector, "__reparent", `${bulkNewParentSelector}@${insertIndex}`);
         // Mark as bulk instance so output formatter consolidates
         tracker.ensureOriginalValue(bulkSelector, "__bulkOf", "");
-        tracker.recordChange(bulkSelector, "__bulkOf", "reparent");
+        tracker.recordChangeSilent(bulkSelector, "__bulkOf", "reparent");
       }
 
       // Perform the DOM move

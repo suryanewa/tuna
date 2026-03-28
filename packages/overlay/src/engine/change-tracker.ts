@@ -155,6 +155,14 @@ export class ChangeTracker {
     return { from: oldValue, to: newValue };
   }
 
+  /** Record a change for persistence only — no undo stack entry.
+   *  Used for bulk structural changes that undo through separate mechanisms. */
+  recordChangeSilent(selector: string, property: string, newValue: string): void {
+    const tracked = this.tracked.get(selector);
+    if (!tracked) return;
+    tracked.currentStyles[property] = newValue;
+  }
+
   /** Find an undo entry for a property within a specific group */
   private findInGroup(group: number, property: string): number {
     for (let i = this.undoStack.length - 1; i >= 0; i--) {
@@ -524,6 +532,24 @@ export class ChangeTracker {
       }
     }
     return result;
+  }
+
+  /** Silently revert a property to its original value without touching the undo stack.
+   *  Used for bulk entry cleanup when undoing structural changes. */
+  silentRevert(selector: string, property: string): void {
+    const tracked = this.tracked.get(selector);
+    if (!tracked) return;
+    const original = tracked.originalStyles[property] || "";
+    tracked.currentStyles[property] = original;
+  }
+
+  /** Completely remove a pseudo-property from a tracked element.
+   *  Deletes from both originalStyles and currentStyles so it won't appear in pending changes. */
+  removeProperty(selector: string, property: string): void {
+    const tracked = this.tracked.get(selector);
+    if (!tracked) return;
+    delete tracked.originalStyles[property];
+    delete tracked.currentStyles[property];
   }
 
   /** Reset a property to its original value. Pushes to undo stack so redo works. */
