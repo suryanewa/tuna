@@ -31,7 +31,7 @@ import { PropertyPanel } from "./PropertyPanel";
 import { ElementTree, type ReparentEntry } from "./ElementTree";
 import { SettingsPanel } from "./SettingsPanel";
 import { IconCursorClick } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconCursorClick";
-import { IconSquareBehindSquare1 } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconSquareBehindSquare1";
+import { IconSquareBehindSquare6 } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconSquareBehindSquare6";
 import { IconStepBack } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconStepBack";
 import { IconCrossMedium } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconCrossMedium";
 import { IconBroom } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconBroom";
@@ -3280,8 +3280,14 @@ function RetuneInner(props: RetuneConfig) {
           </button>
         </Tooltip>
 
-        {/* Expanded: mode switcher + actions */}
+        {/* Expanded: count + separator + mode + actions */}
         <div className="retune-toolbar-expanded">
+          {(changeCount > 0 || commentCount > 0) && (
+            <div className="retune-edit-count">{changeCount + commentCount}</div>
+          )}
+          {(changeCount > 0 || commentCount > 0) && (
+            <div className="retune-toolbar-divider" />
+          )}
           <Tooltip content="Edit mode" side="top">
             <button
               className={`retune-toolbar-btn${mode === "edit" ? " active" : ""}`}
@@ -3298,10 +3304,6 @@ function RetuneInner(props: RetuneConfig) {
               <IconBubbleWide size={20} />
             </button>
           </Tooltip>
-          <div className="retune-toolbar-divider" />
-          {(changeCount > 0 || commentCount > 0) && (
-            <div className="retune-edit-count">{changeCount + commentCount}</div>
-          )}
           <Tooltip content="Copy changes" shortcut="⌘C" side="top">
             <button
               className={`retune-toolbar-btn${changeCount === 0 && commentCount === 0 ? " disabled" : ""}`}
@@ -3310,7 +3312,7 @@ function RetuneInner(props: RetuneConfig) {
             >
               <span className="retune-icon-swap">
                 <span className={`retune-icon-swap-icon ${copied ? "out" : "in"}`}>
-                  <IconSquareBehindSquare1 size={20} />
+                  <IconSquareBehindSquare6 size={20} />
                 </span>
                 <span className={`retune-icon-swap-icon ${copied ? "in" : "out"}`}>
                   <IconCheckCircle2 size={20} />

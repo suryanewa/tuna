@@ -161,7 +161,7 @@
   z-index: 2147483647;
   pointer-events: auto;
   background: var(--retune-surface);
-  border-radius: 999px;
+  border-radius: 16px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
   height: 44px;
   padding: 6px;
@@ -273,12 +273,13 @@
   width: 32px;
   height: 32px;
   border: none;
-  border-radius: 50%;
+  border-radius: 10px;
   background: transparent;
   cursor: pointer;
   color: var(--retune-text);
   padding: 6px;
   flex-shrink: 0;
+  position: relative;
   transition: background 0.12s ease;
 }
 
@@ -357,7 +358,7 @@
   color: var(--retune-always-white);
   min-width: 32px;
   height: 32px;
-  border-radius: 999px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3232,12 +3233,11 @@
   line-height: 1;
 }
 .retune-toolbar-btn.active {
-  background: var(--retune-blue-10);
-  color: #fff;
-  border-radius: 8px;
+  background: var(--retune-blue);
+  color: var(--retune-always-white);
 }
 .retune-toolbar-btn.active:hover {
-  background: var(--retune-blue-12);
+  background: var(--retune-blue);
 }
 .retune-toolbar-divider {
   width: 1px;
