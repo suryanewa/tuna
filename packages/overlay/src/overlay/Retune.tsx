@@ -429,10 +429,19 @@ function CommentPopover({
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const isEdit = !!onDelete;
 
-  useEffect(() => {
-    // Focus on mount
-    setTimeout(() => inputRef.current?.focus(), 50);
+  const autoResize = useCallback(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "0";
+    el.style.height = el.scrollHeight + "px";
   }, []);
+
+  useEffect(() => {
+    setTimeout(() => {
+      inputRef.current?.focus();
+      autoResize();
+    }, 50);
+  }, [autoResize]);
 
   const handleSubmit = () => {
     const trimmed = text.trim();
@@ -496,7 +505,7 @@ function CommentPopover({
         ref={inputRef}
         className="retune-comment-textarea"
         value={text}
-        onChange={(e) => setText(e.target.value)}
+        onChange={(e) => { setText(e.target.value); autoResize(); }}
         onKeyDown={handleKeyDown}
         placeholder="Add a comment..."
         rows={3}
@@ -1397,6 +1406,32 @@ function RetuneInner(props: RetuneConfig) {
     areaEl: HTMLDivElement | null;
   } | null>(null);
   const popoverOpenRef = useRef(false);
+
+  // Mode shortcuts: V for edit, C for comment (when toolbar is active)
+  useEffect(() => {
+    if (!active) return;
+    const handleModeKey = (e: KeyboardEvent) => {
+      // Skip if typing in an input/textarea
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === "v" || e.key === "V") {
+        e.preventDefault();
+        setMode("edit");
+        setCommentDraft(null);
+        setActiveCommentId(null);
+        popoverOpenRef.current = false;
+        pickerRef.current?.setCommentMode(false);
+      } else if (e.key === "c" || e.key === "C") {
+        e.preventDefault();
+        setMode("comment");
+        setSelectedElement(null);
+        pickerRef.current?.setCommentMode(true);
+      }
+    };
+    document.addEventListener("keydown", handleModeKey, true);
+    return () => document.removeEventListener("keydown", handleModeKey, true);
+  }, [active]);
 
   // Comment mode: area drag selection (element clicks are handled by picker's onSelect)
   useEffect(() => {
@@ -3446,7 +3481,7 @@ function RetuneInner(props: RetuneConfig) {
           {(changeCount > 0 || commentCount > 0) && (
             <div className="retune-toolbar-divider" />
           )}
-          <Tooltip content="Edit mode" side="top">
+          <Tooltip content="Edit mode" shortcut="V" side="top">
             <button
               className={`retune-toolbar-btn${mode === "edit" ? " active" : ""}`}
               onClick={() => { setMode("edit"); setCommentDraft(null); setActiveCommentId(null); popoverOpenRef.current = false; }}
@@ -3454,7 +3489,7 @@ function RetuneInner(props: RetuneConfig) {
               <IconCursor1 size={20} />
             </button>
           </Tooltip>
-          <Tooltip content="Comment mode" side="top">
+          <Tooltip content="Comment mode" shortcut="C" side="top">
             <button
               className={`retune-toolbar-btn${mode === "comment" ? " active" : ""}`}
               onClick={() => { setMode("comment"); setSelectedElement(null); }}
@@ -3780,14 +3815,14 @@ function RetuneInner(props: RetuneConfig) {
       {active && comments.map((c, idx) => (
         <div
           key={c.id}
-          className={`retune-comment-marker${mode === "comment" ? " interactive" : ""}`}
+          className="retune-comment-marker interactive"
           style={{ left: c.position.x, top: c.position.y }}
-          onClick={mode === "comment" ? (e) => {
+          onPointerUp={(e) => {
             e.stopPropagation();
             popoverOpenRef.current = true;
             setActiveCommentId(c.id);
             setCommentDraft(null);
-          } : undefined}
+          }}
         >
           {idx + 1}
         </div>
@@ -3827,8 +3862,8 @@ function RetuneInner(props: RetuneConfig) {
         />
       )}
 
-      {/* Comment popover for editing existing comment */}
-      {active && mode === "comment" && activeCommentId && (() => {
+      {/* Comment popover for editing existing comment (works in both modes) */}
+      {active && activeCommentId && (() => {
         const c = commentStoreRef.current.get(activeCommentId);
         if (!c) return null;
         return (
