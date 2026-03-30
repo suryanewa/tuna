@@ -3243,7 +3243,6 @@
   width: 1px;
   height: 20px;
   background: var(--retune-border);
-  margin: 0 2px;
   flex-shrink: 0;
 }
 
