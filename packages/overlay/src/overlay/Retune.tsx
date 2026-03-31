@@ -1049,13 +1049,21 @@ function RetuneInner(props: RetuneConfig) {
         // In comment mode, create a comment instead of selecting for editing
         if (modeRef.current === "comment") {
           if (popoverOpenRef.current) return;
-          const rect = element.getBoundingClientRect();
+          const cursor = lastClickRef.current;
           const selector = getQuickSelector(element);
           const componentName = getQuickComponentName(element);
+          // Build a selector path for context (up to 3 ancestors)
+          const selectorPath: string[] = [selector];
+          let ancestor = element.parentElement;
+          for (let i = 0; i < 3 && ancestor && ancestor !== document.body; i++) {
+            selectorPath.unshift(getQuickSelector(ancestor));
+            ancestor = ancestor.parentElement;
+          }
+          const fullSelector = selectorPath.join(" > ");
           const draft = {
-            position: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 },
+            position: { x: cursor.x, y: cursor.y },
             type: "element" as const,
-            selector,
+            selector: fullSelector,
             elementInfo: {
               tagName: element.tagName.toLowerCase(),
               componentName,
@@ -1479,6 +1487,13 @@ function RetuneInner(props: RetuneConfig) {
   }, [mode, active]);
 
   // Comment mode: handle clicks and drags to create comments
+  const lastClickRef = useRef({ x: 0, y: 0 });
+  useEffect(() => {
+    const trackClick = (e: MouseEvent) => { lastClickRef.current = { x: e.clientX, y: e.clientY }; };
+    document.addEventListener("click", trackClick, true);
+    return () => document.removeEventListener("click", trackClick, true);
+  }, []);
+
   const commentDragRef = useRef<{
     startX: number; startY: number; dragging: boolean;
     areaEl: HTMLDivElement | null;

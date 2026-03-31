@@ -105,15 +105,19 @@ export function formatChanges(changes: ElementChange[], fidelity: Fidelity, comm
   const lines: string[] = [];
 
   // Header — preamble gives the AI model clear intent + identification
-  lines.push("Apply these Retune visual changes to the source code:\n");
-  lines.push(`# Visual Changes (${changes.length} element${changes.length > 1 ? "s" : ""})`);
-  lines.push("");
-
+  const hasChanges = changes.length > 0;
+  const hasComments = comments && comments.length > 0;
+  if (hasChanges && hasComments) {
+    lines.push("Apply these Retune visual changes and address the user's comments in the source code:\n");
+  } else if (hasComments) {
+    lines.push("The user has left comments on their running app using Retune. Address each comment by making the described changes to the source code:\n");
+  } else {
+    lines.push("Apply these Retune visual changes to the source code:\n");
+  }
   // Environment context
   lines.push("**Environment:**");
   lines.push(`- URL: ${window.location.href}`);
   lines.push(`- Viewport: ${window.innerWidth}×${window.innerHeight}`);
-  lines.push(`- Device Pixel Ratio: ${window.devicePixelRatio}`);
   lines.push(`- Timestamp: ${new Date().toISOString()}`);
   lines.push("");
 
@@ -133,8 +137,10 @@ export function formatChanges(changes: ElementChange[], fidelity: Fidelity, comm
     lines.push("");
   }
 
-  // Each element change — pass bulk instance count so structural actions can note it
+  // Each element change — only show section if there are changes
   if (changes.length > 0) {
+    lines.push(`# Visual Changes (${changes.length} element${changes.length !== 1 ? "s" : ""})`);
+    lines.push("");
     const sections = changes.map((change) => formatSingleChange(change, fidelity, tokenMap, bulkCount));
     lines.push(sections.join("\n---\n\n"));
   }
@@ -148,10 +154,12 @@ export function formatChanges(changes: ElementChange[], fidelity: Fidelity, comm
     }
     lines.push(`# Comments (${comments.length})`);
     lines.push("");
-    for (const comment of comments) {
+    comments.forEach((comment, idx) => {
       if (comment.type === "element" && comment.elementInfo) {
         const info = comment.elementInfo;
-        lines.push(`## Comment on \`<${info.tagName}>\`${info.textContent ? ` "${truncate(info.textContent, 60)}"` : ""}`);
+        const textHint = info.textContent ? ` "${truncate(info.textContent, 60)}"` : "";
+        lines.push(`## Comment #${idx + 1} on \`<${info.tagName}>\`${textHint}`);
+        lines.push("");
         if (info.componentName) {
           lines.push(`**Component:** ${info.componentName}`);
         }
@@ -161,16 +169,19 @@ export function formatChanges(changes: ElementChange[], fidelity: Fidelity, comm
         if (info.classes.length > 0) {
           lines.push(`**Classes:** \`${info.classes.join(" ")}\``);
         }
+        lines.push(`**Marker position:** (${Math.round(comment.position.x)}, ${Math.round(comment.position.y)}) on viewport`);
       } else if (comment.type === "area" && comment.area) {
         const a = comment.area;
-        lines.push(`## Comment on area (${Math.round(a.x)}, ${Math.round(a.y)}) ${Math.round(a.width)}×${Math.round(a.height)}px`);
+        lines.push(`## Comment #${idx + 1} on area`);
+        lines.push("");
+        lines.push(`**Region:** (${Math.round(a.x)}, ${Math.round(a.y)}) ${Math.round(a.width)}×${Math.round(a.height)}px`);
       } else {
-        lines.push(`## Comment`);
+        lines.push(`## Comment #${idx + 1}`);
       }
       lines.push("");
-      lines.push(comment.text);
+      lines.push(`> ${comment.text.split("\n").join("\n> ")}`);
       lines.push("");
-    }
+    });
   }
 
   return lines.join("\n");

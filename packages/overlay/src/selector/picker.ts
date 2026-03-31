@@ -2615,6 +2615,7 @@ export function createPicker(
     if (hoverTimer) { clearTimeout(hoverTimer); hoverTimer = null; }
     hideHighlight();
     hideSelection();
+    hideScopeHighlights();
     stopTracking();
     document.removeEventListener("mousemove", handleMouseMove, true);
     document.removeEventListener("click", handleClick, true);
