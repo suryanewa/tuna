@@ -292,6 +292,84 @@ export function Retune(props: RetuneConfig = {}) {
   return <RetuneInner {...props} />;
 }
 
+// ── Comment Marker (JS-driven hover expansion) ──
+
+function CommentMarker({ comment: c, index, isPopoverOpen, onOpen }: {
+  comment: Comment;
+  index: number;
+  isPopoverOpen: boolean;
+  onOpen: () => void;
+}) {
+  const markerRef = useRef<HTMLDivElement>(null);
+  const previewRef = useRef<HTMLSpanElement>(null);
+  const popoverOpenRef2 = useRef(isPopoverOpen);
+  popoverOpenRef2.current = isPopoverOpen;
+
+  useEffect(() => {
+    const marker = markerRef.current;
+    if (!marker) return;
+
+    const onEnter = () => {
+      if (popoverOpenRef2.current) return;
+      const preview = previewRef.current;
+      if (!preview) return;
+
+      // Measure text width with a temporary inline span (avoids -webkit-box layout issues)
+      const measurer = document.createElement("span");
+      measurer.style.cssText = `position:absolute;visibility:hidden;font-size:12px;line-height:1.4;font-family:inherit;white-space:nowrap;`;
+      measurer.textContent = c.text;
+      marker.appendChild(measurer);
+      const textW = measurer.offsetWidth;
+      measurer.remove();
+      const targetW = Math.min(textW + 24, 200); // text width + horizontal padding
+      const targetH = preview.offsetHeight + 10;
+
+      marker.style.width = targetW + "px";
+      marker.style.height = targetH + "px";
+      marker.style.transform = `translate(-4px, -${targetH}px)`;
+      marker.classList.add("expanded");
+    };
+
+    const onLeave = () => {
+      marker.style.width = "";
+      marker.style.height = "";
+      marker.style.transform = "";
+      marker.classList.remove("expanded");
+    };
+
+    marker.addEventListener("mouseenter", onEnter);
+    marker.addEventListener("mouseleave", onLeave);
+    return () => {
+      marker.removeEventListener("mouseenter", onEnter);
+      marker.removeEventListener("mouseleave", onLeave);
+    };
+  }, []);
+
+  // Collapse marker when popover opens
+  useEffect(() => {
+    const marker = markerRef.current;
+    if (!marker) return;
+    if (isPopoverOpen) {
+      marker.style.width = "";
+      marker.style.height = "";
+      marker.style.transform = "";
+      marker.classList.remove("expanded");
+    }
+  }, [isPopoverOpen]);
+
+  return (
+    <div
+      ref={markerRef}
+      className={`retune-comment-marker interactive${isPopoverOpen ? " popover-open" : ""}`}
+      style={{ left: c.position.x, top: c.position.y }}
+      onPointerUp={(e) => { e.stopPropagation(); onOpen(); }}
+    >
+      <span className="retune-comment-marker-num">{index + 1}</span>
+      <span ref={previewRef} className="retune-comment-marker-preview">{c.text}</span>
+    </div>
+  );
+}
+
 // ── Retune Logo (with bloom hover animation from retune-site) ──
 
 function RetuneLogo({ size = 20 }: { size?: number }) {
@@ -437,9 +515,11 @@ function CommentPopover({
   }, []);
 
   useEffect(() => {
-    // Focus after animation completes to avoid height flash
-    setTimeout(() => inputRef.current?.focus(), 200);
-  }, []);
+    setTimeout(() => {
+      inputRef.current?.focus();
+      autoResize();
+    }, 200);
+  }, [autoResize]);
 
   const handleSubmit = () => {
     const trimmed = text.trim();
@@ -3653,7 +3733,7 @@ function RetuneInner(props: RetuneConfig) {
                       fontWeight: 500,
                       lineHeight: "16px",
                       letterSpacing: "-0.055px",
-                      color: "var(--retune-text)",
+                      color: "var(--retune-always-black)",
                       whiteSpace: "nowrap",
                       position: "relative",
                       overflow: "hidden",
@@ -3814,20 +3894,11 @@ function RetuneInner(props: RetuneConfig) {
 
       {/* Comment markers (visible in both modes) */}
       {active && comments.map((c, idx) => (
-        <div
-          key={c.id}
-          className={`retune-comment-marker interactive${activeCommentId === c.id ? " popover-open" : ""}`}
-          style={{ left: c.position.x, top: c.position.y }}
-          onPointerUp={(e) => {
-            e.stopPropagation();
-            popoverOpenRef.current = true;
-            setActiveCommentId(c.id);
-            setCommentDraft(null);
-          }}
-        >
-          <span className="retune-comment-marker-num">{idx + 1}</span>
-          <span className="retune-comment-marker-preview">{c.text}</span>
-        </div>
+        <CommentMarker key={c.id} comment={c} index={idx} isPopoverOpen={activeCommentId === c.id} onOpen={() => {
+          popoverOpenRef.current = true;
+          setActiveCommentId(c.id);
+          setCommentDraft(null);
+        }} />
       ))}
 
       {/* Area outlines for area comments */}
