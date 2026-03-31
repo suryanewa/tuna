@@ -3816,7 +3816,7 @@ function RetuneInner(props: RetuneConfig) {
       {active && comments.map((c, idx) => (
         <div
           key={c.id}
-          className="retune-comment-marker interactive"
+          className={`retune-comment-marker interactive${activeCommentId === c.id ? " popover-open" : ""}`}
           style={{ left: c.position.x, top: c.position.y }}
           onPointerUp={(e) => {
             e.stopPropagation();
@@ -3826,9 +3826,7 @@ function RetuneInner(props: RetuneConfig) {
           }}
         >
           <span className="retune-comment-marker-num">{idx + 1}</span>
-          {activeCommentId !== c.id && (
-            <span className="retune-comment-marker-preview">{c.text}</span>
-          )}
+          <span className="retune-comment-marker-preview">{c.text}</span>
         </div>
       ))}
 

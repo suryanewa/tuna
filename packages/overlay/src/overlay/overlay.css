@@ -3151,7 +3151,7 @@
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
-  max-width: 0;
+  width: 0;
   opacity: 0;
   padding: 0;
   transition: all 200ms ease;
@@ -3161,18 +3161,18 @@
   cursor: pointer;
 }
 @media (hover: hover) and (pointer: fine) {
-  .retune-comment-marker.interactive:hover {
+  .retune-comment-marker.interactive:not(.popover-open):hover {
     max-width: 260px;
     max-height: 80px;
   }
-  .retune-comment-marker.interactive:hover .retune-comment-marker-num {
+  .retune-comment-marker.interactive:not(.popover-open):hover .retune-comment-marker-num {
     opacity: 0;
     min-width: 0;
     width: 0;
     overflow: hidden;
   }
-  .retune-comment-marker.interactive:hover .retune-comment-marker-preview {
-    max-width: 200px;
+  .retune-comment-marker.interactive:not(.popover-open):hover .retune-comment-marker-preview {
+    width: 200px;
     opacity: 1;
     padding: 6px 10px;
   }
