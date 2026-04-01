@@ -674,12 +674,14 @@ function CommentPopover({
   onSubmit,
   onCancel,
   onDelete,
+  onTextChange,
 }: {
   position: { x: number; y: number };
   initialText: string;
   onSubmit: (text: string) => void;
   onCancel: () => void;
   onDelete?: () => void;
+  onTextChange?: (text: string) => void;
 }) {
   const [text, setText] = useState(initialText);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -761,7 +763,7 @@ function CommentPopover({
         ref={inputRef}
         className="retune-comment-textarea"
         value={text}
-        onChange={(e) => { setText(e.target.value); autoResize(); }}
+        onChange={(e) => { setText(e.target.value); onTextChange?.(e.target.value); autoResize(); }}
         onKeyDown={handleKeyDown}
         placeholder="Add a comment..."
         rows={3}
@@ -1230,10 +1232,12 @@ function RetuneInner(props: RetuneConfig) {
 
     const picker = createPicker(mount.root, {
       onHover: () => {},
+      shouldBlockClick: () => shouldBlockForPopoverRef.current(),
       onSelect: (element) => {
         // In comment mode, create a comment instead of selecting for editing
         if (modeRef.current === "comment") {
-          if (popoverOpenRef.current) return;
+          // Skip if area drag just ended or popover is already open
+          if (areaDragJustEndedRef.current || popoverOpenRef.current) return;
           const cursor = lastClickRef.current;
           const selector = getQuickSelector(element);
           const componentName = getQuickComponentName(element);
@@ -1259,7 +1263,7 @@ function RetuneInner(props: RetuneConfig) {
               textContent: (element.textContent || "").slice(0, 80).trim() || null,
             },
           };
-          popoverOpenRef.current = true;
+          popoverOpenRef.current = true; popoverTextRef.current = ""; popoverInitialTextRef.current = "";
           setCommentDraft(draft);
           // Hide selection UI (handles, badge) — we only need hover in comment mode
           pickerRef.current?.clearSelection();
@@ -1694,6 +1698,7 @@ function RetuneInner(props: RetuneConfig) {
 
   // Comment mode: handle clicks and drags to create comments
   const lastClickRef = useRef({ x: 0, y: 0 });
+  const areaDragJustEndedRef = useRef(false);
   useEffect(() => {
     const trackClick = (e: MouseEvent) => { lastClickRef.current = { x: e.clientX, y: e.clientY }; };
     document.addEventListener("click", trackClick, true);
@@ -1705,18 +1710,48 @@ function RetuneInner(props: RetuneConfig) {
     areaEl: HTMLDivElement | null;
   } | null>(null);
   const popoverOpenRef = useRef(false);
+  const popoverTextRef = useRef("");
+  const popoverInitialTextRef = useRef("");
+  const shakePopover = useCallback(() => {
+    const el = mountRef.current?.root.querySelector(".retune-comment-popover") as HTMLElement | null;
+    if (!el) return;
+    el.classList.remove("shaking");
+    el.offsetHeight; // force reflow
+    el.classList.add("shaking");
+    const onEnd = () => { el.classList.remove("shaking"); el.removeEventListener("animationend", onEnd); };
+    el.addEventListener("animationend", onEnd);
+  }, []);
+  /** Returns true if the popover has unsaved changes and should block. Triggers shake if blocking. */
+  const shouldBlockForPopover = useCallback(() => {
+    if (!popoverOpenRef.current) return false;
+    // Don't dismiss a popover that was just created by area drag
+    if (areaDragJustEndedRef.current) return true;
+    const isDirty = popoverTextRef.current !== popoverInitialTextRef.current;
+    if (isDirty) {
+      shakePopover();
+      return true;
+    }
+    // No changes — dismiss and let the action pass through
+    popoverOpenRef.current = false;
+    popoverTextRef.current = "";
+    popoverInitialTextRef.current = "";
+    setCommentDraft(null);
+    setActiveCommentId(null);
+    return false;
+  }, [shakePopover]);
+  const shouldBlockForPopoverRef = useRef(shouldBlockForPopover);
+  shouldBlockForPopoverRef.current = shouldBlockForPopover;
 
   // Mode shortcuts: V for edit, C for comment (when toolbar is active)
   useEffect(() => {
     if (!active) return;
     const handleModeKey = (e: KeyboardEvent) => {
-      // Skip if popover is open (user is typing a comment)
-      if (popoverOpenRef.current) return;
       // Skip if typing in an input/textarea (check composedPath for shadow DOM)
       const actualTarget = e.composedPath()[0] as HTMLElement | undefined;
       const tag = actualTarget?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || actualTarget?.isContentEditable) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (shouldBlockForPopoverRef.current()) return;
       if (e.key === "v" || e.key === "V") {
         e.preventDefault();
         setMode("edit");
@@ -1740,11 +1775,16 @@ function RetuneInner(props: RetuneConfig) {
     if (!active || mode !== "comment") return;
 
     const handlePointerDown = (e: PointerEvent) => {
-      if (popoverOpenRef.current) return;
+      // Skip if click is inside the overlay (popover, toolbar, markers)
       const path = e.composedPath();
       for (let i = 0; i < path.length; i++) {
-        if (path[i] instanceof HTMLElement && (path[i] as HTMLElement).hasAttribute("data-retune-host")) return;
+        if (path[i] instanceof HTMLElement && (path[i] as HTMLElement).hasAttribute("data-retune-host")) {
+          console.log("[area drag] skipped - inside overlay");
+          return;
+        }
       }
+      if (shouldBlockForPopoverRef.current()) { console.log("[area drag] blocked by popover"); return; }
+      console.log("[area drag] pointerdown started");
       e.preventDefault();
       const areaEl = document.createElement("div");
       areaEl.style.cssText = `position:fixed;border:1px dashed #0D99FF;pointer-events:none;z-index:2147483640;display:none;`;
@@ -1771,6 +1811,7 @@ function RetuneInner(props: RetuneConfig) {
 
     const handlePointerUp = (e: PointerEvent) => {
       const drag = commentDragRef.current;
+      console.log("[area drag] pointerup", { hasDrag: !!drag, dragging: drag?.dragging });
       if (!drag) return;
       commentDragRef.current = null;
 
@@ -1782,7 +1823,9 @@ function RetuneInner(props: RetuneConfig) {
           height: Math.abs(e.clientY - drag.startY),
         };
         drag.areaEl.remove();
+        console.log("[area drag] area dimensions:", area.width, area.height);
         if (area.width > 10 && area.height > 10) {
+          console.log("[area drag] creating draft");
           // Query elements within the selected area
           const containedElements: Array<{ tagName: string; selector: string; componentName: string | null; textContent: string | null }> = [];
           const step = 20;
@@ -1802,7 +1845,9 @@ function RetuneInner(props: RetuneConfig) {
             }
           }
 
-          popoverOpenRef.current = true;
+          popoverOpenRef.current = true; popoverTextRef.current = ""; popoverInitialTextRef.current = "";
+          areaDragJustEndedRef.current = true;
+          setTimeout(() => { areaDragJustEndedRef.current = false; }, 50);
           setCommentDraft({
             position: { x: e.clientX, y: e.clientY },
             type: "area",
@@ -1823,14 +1868,18 @@ function RetuneInner(props: RetuneConfig) {
       }
     };
 
-    // Escape in comment mode: dismiss popover if open, otherwise switch to edit mode
+    // Escape in comment mode: shake if unsaved changes, dismiss if clean, switch mode if no popover
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
+      if (shouldBlockForPopoverRef.current()) return;
       if (popoverOpenRef.current) {
+        // Clean popover — dismiss it
         popoverOpenRef.current = false;
+        popoverTextRef.current = "";
+        popoverInitialTextRef.current = "";
         setCommentDraft(null);
         setActiveCommentId(null);
       } else {
@@ -4189,13 +4238,14 @@ function RetuneInner(props: RetuneConfig) {
             syncCommentState();
           } : undefined}
           onOpen={() => {
-          popoverOpenRef.current = true;
+          popoverOpenRef.current = true; popoverTextRef.current = c.text; popoverInitialTextRef.current = c.text;
           setActiveCommentId(c.id);
           setCommentDraft(null);
         }} />
       ))}
 
       {/* Area outlines for area comments */}
+      {active && (() => { if (comments.length) console.log("[retune] comments:", JSON.stringify(comments.map(c => ({ id: c.id, type: c.type, hasArea: !!c.area, area: c.area })))); return null; })()}
       {active && comments.filter(c => c.type === "area" && c.area).map(c => (
         <AreaOutline
           key={`area-${c.id}`}
@@ -4252,6 +4302,7 @@ function RetuneInner(props: RetuneConfig) {
         <CommentPopover
           position={commentDraft.position}
           initialText=""
+          onTextChange={(t) => { popoverTextRef.current = t; }}
           onSubmit={(text) => {
             const store = commentStoreRef.current;
             store.add(text, commentDraft.position, commentDraft.type, {
@@ -4277,6 +4328,7 @@ function RetuneInner(props: RetuneConfig) {
           <CommentPopover
             position={c.position}
             initialText={c.text}
+            onTextChange={(t) => { popoverTextRef.current = t; }}
             onSubmit={(text) => {
               commentStoreRef.current.update(activeCommentId, text);
               syncCommentState();

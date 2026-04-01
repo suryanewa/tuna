@@ -15,6 +15,8 @@ export interface PickerCallbacks {
   onHover: (element: Element, rect: DOMRect) => void;
   onSelect: (element: Element) => void;
   onCancel: () => void;
+  /** If provided, called before processing a click. Return true to block the click entirely. */
+  shouldBlockClick?: () => boolean;
   onDoubleClick?: (element: Element) => void;
   onResize?: (element: Element, property: "width" | "height", value: string) => void;
   /** Called during resize drag for live preview (updates stylesheet without recording changes) */
@@ -2476,16 +2478,20 @@ export function createPicker(
     const path = e.composedPath();
     const host = shadowRoot.host;
     if (path.includes(host)) return;
-    // Check 2: the click point lands on an overlay UI element inside the shadow root.
-    // This catches edge cases where composedPath may not include the host (e.g. the
-    // clicked element was re-rendered between pointerdown and click due to React state
-    // updates, causing the original target to detach from the DOM).  Elements owned by
-    // the picker (highlight / selection boxes) have pointer-events:none so they won't
-    // be returned here — only interactive UI (toolbar, panel) will match.
-    // Note: elementFromPoint on a ShadowRoot falls through to page elements when no
-    // shadow element is at the point, so we must verify via getRootNode().
+    // Check 2: the click point lands on an interactive overlay UI element inside the shadow root.
     const shadowHit = shadowRoot.elementFromPoint(e.clientX, e.clientY);
-    if (shadowHit && shadowHit.getRootNode() === shadowRoot) return;
+    if (shadowHit && shadowHit.getRootNode() === shadowRoot) {
+      const pe = getComputedStyle(shadowHit).pointerEvents;
+      if (pe !== "none") return;
+    }
+
+    // Block page element clicks if popover has unsaved changes (after overlay checks)
+    if (callbacks.shouldBlockClick?.()) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      return;
+    }
 
     e.preventDefault();
     e.stopPropagation();

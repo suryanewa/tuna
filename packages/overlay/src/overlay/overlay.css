@@ -3179,6 +3179,17 @@ input, textarea, [contenteditable] {
 .retune-comment-marker.expanded .retune-comment-marker-preview {
   opacity: 1;
 }
+.retune-comment-popover.shaking {
+  animation: retune-shake 300ms ease-out !important;
+}
+@keyframes retune-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-2px); }
+  80% { transform: translateX(2px); }
+}
+
 @keyframes retune-marker-in {
   from {
     opacity: 0;
@@ -3357,7 +3368,8 @@ input, textarea, [contenteditable] {
   .retune-grid-picker-dialog,
   .retune-combo-dropdown-anchor,
   .retune-comment-marker,
-  .retune-comment-popover {
+  .retune-comment-popover,
+  .retune-comment-popover.shaking {
     animation: none;
   }
 
