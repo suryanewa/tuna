@@ -29,6 +29,13 @@ export interface Comment {
     componentPath: string[];
     classes: string[];
     textContent: string | null;
+    /** For area comments: elements found within the selected region */
+    containedElements?: Array<{
+      tagName: string;
+      selector: string;
+      componentName: string | null;
+      textContent: string | null;
+    }>;
   };
   timestamp: number;
 }

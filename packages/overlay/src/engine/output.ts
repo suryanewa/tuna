@@ -175,6 +175,15 @@ export function formatChanges(changes: ElementChange[], fidelity: Fidelity, comm
         lines.push(`## Comment #${idx + 1} on area`);
         lines.push("");
         lines.push(`**Region:** (${Math.round(a.x)}, ${Math.round(a.y)}) ${Math.round(a.width)}×${Math.round(a.height)}px`);
+        const contained = comment.elementInfo?.containedElements;
+        if (contained && contained.length > 0) {
+          const items = contained.slice(0, 8).map(el => {
+            const text = el.textContent ? ` "${truncate(el.textContent, 30)}"` : "";
+            const comp = el.componentName ? ` (${el.componentName})` : "";
+            return `\`<${el.tagName}>\` ${el.selector}${text}${comp}`;
+          });
+          lines.push(`**Contains:** ${items.join(", ")}`);
+        }
       } else {
         lines.push(`## Comment #${idx + 1}`);
       }

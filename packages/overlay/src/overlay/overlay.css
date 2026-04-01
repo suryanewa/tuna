@@ -7,6 +7,8 @@
   color: var(--retune-text);
   line-height: 1.4;
   interpolate-size: allow-keywords;
+  user-select: none;
+  -webkit-user-select: none;
 
   /* ══════════════════════════════════════
      PRIMITIVES — raw palette, never change
@@ -149,6 +151,10 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
+input, textarea, [contenteditable] {
+  user-select: text;
+  -webkit-user-select: text;
+}
 
 /* ── Toolbar ── */
 @keyframes retune-icon-in {

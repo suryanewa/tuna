@@ -1605,6 +1605,7 @@ function RetuneInner(props: RetuneConfig) {
       for (let i = 0; i < path.length; i++) {
         if (path[i] instanceof HTMLElement && (path[i] as HTMLElement).hasAttribute("data-retune-host")) return;
       }
+      e.preventDefault();
       const areaEl = document.createElement("div");
       areaEl.style.cssText = `position:fixed;border:2px dashed var(--retune-blue-10, #3b82f6);background:rgba(59,130,246,0.06);pointer-events:none;z-index:2147483640;display:none;`;
       document.body.appendChild(areaEl);
@@ -1642,12 +1643,39 @@ function RetuneInner(props: RetuneConfig) {
         };
         drag.areaEl.remove();
         if (area.width > 10 && area.height > 10) {
+          // Query elements within the selected area
+          const containedElements: Array<{ tagName: string; selector: string; componentName: string | null; textContent: string | null }> = [];
+          const step = 20;
+          const seen = new Set<Element>();
+          for (let x = area.x + step / 2; x < area.x + area.width; x += step) {
+            for (let y = area.y + step / 2; y < area.y + area.height; y += step) {
+              const el = document.elementFromPoint(x, y);
+              if (el && !seen.has(el) && !el.closest?.("[data-retune-host]")) {
+                seen.add(el);
+                containedElements.push({
+                  tagName: el.tagName.toLowerCase(),
+                  selector: getQuickSelector(el),
+                  componentName: getQuickComponentName(el),
+                  textContent: (el.textContent || "").slice(0, 40).trim() || null,
+                });
+              }
+            }
+          }
+
           popoverOpenRef.current = true;
           setCommentDraft({
             position: { x: e.clientX, y: e.clientY },
             type: "area",
             area,
             areaScroll: { x: window.scrollX, y: window.scrollY },
+            elementInfo: containedElements.length > 0 ? {
+              tagName: "area",
+              componentName: containedElements[0].componentName,
+              componentPath: [],
+              classes: [],
+              textContent: null,
+              containedElements,
+            } as any : undefined,
           });
         }
       } else if (drag.areaEl) {
