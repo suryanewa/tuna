@@ -1,6 +1,6 @@
 ---
 name: retune-visual-changes
-description: Apply visual changes from the Retune overlay to source code. Use this skill when receiving output from retune MCP tools (retune_get_formatted_changes, retune_get_pending_changes) OR when the user pastes structured visual change output containing "# Visual Changes", a Before/After changes table, or property diffs with Token/Variable columns. Triggers on: retune, "Visual Changes", "apply these changes", style diff, design tokens, design variables, property before/after table, visual tweaks, overlay changes.
+description: Apply visual changes from the Retune overlay to source code. Use this skill when receiving output from retune MCP tools (retune_get_formatted_changes, retune_get_pending_changes) OR when the user pastes structured visual change output containing "# Visual Changes", "# Comments", a Before/After changes table, or property diffs with Token/Variable columns. Triggers on: retune, "Visual Changes", "apply these changes", style diff, design tokens, design variables, property before/after table, visual tweaks, overlay changes, "Comment #", "Address each comment".
 ---
 
 # Applying Retune Visual Changes
@@ -208,6 +208,51 @@ When the output says **"This is a component-level change affecting N instances"*
 
 Width and height changes from drag-to-resize appear as regular property changes in the changes table. Apply them using the project's styling approach — don't add inline styles if the project uses CSS classes or stylesheets.
 
+## Comments
+
+Retune allows users to leave comments on elements or areas of their running app. Comments describe intent, feedback, or instructions that complement (or replace) visual property changes.
+
+### Comment Output Format
+
+```
+## Comment #1 on `<button>` "Get Started"
+
+**Component:** HeroSection
+**Selector:** `.hero > .cta-container > button.btn-primary`
+**Classes:** `btn-primary`
+**Marker position:** (500, 200) on viewport
+
+> Make this button more prominent — larger, bolder, maybe a gradient background
+```
+
+### How to Handle Comments
+
+Comments are **user intent in plain language**. Unlike property changes (which are exact values), comments require interpretation:
+
+1. **Read the comment text** (blockquoted with `>`) — this is what the user wants
+2. **Use the element identification** (Component, Selector, Classes) to find the element in source code
+3. **Apply the requested change** using the project's styling conventions
+4. **Use your judgment** — the user is describing what they want, not dictating exact CSS values
+5. **If a comment accompanies visual changes**, the comment provides context for WHY the changes were made. Apply the visual changes first, then address any additional intent in the comment.
+
+### Comment-Only Output
+
+When the output header says "The user has left comments on their running app using Retune. Address each comment by making the described changes to the source code:", there are no visual property changes — only comments. Read each comment and make the described changes.
+
+### Area Comments
+
+Area comments target a region of the page rather than a specific element:
+
+```
+## Comment #2 on area
+
+**Region:** (100, 300) 400×200px
+
+> Add a testimonials section here
+```
+
+For area comments, use the region coordinates and surrounding elements to determine where in the source code to make changes.
+
 ## Clearing Changes
 
 After applying all changes to source code, **always call `retune_clear_changes`** to clear the pending changes from the Retune overlay. This:
@@ -220,11 +265,15 @@ If you don't clear, the overlay will still show the old changes and the user may
 ## Workflow
 
 1. Read the formatted changes output
-2. Locate the element using Source → Component → Selector → text content
-3. For each changed property:
-   a. Check if an exact token/class/variable match exists
-   b. Apply using the project's styling approach
-   c. Watch for competing rules and scope
-4. For structural actions (delete, text edit, reorder, reparent): apply the DOM change to the JSX source
-5. Verify the change makes sense in context (don't blindly apply if something looks wrong)
-6. **Call `retune_clear_changes`** to clear the applied changes from the overlay
+2. For each **visual change**:
+   a. Locate the element using Source → Component → Selector → text content
+   b. Check if an exact token/class/variable match exists
+   c. Apply using the project's styling approach
+   d. Watch for competing rules and scope
+3. For **structural actions** (delete, text edit, reorder, reparent): apply the DOM change to the JSX source
+4. For each **comment**:
+   a. Read the comment text to understand the user's intent
+   b. Locate the element using Component → Selector → Classes
+   c. Make the described changes using the project's conventions
+5. Verify all changes make sense in context (don't blindly apply if something looks wrong)
+6. **Call `retune_clear_changes`** to clear the applied changes and comments from the overlay
