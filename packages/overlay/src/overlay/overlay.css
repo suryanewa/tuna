@@ -3191,11 +3191,21 @@ input, textarea, [contenteditable] {
 }
 .retune-comment-area-outline {
   position: fixed;
-  border: 2px dashed var(--retune-blue);
-  background: color-mix(in srgb, var(--retune-blue) 5%, transparent);
+  border: 1px dashed var(--retune-blue);
   pointer-events: none;
   z-index: 2147483639;
-  border-radius: 4px;
+}
+.retune-area-handle {
+  position: fixed;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--retune-blue);
+  border: 2px solid var(--retune-always-white);
+  box-shadow: 0 1px 3px var(--retune-black-25);
+  z-index: 2147483640;
+  cursor: nwse-resize;
+  pointer-events: auto;
 }
 .retune-comment-popover {
   background: var(--retune-surface);

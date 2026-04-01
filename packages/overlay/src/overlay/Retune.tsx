@@ -333,10 +333,13 @@ function useCommentPosition(c: Comment): { x: number; y: number } {
   return pos;
 }
 
-function CommentMarker({ comment: c, index, isPopoverOpen, onOpen }: {
+function CommentMarker({ comment: c, index, isPopoverOpen, isAreaResize, onAreaResize, onAreaResizeLive, onOpen }: {
   comment: Comment;
   index: number;
   isPopoverOpen: boolean;
+  isAreaResize?: boolean;
+  onAreaResize?: (newPos: { x: number; y: number }) => void;
+  onAreaResizeLive?: (newPos: { x: number; y: number }) => void;
   onOpen: () => void;
 }) {
   const markerRef = useRef<HTMLDivElement>(null);
@@ -396,16 +399,152 @@ function CommentMarker({ comment: c, index, isPopoverOpen, onOpen }: {
     }
   }, [isPopoverOpen]);
 
+  // Area resize drag on the marker itself
+  const dragRef = useRef<{ startX: number; startY: number; dragging: boolean } | null>(null);
+
+  useEffect(() => {
+    if (!isAreaResize || !onAreaResize) return;
+    const marker = markerRef.current;
+    if (!marker) return;
+
+    const onDown = (e: PointerEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dragRef.current = { startX: e.clientX, startY: e.clientY, dragging: false };
+    };
+    const onMove = (e: PointerEvent) => {
+      if (!dragRef.current) return;
+      const dx = Math.abs(e.clientX - dragRef.current.startX);
+      const dy = Math.abs(e.clientY - dragRef.current.startY);
+      if (dx > 3 || dy > 3) dragRef.current.dragging = true;
+      if (dragRef.current.dragging) {
+        marker.style.left = e.clientX + "px";
+        marker.style.top = e.clientY + "px";
+        onAreaResizeLive?.({ x: e.clientX, y: e.clientY });
+      }
+    };
+    const onUp = (e: PointerEvent) => {
+      if (!dragRef.current) return;
+      const wasDragging = dragRef.current.dragging;
+      dragRef.current = null;
+      if (wasDragging) {
+        onAreaResize({ x: e.clientX, y: e.clientY });
+      } else {
+        onOpen();
+      }
+    };
+
+    marker.addEventListener("pointerdown", onDown);
+    document.addEventListener("pointermove", onMove, true);
+    document.addEventListener("pointerup", onUp, true);
+    return () => {
+      marker.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("pointermove", onMove, true);
+      document.removeEventListener("pointerup", onUp, true);
+    };
+  }, [isAreaResize, onAreaResize, onOpen]);
+
   return (
     <div
       ref={markerRef}
-      className={`retune-comment-marker interactive${isPopoverOpen ? " popover-open" : ""}`}
-      style={{ left: pos.x, top: pos.y }}
-      onPointerUp={(e) => { e.stopPropagation(); onOpen(); }}
+      className={`retune-comment-marker interactive${isPopoverOpen ? " popover-open" : ""}${isAreaResize ? " area-resize" : ""}`}
+      style={{ left: pos.x, top: pos.y, cursor: isAreaResize ? "nwse-resize" : undefined }}
+      onPointerUp={isAreaResize ? undefined : (e) => { e.stopPropagation(); onOpen(); }}
     >
       <span className="retune-comment-marker-num">{index + 1}</span>
       <span ref={previewRef} className="retune-comment-marker-preview">{c.text}</span>
     </div>
+  );
+}
+
+// ── Area Outline with resize handles ──
+
+function AreaOutline({ comment: c, interactive, liveBR, onResize }: {
+  comment: Comment;
+  interactive: boolean;
+  liveBR?: { x: number; y: number };
+  onResize: (newArea: { x: number; y: number; width: number; height: number }) => void;
+}) {
+  const area = c.area!;
+  const [dragging, setDragging] = useState<{
+    handle: "tl" | "br";
+    startX: number; startY: number;
+    origArea: typeof area;
+  } | null>(null);
+  const [liveArea, setLiveArea] = useState(area);
+
+  useEffect(() => { setLiveArea(area); }, [area.x, area.y, area.width, area.height]);
+
+  useEffect(() => {
+    if (!dragging) return;
+
+    const onMove = (e: PointerEvent) => {
+      const dx = e.clientX - dragging.startX;
+      const dy = e.clientY - dragging.startY;
+      const orig = dragging.origArea;
+
+      if (dragging.handle === "tl") {
+        const newX = orig.x + dx;
+        const newY = orig.y + dy;
+        setLiveArea({
+          x: newX,
+          y: newY,
+          width: Math.max(20, orig.width - dx),
+          height: Math.max(20, orig.height - dy),
+        });
+      } else {
+        setLiveArea({
+          x: orig.x,
+          y: orig.y,
+          width: Math.max(20, orig.width + dx),
+          height: Math.max(20, orig.height + dy),
+        });
+      }
+    };
+
+    const onUp = () => {
+      setDragging(null);
+      onResize(liveArea);
+    };
+
+    document.addEventListener("pointermove", onMove, true);
+    document.addEventListener("pointerup", onUp, true);
+    return () => {
+      document.removeEventListener("pointermove", onMove, true);
+      document.removeEventListener("pointerup", onUp, true);
+    };
+  }, [dragging, liveArea, onResize]);
+
+  const handleSize = 12;
+  const half = handleSize / 2;
+
+  return (
+    <>
+      <div
+        className="retune-comment-area-outline"
+        style={liveBR ? {
+          left: liveArea.x,
+          top: liveArea.y,
+          width: Math.max(20, liveBR.x - liveArea.x),
+          height: Math.max(20, liveBR.y - liveArea.y),
+        } : {
+          left: liveArea.x, top: liveArea.y, width: liveArea.width, height: liveArea.height,
+        }}
+      />
+      {interactive && (
+        <>
+          <div
+            className="retune-area-handle"
+            style={{ left: liveArea.x - half, top: liveArea.y - half }}
+            onPointerDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setDragging({ handle: "tl", startX: e.clientX, startY: e.clientY, origArea: { ...liveArea } });
+            }}
+          />
+        </>
+      )}
+    </>
   );
 }
 
@@ -774,6 +913,7 @@ function RetuneInner(props: RetuneConfig) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentCount, setCommentCount] = useState(0);
   const [activeCommentId, setActiveCommentId] = useState<number | null>(null);
+  const [areaResizeLive, setAreaResizeLive] = useState<{ id: number; br: { x: number; y: number } } | null>(null);
   const [commentDraft, setCommentDraft] = useState<{
     position: { x: number; y: number };
     type: "element" | "area";
@@ -1607,7 +1747,7 @@ function RetuneInner(props: RetuneConfig) {
       }
       e.preventDefault();
       const areaEl = document.createElement("div");
-      areaEl.style.cssText = `position:fixed;border:2px dashed var(--retune-blue-10, #3b82f6);background:rgba(59,130,246,0.06);pointer-events:none;z-index:2147483640;display:none;`;
+      areaEl.style.cssText = `position:fixed;border:1px dashed #0D99FF;pointer-events:none;z-index:2147483640;display:none;`;
       document.body.appendChild(areaEl);
       commentDragRef.current = { startX: e.clientX, startY: e.clientY, dragging: false, areaEl };
     };
@@ -4007,7 +4147,48 @@ function RetuneInner(props: RetuneConfig) {
 
       {/* Comment markers (visible in both modes) */}
       {active && comments.map((c, idx) => (
-        <CommentMarker key={c.id} comment={c} index={idx} isPopoverOpen={activeCommentId === c.id} onOpen={() => {
+        <CommentMarker key={c.id} comment={c} index={idx} isPopoverOpen={activeCommentId === c.id}
+          isAreaResize={c.type === "area" && !!c.area}
+          onAreaResizeLive={c.type === "area" && c.area ? (newPos) => {
+            setAreaResizeLive({ id: c.id, br: newPos });
+          } : undefined}
+          onAreaResize={c.type === "area" && c.area ? (newPos) => {
+            setAreaResizeLive(null);
+            const store = commentStoreRef.current;
+            const comment = store.get(c.id);
+            if (!comment || !comment.area) return;
+            const area = comment.area;
+            comment.area = {
+              x: area.x,
+              y: area.y,
+              width: Math.max(20, newPos.x - area.x),
+              height: Math.max(20, newPos.y - area.y),
+            };
+            comment.position = newPos;
+            // Re-scan contained elements
+            const newArea = comment.area;
+            const contained: Array<{ tagName: string; selector: string; componentName: string | null; textContent: string | null }> = [];
+            const step = 20;
+            const seen = new Set<Element>();
+            for (let x = newArea.x + step / 2; x < newArea.x + newArea.width; x += step) {
+              for (let y = newArea.y + step / 2; y < newArea.y + newArea.height; y += step) {
+                const el = document.elementFromPoint(x, y);
+                if (el && !seen.has(el) && !el.closest?.("[data-retune-host]")) {
+                  seen.add(el);
+                  contained.push({
+                    tagName: el.tagName.toLowerCase(),
+                    selector: getQuickSelector(el),
+                    componentName: getQuickComponentName(el),
+                    textContent: (el.textContent || "").slice(0, 40).trim() || null,
+                  });
+                }
+              }
+            }
+            if (comment.elementInfo) (comment.elementInfo as any).containedElements = contained;
+            store.persist();
+            syncCommentState();
+          } : undefined}
+          onOpen={() => {
           popoverOpenRef.current = true;
           setActiveCommentId(c.id);
           setCommentDraft(null);
@@ -4016,17 +4197,55 @@ function RetuneInner(props: RetuneConfig) {
 
       {/* Area outlines for area comments */}
       {active && comments.filter(c => c.type === "area" && c.area).map(c => (
-        <div
+        <AreaOutline
           key={`area-${c.id}`}
-          className="retune-comment-area-outline"
-          style={{
-            left: c.area!.x,
-            top: c.area!.y,
-            width: c.area!.width,
-            height: c.area!.height,
+          comment={c}
+          interactive={true}
+          liveBR={areaResizeLive?.id === c.id ? areaResizeLive.br : undefined}
+          onResize={(newArea) => {
+            const store = commentStoreRef.current;
+            const updated = store.get(c.id);
+            if (!updated) return;
+            updated.area = newArea;
+            // Re-scan contained elements
+            const contained: Array<{ tagName: string; selector: string; componentName: string | null; textContent: string | null }> = [];
+            const step = 20;
+            const seen = new Set<Element>();
+            for (let x = newArea.x + step / 2; x < newArea.x + newArea.width; x += step) {
+              for (let y = newArea.y + step / 2; y < newArea.y + newArea.height; y += step) {
+                const el = document.elementFromPoint(x, y);
+                if (el && !seen.has(el) && !el.closest?.("[data-retune-host]")) {
+                  seen.add(el);
+                  contained.push({
+                    tagName: el.tagName.toLowerCase(),
+                    selector: getQuickSelector(el),
+                    componentName: getQuickComponentName(el),
+                    textContent: (el.textContent || "").slice(0, 40).trim() || null,
+                  });
+                }
+              }
+            }
+            if (updated.elementInfo) {
+              (updated.elementInfo as any).containedElements = contained;
+            }
+            store.persist();
+            syncCommentState();
           }}
         />
       ))}
+
+      {/* Draft area outline (visible while popover is open for a new area comment) */}
+      {active && commentDraft?.type === "area" && commentDraft.area && (
+        <div
+          className="retune-comment-area-outline"
+          style={{
+            left: commentDraft.area.x,
+            top: commentDraft.area.y,
+            width: commentDraft.area.width,
+            height: commentDraft.area.height,
+          }}
+        />
+      )}
 
       {/* Comment popover for new comment draft */}
       {active && mode === "comment" && commentDraft && !activeCommentId && (

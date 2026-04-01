@@ -125,7 +125,7 @@ export class CommentStore {
   }
 
   /** Persist to localStorage. */
-  private persist(): void {
+  persist(): void {
     try {
       const data = {
         comments: this.getAll(),
