@@ -3986,7 +3986,7 @@ function RetuneInner(props: RetuneConfig) {
               <PanelBanner
                 visible={!!selectedElement.reactProps && !manifestLoadedRef.current && !manifestBannerDismissed}
                 title="Know your components"
-                body="See every variant, size, and state your components support — and switch between them."
+                body="See every variant, size, and state your components support and switch between them."
                 copyLabel="Copy prompt"
                 copiedLabel="Paste in your AI agent"
                 copyText={MANIFEST_PROMPT_TEXT}
