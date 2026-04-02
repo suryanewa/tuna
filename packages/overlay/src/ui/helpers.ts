@@ -3,7 +3,7 @@
  */
 
 import type { InspectedElement } from "../types";
-import { getSelector, getReactComponentHierarchy, getReactProps, getReactState, getReactSource } from "../selector/identifier";
+import { getSelector, getReactComponentHierarchy, getDirectReactProps, getDirectReactState, getReactSource, getDirectReactComponent } from "../selector/identifier";
 import { getRelevantStyles, detectLayoutMode } from "../inspector/styles";
 import { detectStylingApproach } from "../inspector/tokens";
 
@@ -22,8 +22,8 @@ export function inspectElement(element: Element): InspectedElement {
     computedStyles: getRelevantStyles(element),
     layoutMode: detectLayoutMode(element),
     reactComponents: getReactComponentHierarchy(element),
-    reactProps: getReactProps(element),
-    reactState: getReactState(element),
+    reactProps: getDirectReactProps(element),
+    reactState: getDirectReactState(element),
     sourceFile: getReactSource(element),
     stylingApproach: detectStylingApproach(element),
     inlineStyles: (element as HTMLElement).style?.cssText || null,

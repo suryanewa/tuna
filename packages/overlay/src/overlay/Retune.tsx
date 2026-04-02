@@ -24,7 +24,7 @@ import { CommentStore, type Comment } from "../engine/comment-store";
 import { formatChanges, collapseShorthands, type Fidelity } from "../engine/output";
 import { BridgeClient } from "../bridge/ws-client";
 import { inspectElement, matchesHotkey } from "../ui/helpers";
-import { getSelector, getSelectorCandidates, getAncestorScopes, getSharedSelector, scoreNamePattern, isHashedClass, type SelectorCandidate, type AncestorScope } from "../selector/identifier";
+import { getSelector, getSelectorCandidates, getAncestorScopes, getSharedSelector, scoreNamePattern, isHashedClass, setReactProp, type SelectorCandidate, type AncestorScope } from "../selector/identifier";
 import { detectChildrenType } from "../drag/detect";
 import { getPseudoStateStyles, getStyleSources, getScopedStyles, type ForcedState, type StyleSource } from "../inspector/styles";
 import { PropertyPanel } from "./PropertyPanel";
@@ -1354,6 +1354,7 @@ function RetuneInner(props: RetuneConfig) {
           inspected.domPath,
           inspected.nearbySiblings,
           inspected.position,
+          inspected.reactProps,
         );
 
         // Track all scope level selectors so migration works correctly
@@ -1517,7 +1518,7 @@ function RetuneInner(props: RetuneConfig) {
             inspected.reactComponents, inspected.computedStyles, inspected.sourceFile,
             inspected.stylingApproach, inspected.inlineStyles, inspected.elementId,
             inspected.accessibleName, inspected.parentContext, inspected.childSummary,
-            inspected.domPath, inspected.nearbySiblings, inspected.position,
+            inspected.domPath, inspected.nearbySiblings, inspected.position, inspected.reactProps,
           );
         }
         tracker.recordChange(selector, property, value);
@@ -1548,7 +1549,7 @@ function RetuneInner(props: RetuneConfig) {
             inspected.reactComponents, inspected.computedStyles, inspected.sourceFile,
             inspected.stylingApproach, inspected.inlineStyles, inspected.elementId,
             inspected.accessibleName, inspected.parentContext, inspected.childSummary,
-            inspected.domPath, inspected.nearbySiblings, inspected.position,
+            inspected.domPath, inspected.nearbySiblings, inspected.position, inspected.reactProps,
           );
         }
         tracker.recordChange(selector, property, value);
@@ -4149,6 +4150,34 @@ function RetuneInner(props: RetuneConfig) {
               <ComponentSection
                 selectedElement={selectedElement}
                 onRefresh={() => refreshSelectedElementRef.current()}
+                onPropChange={(propName, newValue) => {
+                  const tracker = trackerRef.current;
+                  if (!tracker) return;
+                  tracker.recordPropChange(selectedElement.selector, propName, newValue);
+                  syncTrackerState();
+                  setChangeRevision(r => r + 1);
+                }}
+                changedProps={(() => {
+                  const tracker = trackerRef.current;
+                  if (!tracker || !selectedElement) return undefined;
+                  const changed = new Set<string>();
+                  const entry = tracker.getPendingChanges().find(c => c.selector === selectedElement.selector);
+                  if (entry?.propChanges) {
+                    for (const pc of entry.propChanges) changed.add(pc.prop);
+                  }
+                  return changed.size > 0 ? changed : undefined;
+                })()}
+                onPropReset={(propName) => {
+                  const tracker = trackerRef.current;
+                  if (!tracker) return;
+                  const original = tracker.resetProp(selectedElement.selector, propName);
+                  if (original !== undefined) {
+                    setReactProp(selectedElement.element, propName, original);
+                    syncTrackerState();
+                    setChangeRevision(r => r + 1);
+                    setTimeout(() => refreshSelectedElementRef.current(), 50);
+                  }
+                }}
               />
               <PropertyPanel
                 key={selectedElement.selector}

@@ -7,10 +7,17 @@ import { useState, useCallback } from "react";
 import type { InspectedElement } from "../types";
 import { setReactState, setReactProp } from "../selector/identifier";
 import { Section, RowGroup } from "./section";
+import { ChangeIndicator } from "./change-indicator";
 
 interface ComponentSectionProps {
   selectedElement: InspectedElement;
   onRefresh?: () => void;
+  /** Called when a prop value changes — parent records in tracker */
+  onPropChange?: (propName: string, newValue: unknown) => void;
+  /** Set of prop names that have been changed from original */
+  changedProps?: Set<string>;
+  /** Called to reset a prop to its original value */
+  onPropReset?: (propName: string) => void;
 }
 
 function getValueType(value: unknown): "boolean" | "number" | "string" | "function" | "object" | "null" {
@@ -51,7 +58,7 @@ function inferStateLabel(value: unknown, index: number): string {
   return `state ${index + 1}`;
 }
 
-export function ComponentSection({ selectedElement, onRefresh }: ComponentSectionProps) {
+export function ComponentSection({ selectedElement, onRefresh, onPropChange, changedProps, onPropReset }: ComponentSectionProps) {
   const { reactComponents, reactProps, reactState, sourceFile } = selectedElement;
   const componentName = reactComponents[0] || null;
 
@@ -59,9 +66,10 @@ export function ComponentSection({ selectedElement, onRefresh }: ComponentSectio
 
   const handlePropChange = useCallback((propName: string, newValue: unknown) => {
     if (setReactProp(selectedElement.element, propName, newValue)) {
+      onPropChange?.(propName, newValue);
       setTimeout(() => onRefresh?.(), 50);
     }
-  }, [selectedElement.element, onRefresh]);
+  }, [selectedElement.element, onRefresh, onPropChange]);
 
   const handleStateChange = useCallback((hookIndex: number, newValue: unknown) => {
     if (setReactState(selectedElement.element, hookIndex, newValue)) {
@@ -88,7 +96,12 @@ export function ComponentSection({ selectedElement, onRefresh }: ComponentSectio
       {propEntries.map(([key, value]) => (
         <RowGroup key={key} label={key.charAt(0).toUpperCase() + key.slice(1)}>
           <div className="retune-row">
-            <ValueInput value={value} onChange={(v) => handlePropChange(key, v)} />
+            <ValueInput
+              value={value}
+              onChange={(v) => handlePropChange(key, v)}
+              isChanged={changedProps?.has(key)}
+              onReset={() => onPropReset?.(key)}
+            />
           </div>
         </RowGroup>
       ))}
@@ -104,10 +117,12 @@ export function ComponentSection({ selectedElement, onRefresh }: ComponentSectio
   );
 }
 
-/** Bare input control — no label, just the control */
-function ValueInput({ value, onChange }: {
+/** Bare input control with optional change indicator */
+function ValueInput({ value, onChange, isChanged, onReset }: {
   value: unknown;
   onChange: (value: unknown) => void;
+  isChanged?: boolean;
+  onReset?: () => void;
 }) {
   const type = getValueType(value);
   const [localValue, setLocalValue] = useState(String(value ?? ""));
@@ -120,6 +135,7 @@ function ValueInput({ value, onChange }: {
   if (type === "boolean") {
     return (
       <div className="retune-prop">
+        <ChangeIndicator isChanged={isChanged ?? false} onReset={onReset ?? (() => {})} />
         <button
           className={`retune-component-toggle${value ? " on" : ""}`}
           onClick={() => onChange(!value)}
@@ -148,6 +164,7 @@ function ValueInput({ value, onChange }: {
 
   return (
     <div className="retune-prop">
+      <ChangeIndicator isChanged={isChanged ?? false} onReset={onReset ?? (() => {})} />
       <input
         className="retune-prop-input"
         style={{ paddingLeft: 12 }}

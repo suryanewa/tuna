@@ -662,6 +662,72 @@ export function getDirectReactComponent(element: Element): string | null {
   return null;
 }
 
+/** Get the component fiber if this element is its root DOM node. Returns null otherwise. */
+function getDirectComponentFiber(element: Element): any | null {
+  const fiber = getFiber(element);
+  if (!fiber) return null;
+
+  let current = fiber.return;
+  while (current) {
+    if (typeof current.type === "function" || typeof current.type === "object") {
+      const name =
+        current.type?.displayName ||
+        current.type?.name ||
+        current.elementType?.displayName ||
+        current.elementType?.name;
+      if (name && !isFrameworkInternal(name)) {
+        const rootDom = findFirstDomFiber(current);
+        return rootDom === element ? current : null;
+      }
+    }
+    current = current.return;
+  }
+  return null;
+}
+
+/** Get props only if this element is a component's root DOM node */
+export function getDirectReactProps(element: Element): Record<string, unknown> | null {
+  const fiber = getDirectComponentFiber(element);
+  if (!fiber?.memoizedProps) return null;
+
+  const raw = fiber.memoizedProps;
+  const props: Record<string, unknown> = {};
+  for (const key of Object.keys(raw)) {
+    if (key === "children" || key === "ref" || key === "key" || key === "params" || key === "searchParams") continue;
+    try { props[key] = raw[key]; } catch {}
+  }
+  return Object.keys(props).length > 0 ? props : null;
+}
+
+/** Get state hooks only if this element is a component's root DOM node */
+export function getDirectReactState(element: Element): ReactHook[] | null {
+  const fiber = getDirectComponentFiber(element);
+  if (!fiber) return null;
+
+  const hooks: ReactHook[] = [];
+  let hook = fiber.memoizedState;
+  let index = 0;
+
+  while (hook) {
+    const type = identifyHookType(hook);
+    const hasDispatch = !!(hook.queue && typeof hook.queue.dispatch === "function");
+
+    if (type === "state" || type === "reducer" || type === "ref") {
+      hooks.push({
+        index,
+        type,
+        value: type === "ref" ? hook.memoizedState?.current : hook.memoizedState,
+        hasDispatch,
+      });
+    }
+
+    hook = hook.next;
+    index++;
+  }
+
+  return hooks.length > 0 ? hooks : null;
+}
+
 /** Find the first DOM element rendered by a component fiber */
 function findFirstDomFiber(fiber: any): Element | null {
   if (fiber.stateNode instanceof Element) return fiber.stateNode;

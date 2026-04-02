@@ -139,6 +139,8 @@ export interface ElementChange {
   variableAssociations?: Record<string, { className: string; values: Record<string, string> }>;
   /** Properties explicitly detached from their design variable: property → current value */
   unlinkedProperties?: Array<{ property: string; value: string }>;
+  /** React prop changes (prop name → { from, to }) */
+  propChanges?: Array<{ prop: string; from: unknown; to: unknown }>;
 }
 
 /** A child element within a reorderable container */

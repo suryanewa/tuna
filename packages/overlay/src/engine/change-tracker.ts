@@ -18,6 +18,10 @@ interface TrackedElement {
   reactComponents: string[];
   originalStyles: Record<string, string>;
   currentStyles: Record<string, string>;
+  /** Original React prop values (snapshot at selection time) */
+  originalProps?: Record<string, unknown>;
+  /** Current React prop values (after edits) */
+  currentProps?: Record<string, unknown>;
   /** Value-only variable associations: camelCase property → variable ref */
   variableAssociations?: Record<string, TrackedVariableRef>;
   /** Properties explicitly unlinked from their variable */
@@ -76,6 +80,7 @@ export class ChangeTracker {
     domPath?: string,
     nearbySiblings?: string | null,
     position?: { x: number; y: number; width: number; height: number },
+    reactProps?: Record<string, unknown> | null,
   ) {
     if (!this.tracked.has(selector)) {
       this.tracked.set(selector, {
@@ -86,6 +91,8 @@ export class ChangeTracker {
         reactComponents,
         originalStyles: { ...currentStyles },
         currentStyles: { ...currentStyles },
+        originalProps: reactProps ? { ...reactProps } : undefined,
+        currentProps: reactProps ? { ...reactProps } : undefined,
         sourceFile,
         stylingApproach,
         inlineStyles,
@@ -98,6 +105,31 @@ export class ChangeTracker {
         position,
       });
     }
+  }
+
+  /** Record a React prop change */
+  recordPropChange(selector: string, propName: string, newValue: unknown): void {
+    const entry = this.tracked.get(selector);
+    if (!entry || !entry.currentProps) return;
+    entry.currentProps[propName] = newValue;
+    this.persist();
+  }
+
+  /** Check if a prop has been changed from its original value */
+  isPropChanged(selector: string, propName: string): boolean {
+    const entry = this.tracked.get(selector);
+    if (!entry?.originalProps || !entry?.currentProps) return false;
+    return entry.originalProps[propName] !== entry.currentProps[propName];
+  }
+
+  /** Reset a prop to its original value. Returns the original value or undefined. */
+  resetProp(selector: string, propName: string): unknown | undefined {
+    const entry = this.tracked.get(selector);
+    if (!entry?.originalProps || !entry?.currentProps) return undefined;
+    const original = entry.originalProps[propName];
+    entry.currentProps[propName] = original;
+    this.persist();
+    return original;
   }
 
   /** Set an initial value for a property if it hasn't been set yet.
@@ -317,13 +349,24 @@ export class ChangeTracker {
         }
       }
 
+      // Collect prop changes
+      const propChanges: Array<{ prop: string; from: unknown; to: unknown }> = [];
+      if (tracked.originalProps && tracked.currentProps) {
+        for (const [prop, currentVal] of Object.entries(tracked.currentProps)) {
+          const originalVal = tracked.originalProps[prop];
+          if (currentVal !== originalVal) {
+            propChanges.push({ prop, from: originalVal, to: currentVal });
+          }
+        }
+      }
+
       const unlinked = tracked.unlinkedVariables
         ? Array.from(tracked.unlinkedVariables).map(prop => ({
             property: prop,
             value: tracked.currentStyles[prop] || "",
           }))
         : [];
-      const hasChanges = propertyChanges.length > 0 || unlinked.length > 0;
+      const hasChanges = propertyChanges.length > 0 || unlinked.length > 0 || propChanges.length > 0;
 
       if (hasChanges) {
         const change: ElementChange = {
@@ -350,6 +393,9 @@ export class ChangeTracker {
         }
         if (unlinked.length > 0) {
           change.unlinkedProperties = unlinked;
+        }
+        if (propChanges.length > 0) {
+          change.propChanges = propChanges;
         }
         changes.push(change);
       }

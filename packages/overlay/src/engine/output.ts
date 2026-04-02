@@ -431,6 +431,22 @@ function formatSingleChange(change: ElementChange, fidelity: Fidelity, tokenMap:
     }
   }
 
+  // Prop changes (React component prop edits)
+  if (change.propChanges && change.propChanges.length > 0) {
+    lines.push("");
+    lines.push("### Prop Changes");
+    lines.push("");
+    lines.push("Apply these changes to the JSX where this component is rendered:");
+    lines.push("");
+    lines.push("| Prop | From | To |");
+    lines.push("|------|------|----|");
+    for (const { prop, from, to } of change.propChanges) {
+      const fromStr = from === undefined ? "—" : JSON.stringify(from);
+      const toStr = to === undefined ? "—" : JSON.stringify(to);
+      lines.push(`| \`${prop}\` | \`${fromStr}\` | \`${toStr}\` |`);
+    }
+  }
+
   // Resolution context (detail blocks) — standard + full fidelity only
   if (fidelity !== "minimal") {
     const detailLines = formatResolutionContext(enriched);
