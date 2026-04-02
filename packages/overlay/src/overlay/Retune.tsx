@@ -28,6 +28,7 @@ import { getSelector, getSelectorCandidates, getAncestorScopes, getSharedSelecto
 import { detectChildrenType } from "../drag/detect";
 import { getPseudoStateStyles, getStyleSources, getScopedStyles, type ForcedState, type StyleSource } from "../inspector/styles";
 import { PropertyPanel } from "./PropertyPanel";
+import { ComponentSection } from "../ui/ComponentSection";
 import { ElementTree, type ReparentEntry } from "./ElementTree";
 import { SettingsPanel } from "./SettingsPanel";
 import { IconCursorClick } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconCursorClick";
@@ -4144,6 +4145,11 @@ function RetuneInner(props: RetuneConfig) {
               />
             )}
             {panelTab === "design" && selectedElement && (
+              <>
+              <ComponentSection
+                selectedElement={selectedElement}
+                onRefresh={() => refreshSelectedElementRef.current()}
+              />
               <PropertyPanel
                 key={selectedElement.selector}
                 element={selectedElement}
@@ -4170,6 +4176,7 @@ function RetuneInner(props: RetuneConfig) {
                 onForcedStateChange={handleForcedStateChange}
                 onPinLinesChange={(authored) => pickerRef.current?.updatePinLines(authored)}
               />
+              </>
             )}
           </div>
         </div>

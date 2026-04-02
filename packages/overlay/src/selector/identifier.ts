@@ -731,12 +731,18 @@ export function getReactProps(element: Element): Record<string, unknown> | null 
       (typeof current.type === "function" || typeof current.type === "object") &&
       current.memoizedProps
     ) {
-      const props = { ...current.memoizedProps };
-      // Remove children and internal props
-      delete props.children;
-      delete props.ref;
-      delete props.key;
-      return props;
+      // Safely extract props without triggering framework proxies (Next.js async params)
+      const raw = current.memoizedProps;
+      const props: Record<string, unknown> = {};
+      for (const key of Object.keys(raw)) {
+        if (key === "children" || key === "ref" || key === "key" || key === "params" || key === "searchParams") continue;
+        try {
+          props[key] = raw[key];
+        } catch {
+          // Skip props that throw on access
+        }
+      }
+      return Object.keys(props).length > 0 ? props : null;
     }
     current = current.return;
   }
