@@ -14,6 +14,7 @@ interface PanelBannerProps {
   /** Auto-revert copied state after this many ms. 0 = don't revert. */
   revertAfter?: number;
   onDismiss?: () => void;
+  onCopy?: () => void;
   visible: boolean;
 }
 
@@ -25,6 +26,7 @@ export function PanelBanner({
   copyText,
   revertAfter = 0,
   onDismiss,
+  onCopy,
   visible,
 }: PanelBannerProps) {
   const [copied, setCopied] = useState(false);
@@ -39,6 +41,7 @@ export function PanelBanner({
     const oldWidth = btn.getBoundingClientRect().width;
     navigator.clipboard.writeText(copyText);
     setCopied(true);
+    onCopy?.();
     requestAnimationFrame(() => {
       const newWidth = btn.getBoundingClientRect().width;
       if (Math.abs(newWidth - oldWidth) > 1) {

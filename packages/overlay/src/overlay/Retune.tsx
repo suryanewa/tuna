@@ -831,7 +831,25 @@ function RetuneInner(props: RetuneConfig) {
   const [portalTarget, setPortalTarget] = useState<HTMLDivElement | null>(null);
   const [updateInfo, setUpdateInfo] = useState<{ current: string; latest: string } | null>(null);
   const manifestLoadedRef = useRef(false);
+  const [manifest, setManifest] = useState<Record<string, any> | null>(null);
   const [manifestBannerDismissed, setManifestBannerDismissed] = useState(false);
+  const manifestCheckingRef = useRef(false);
+
+  const tryLoadManifest = useCallback(async () => {
+    if (manifestLoadedRef.current || manifestCheckingRef.current) return;
+    manifestCheckingRef.current = true;
+    try {
+      const res = await fetch("/retune.manifest.json", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && (data.components || data.tokens)) {
+          manifestLoadedRef.current = true;
+          setManifest(data);
+        }
+      }
+    } catch {}
+    manifestCheckingRef.current = false;
+  }, []);
   const [updateDismissed, setUpdateDismissed] = useState(false);
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [panelTab, setPanelTab] = useState<"elements" | "design">("design");
@@ -1331,6 +1349,7 @@ function RetuneInner(props: RetuneConfig) {
         }
 
         setSelectedElement(inspected);
+        if (!manifestLoadedRef.current && inspected.reactProps) tryLoadManifest();
         setSettingsOpen(false);
         setSettingsVisible(false);
         setSettingsExiting(false);
@@ -1607,7 +1626,8 @@ function RetuneInner(props: RetuneConfig) {
     setActive(true);
     pickerRef.current?.activate();
     previewRef.current?.attach();
-  }, []);
+    tryLoadManifest();
+  }, [tryLoadManifest]);
 
   const deactivateOverlay = useCallback(() => {
     if (forcedStateRef.current) clearForcedInlineStyles();
@@ -3991,6 +4011,14 @@ function RetuneInner(props: RetuneConfig) {
                 copiedLabel="Paste in your AI agent"
                 copyText={MANIFEST_PROMPT_TEXT}
                 onDismiss={() => setManifestBannerDismissed(true)}
+                onCopy={() => {
+                  // Start checking for manifest after user copies the prompt
+                  // Check a few times over the next 30 seconds (agent takes time to generate)
+                  const delays = [5000, 10000, 15000, 20000, 30000];
+                  for (const d of delays) {
+                    setTimeout(() => { if (!manifestLoadedRef.current) tryLoadManifest(); }, d);
+                  }
+                }}
               />
               <ComponentSection
                 selectedElement={selectedElement}
