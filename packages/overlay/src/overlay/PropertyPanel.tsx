@@ -896,7 +896,7 @@ export function PropertyPanel({
           );
         })()}
         {onForcedStateChange && (
-          <RowGroup label="State">
+          <RowGroup label="Trigger">
             <div className="retune-row">
               <SelectInput
                 prop="__state"
