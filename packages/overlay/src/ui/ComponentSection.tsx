@@ -22,21 +22,62 @@ interface ComponentSectionProps {
   resetRevision?: number;
 }
 
-export const MANIFEST_PROMPT = `Generate a retune.manifest.json file in the project root. This manifest describes the project's React components and design tokens so that Retune's visual editor can show accurate controls.
+export const MANIFEST_PROMPT = `Generate a retune.manifest.json file in the project's public directory (so it's served at /retune.manifest.json). This manifest describes the project's React components and design tokens so that Retune's visual editor can show accurate controls.
 
-For each React component in the project, include:
-- All props with their types (boolean, string, number, enum)
-- For enum props, list all allowed values
+Place the file where your framework serves static assets:
+- Next.js: public/retune.manifest.json
+- Vite/CRA: public/retune.manifest.json
+- Remix: public/retune.manifest.json
+
+For each React component in the project, include a "props" object and optionally a "state" object:
+
+Props:
+- All props with their types: "string", "number", "boolean", "enum", "function"
+- For enum props, list all allowed values in a "values" array
 - Default values where defined
-- For props that map to CSS classes, include a class_map (e.g., size: "sm" → class "btn--sm")
-- Conditional props with "when" conditions (e.g., href only when as="a")
+- For props that map to CSS classes, include a "class_map" object (e.g., size: "sm" maps to class "avatar--sm")
 
-For design tokens, include:
-- Colors, spacing, radii, typography from CSS custom properties
-- Tailwind config theme values if present
-- For each token: the resolved value, CSS variable name, and Tailwind utility if applicable
+State (for components with useState hooks):
+- List each useState hook in declaration order
+- Use the variable name as the key (e.g., "activeFolder", "isOpen")
+- Include type, default value, and description
+- Use "enum" type with "values" when state has a finite set of possible values (e.g., a folder name from a fixed list)
+- Use "boolean" for toggle states, "number" for counters/IDs, "string" for free text
 
-Follow the schema at node_modules/retune/manifest.schema.json.`;
+Example component entry:
+{
+  "Avatar": {
+    "props": {
+      "size": {
+        "type": "enum",
+        "values": ["sm", "md", "lg"],
+        "default": "md",
+        "class_map": { "sm": "avatar--sm", "md": "avatar--md", "lg": "avatar--lg" }
+      }
+    }
+  },
+  "MailApp": {
+    "props": {},
+    "state": {
+      "activeFolder": {
+        "type": "enum",
+        "values": ["Inbox", "Drafts", "Sent"],
+        "default": "Inbox",
+        "description": "Currently selected folder"
+      },
+      "composeOpen": {
+        "type": "boolean",
+        "default": false,
+        "description": "Whether the compose modal is open"
+      }
+    }
+  }
+}
+
+For design tokens, include a "tokens" object organized by category:
+- Colors, spacing, radii, typography, shadows from CSS custom properties
+- For each token: the resolved value and CSS variable name
+- Omit internal/framework variables (e.g., --tw-ring-color, --tw-shadow)`;
 
 function getValueType(value: unknown): "boolean" | "number" | "string" | "function" | "object" | "null" {
   if (value === null || value === undefined) return "null";

@@ -1,6 +1,6 @@
 ---
 name: retune-visual-changes
-description: Apply visual changes from the Retune overlay to source code. Use this skill when receiving output from retune MCP tools (retune_get_formatted_changes, retune_get_pending_changes) OR when the user pastes structured visual change output containing "# Visual Changes", "# Comments", a Before/After changes table, or property diffs with Token/Variable columns. Triggers on: retune, "Visual Changes", "apply these changes", style diff, design tokens, design variables, property before/after table, visual tweaks, overlay changes, "Comment #", "Address each comment".
+description: Apply visual changes from the Retune overlay to source code. Use this skill when receiving output from retune MCP tools (retune_get_formatted_changes, retune_get_pending_changes) OR when the user pastes structured visual change output containing "# Visual Changes", "# Comments", "Prop Changes", a Before/After changes table, or property diffs with Token/Variable columns. Triggers on: retune, "Visual Changes", "apply these changes", style diff, design tokens, design variables, property before/after table, visual tweaks, overlay changes, "Comment #", "Address each comment", "Prop Changes".
 ---
 
 # Applying Retune Visual Changes
@@ -58,6 +58,34 @@ Use these fields to find the element in source code, in order of reliability:
 4. **Classes** — Applied class names
 5. **Text content** — The element's visible text
 6. **DOM Path** — Full traversal path (last resort)
+
+### Prop Changes
+
+When the output includes a `### Prop Changes` section, the user changed a React component prop in Retune's visual editor:
+
+```
+### Prop Changes
+
+Apply these changes to the JSX where this component is rendered:
+
+| Prop | From | To |
+|------|------|----|
+| `size` | `"sm"` | `"md"` |
+```
+
+To apply prop changes:
+
+1. Use the **Component** field (e.g., `Avatar → MailApp`) to identify which component's prop changed. The first name is the component, the second is its parent.
+2. Find the JSX where that component is rendered and change the prop value.
+3. If the prop was using its default value (From shows `--`), add the prop explicitly.
+4. If changing to the default value, you can remove the prop or set it explicitly.
+
+```diff
+- <Avatar initials="SC" size="sm" />
++ <Avatar initials="SC" size="md" />
+```
+
+Prop changes may appear alongside CSS changes on the same element. Apply both. The prop change affects the JSX attribute; the CSS change affects the stylesheet or utility classes.
 
 ### Pseudo-State Changes
 
@@ -265,15 +293,16 @@ If you don't clear, the overlay will still show the old changes and the user may
 ## Workflow
 
 1. Read the formatted changes output
-2. For each **visual change**:
+2. For each **visual change** (CSS property changes):
    a. Locate the element using Source → Component → Selector → text content
    b. Check if an exact token/class/variable match exists
    c. Apply using the project's styling approach
    d. Watch for competing rules and scope
-3. For **structural actions** (delete, text edit, reorder, reparent): apply the DOM change to the JSX source
-4. For each **comment**:
+3. For **prop changes**: find the JSX where the component is rendered and update the prop value
+4. For **structural actions** (delete, text edit, reorder, reparent): apply the DOM change to the JSX source
+5. For each **comment**:
    a. Read the comment text to understand the user's intent
    b. Locate the element using Component → Selector → Classes
    c. Make the described changes using the project's conventions
-5. Verify all changes make sense in context (don't blindly apply if something looks wrong)
-6. **Call `retune_clear_changes`** to clear the applied changes and comments from the overlay
+6. Verify all changes make sense in context (don't blindly apply if something looks wrong)
+7. **Call `retune_clear_changes`** to clear the applied changes and comments from the overlay
