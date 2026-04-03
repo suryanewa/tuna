@@ -713,27 +713,33 @@ input, textarea, [contenteditable] {
   visibility: hidden;
 }
 
-.retune-tree-tag {
-  font-size: 12px;
-  font-weight: 400;
-  color: var(--retune-text);
-  white-space: nowrap;
+.retune-tree-icon {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--retune-text-tertiary);
+}
+.retune-tree-icon--component {
+  color: var(--retune-blue-text);
 }
 
-.retune-tree-qualifier {
+.retune-tree-name {
   font-size: 11px;
   font-weight: 400;
-  color: var(--retune-text-tertiary);
+  line-height: 16px;
+  letter-spacing: 0.005em;
+  color: var(--retune-text);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
-
-.retune-tree-component {
-  font-size: 10px;
-  font-weight: 500;
+.retune-tree-name--component {
   color: var(--retune-blue-text);
-  white-space: nowrap;
-  margin-left: auto;
-  flex-shrink: 0;
+  font-weight: 500;
 }
 
 .retune-tree-moved {
