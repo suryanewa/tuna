@@ -7,7 +7,42 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { existsSync } from "fs";
+import { join } from "path";
 import type { Bridge } from "./bridge.js";
+import { MANIFEST_PROMPT, MANIFEST_COMPONENTS_PROMPT } from "../manifest/prompts.js";
+
+/** Check manifest status in the project directory */
+function checkManifest(): { exists: boolean; hasComponents: boolean; prompt: string | null } {
+  const publicDirs = ["public", "static", "dist"];
+  for (const dir of publicDirs) {
+    const path = join(process.cwd(), dir, "retune.manifest.json");
+    if (existsSync(path)) {
+      try {
+        const data = JSON.parse(require("fs").readFileSync(path, "utf-8"));
+        if (data && !("components" in data)) {
+          return { exists: true, hasComponents: false, prompt: MANIFEST_COMPONENTS_PROMPT };
+        }
+        return { exists: true, hasComponents: true, prompt: null };
+      } catch {
+        return { exists: true, hasComponents: false, prompt: null };
+      }
+    }
+  }
+  return { exists: false, hasComponents: false, prompt: MANIFEST_PROMPT };
+}
+
+/** Prepend manifest nudge to tool response text if manifest is missing/incomplete */
+function withManifestNudge(text: string): string {
+  const status = checkManifest();
+  if (!status.prompt) return text;
+
+  const label = status.exists
+    ? "⚠ retune.manifest.json is missing component definitions."
+    : "⚠ No retune.manifest.json found. Generate one for more accurate token pickers, scope targeting, and component controls.";
+
+  return `${label}\n\nTo generate it, follow these instructions:\n\n${status.prompt}\n\nAfter writing the manifest, call \`retune_manifest_loaded\` to notify the overlay.\n\n---\n\n${text}`;
+}
 
 export function createServer(bridge: Bridge): McpServer {
   const server = new McpServer({
@@ -70,7 +105,7 @@ export function createServer(bridge: Bridge): McpServer {
         if (clear !== false) {
           await bridge.request("clearChanges");
         }
-        return { content: [{ type: "text", text: output }] };
+        return { content: [{ type: "text", text: withManifestNudge(output) }] };
       } catch (err: any) {
         return { content: [{ type: "text", text: `Error: ${err.message}` }] };
       }
@@ -119,6 +154,20 @@ export function createServer(bridge: Bridge): McpServer {
   );
 
   server.tool(
+    "retune_manifest_loaded",
+    "Notify the Retune overlay that a retune.manifest.json file has been generated or updated. Call this after writing the manifest file so the overlay can load it immediately without waiting. The overlay will re-fetch the manifest and update its token pickers, component controls, and scope targeting.",
+    {},
+    async () => {
+      try {
+        await bridge.request("reloadManifest");
+        return { content: [{ type: "text", text: "Manifest reloaded. The Retune overlay has updated its token pickers and component controls." }] };
+      } catch (err: any) {
+        return { content: [{ type: "text", text: `Error: ${err.message}. Is the Retune overlay active in the browser?` }] };
+      }
+    }
+  );
+
+  server.tool(
     "retune_get_comments",
     "Get all comments/annotations left by the user on elements or areas. Comments describe intent, feedback, or instructions that complement visual changes. Each comment includes the target element's selector/component info or area bounding box.",
     {
@@ -146,12 +195,13 @@ export function createServer(bridge: Bridge): McpServer {
     "Check the status of the Retune overlay connection.",
     {},
     async () => {
+      const statusText = bridge.connected
+        ? "Retune overlay is connected and active."
+        : "Retune overlay is not connected. Make sure the overlay is running in the browser.";
       return {
         content: [{
           type: "text",
-          text: bridge.connected
-            ? "Retune overlay is connected and active."
-            : "Retune overlay is not connected. Make sure the overlay is running in the browser.",
+          text: withManifestNudge(statusText),
         }],
       };
     }

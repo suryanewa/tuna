@@ -29,7 +29,7 @@ import { detectChildrenType } from "../drag/detect";
 import { getPseudoStateStyles, getStyleSources, getScopedStyles, type ForcedState, type StyleSource } from "../inspector/styles";
 import { setManifestTokens } from "../variables";
 import { PropertyPanel } from "./PropertyPanel";
-import { ComponentSection, MANIFEST_PROMPT as MANIFEST_PROMPT_TEXT } from "../ui/ComponentSection";
+import { ComponentSection, MANIFEST_PROMPT as MANIFEST_PROMPT_TEXT, MANIFEST_COMPONENTS_PROMPT } from "../ui/ComponentSection";
 import { PanelBanner } from "../ui/PanelBanner";
 import { ElementTree, type ReparentEntry } from "./ElementTree";
 import { SettingsPanel } from "./SettingsPanel";
@@ -1054,6 +1054,12 @@ function RetuneInner(props: RetuneConfig) {
           setComments([]);
           setCommentCount(0);
           return;
+        case "reloadManifest": {
+          // Agent wrote the manifest — re-fetch and load it
+          manifestLoadedRef.current = false;
+          await tryLoadManifest();
+          return { loaded: !!manifestDataRef.current };
+        }
         case "clearChanges": {
           // MCP clear = agent already applied changes to source.
           // Don't restore DOM mutations — just clear the stacks and tracking data.
@@ -4043,19 +4049,33 @@ function RetuneInner(props: RetuneConfig) {
             )}
             {panelTab === "design" && selectedElement && (
               <>
-              {/* Manifest banner — shows when component selected but no manifest */}
+              {/* Manifest banner — no manifest: shows on any element */}
               <PanelBanner
-                visible={!!selectedElement.reactProps && manifestCheckedRef.current && !manifestLoadedRef.current && !manifestBannerDismissed}
-                title="Know your components"
-                body="See every variant, size, and state your components support and switch between them."
-                copyLabel="Copy prompt"
+                visible={manifestCheckedRef.current && !manifestLoadedRef.current && !manifestBannerDismissed}
+                title="Unlock your design system"
+                body="Apply your project's actual tokens, color palettes, and component variants directly."
+                copyLabel="Copy instructions"
                 copiedLabel="Paste in your AI agent"
                 copyText={MANIFEST_PROMPT_TEXT}
                 onDismiss={() => setManifestBannerDismissed(true)}
                 onCopy={() => {
-                  // Start checking for manifest after user copies the prompt
-                  // Check a few times over the next 30 seconds (agent takes time to generate)
-                  const delays = [5000, 10000, 15000, 20000, 30000];
+                  const delays = [10000, 30000, 60000, 120000, 180000, 300000];
+                  for (const d of delays) {
+                    setTimeout(() => { if (!manifestLoadedRef.current) tryLoadManifest(); }, d);
+                  }
+                }}
+              />
+              {/* Manifest banner — partial (tokens but no components key): shows when component selected */}
+              <PanelBanner
+                visible={!!selectedElement.reactProps && !!manifest && !("components" in manifest) && !manifestBannerDismissed}
+                title="Know your components"
+                body="See every variant, size, and state your components support and switch between them."
+                copyLabel="Copy instructions"
+                copiedLabel="Paste in your AI agent"
+                copyText={MANIFEST_COMPONENTS_PROMPT}
+                onDismiss={() => setManifestBannerDismissed(true)}
+                onCopy={() => {
+                  const delays = [10000, 30000, 60000, 120000, 180000, 300000];
                   for (const d of delays) {
                     setTimeout(() => { if (!manifestLoadedRef.current) tryLoadManifest(); }, d);
                   }

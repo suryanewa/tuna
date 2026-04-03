@@ -290,6 +290,43 @@ After applying all changes to source code, **always call `retune_clear_changes`*
 
 If you don't clear, the overlay will still show the old changes and the user may get confused.
 
+## Manifest Generation & Maintenance
+
+Retune uses a `retune.manifest.json` file in the project's public directory to power accurate token pickers, component controls, and scope targeting. If the MCP tool response includes a manifest generation prompt, generate the manifest before applying changes.
+
+### When to generate:
+- When a tool response says "No retune.manifest.json found" or "missing component definitions"
+- When `npx retune setup` output asks you to complete the manifest
+
+### Manifest format:
+
+The manifest has two sections:
+
+**components** -- React components with props (types, enum values, class_map) and state hooks (names, types, defaults).
+
+**tokens** -- Design tokens organized by category: `colors`, `spacing`, `sizing`, `radii`, `borderWidths`, `shadows`, `typography`.
+
+Each token has:
+- `"value"` -- resolvable CSS value (e.g., `"#2563eb"`, `"1rem"`)
+- `"variable"` -- CSS custom property name starting with `--` (when the project uses CSS variables)
+- `"class"` -- utility class name (when the project uses Tailwind or similar utility classes)
+
+**Colors must be organized into sub-groups** by hue ramp (e.g., "blue", "red"), semantic role (e.g., "brand", "status"), or component scope (e.g., "pagination").
+
+### Key rules:
+- Include the FULL spacing scale and FULL color palette (every step/shade)
+- Omit framework internals (`--tw-ring-*`, `--tw-shadow*`, `--tw-translate-*`, etc.)
+- Include tokens from design system packages in node_modules
+- `"value"` must be a single CSS value, not descriptions or compound values
+- For Tailwind projects: extract tokens from `tailwind.config.js` theme values
+- For components: include `class_map` when props determine which CSS class is applied
+
+### After generating or updating:
+Always call `retune_manifest_loaded` after writing the manifest file. This notifies the overlay to reload immediately -- the user sees updated token pickers and component controls without refreshing the page.
+
+### Maintenance:
+When modifying components (adding props, changing variants) or design tokens (adding colors, spacing), update the manifest to keep it in sync. The manifest should always reflect the current state of the codebase. Call `retune_manifest_loaded` after any update.
+
 ## Workflow
 
 1. Read the formatted changes output
