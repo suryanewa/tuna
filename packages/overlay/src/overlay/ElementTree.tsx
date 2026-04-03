@@ -312,6 +312,7 @@ const TreeNode = memo(function TreeNode({
   const hasChildren = children.length > 0;
   const isExpanded = expandedSet.has(element);
   const isSelected = element === selectedElement;
+  const isDescendantOfSelected = !isSelected && selectedElement ? selectedElement.contains(element) : false;
   const { iconType, name, component } = formatNodeLabel(element);
   const isComponent = iconType === "component";
 
@@ -320,7 +321,7 @@ const TreeNode = memo(function TreeNode({
       <div
         ref={(node) => { if (node) treeNodeRefs.set(element, node); }}
         data-retune-tree-key={getStableKey(element)}
-        className={`retune-tree-node${isSelected ? " selected" : ""}`}
+        className={`retune-tree-node${isSelected ? " selected" : ""}${isDescendantOfSelected ? " descendant-selected" : ""}`}
         style={{ paddingLeft: 12 + depth * 16 }}
         onPointerDown={(e) => {
           // Let arrow clicks pass through

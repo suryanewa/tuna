@@ -690,7 +690,10 @@ input, textarea, [contenteditable] {
 }
 
 .retune-tree-node.selected {
-  background: var(--retune-surface-hover);
+  background: var(--retune-blue-bg);
+}
+.retune-tree-node.descendant-selected {
+  background: color-mix(in srgb, var(--retune-blue-500) 6%, transparent);
 }
 
 .retune-tree-arrow {
