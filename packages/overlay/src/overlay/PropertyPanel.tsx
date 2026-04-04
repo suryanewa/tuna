@@ -160,6 +160,7 @@ export function PropertyPanel({
   element,
   position,
   onPropertyChange,
+  onAttributeChange,
   onPropertyHover,
   onApplyToElement,
   onVariableSwap,
@@ -184,6 +185,8 @@ export function PropertyPanel({
   element: InspectedElement;
   position: "left" | "right";
   onPropertyChange: (property: string, value: string) => void;
+  /** Record an HTML/SVG attribute change (not CSS) */
+  onAttributeChange?: (attr: string, oldValue: string, newValue: string) => void;
   onPropertyHover?: (property: BoxModelProperty) => void;
   onApplyToElement?: (element: Element, property: string, value: string) => void;
   onVariableSwap?: (oldClassName: string, newClassName: string) => void;
@@ -1818,8 +1821,9 @@ export function PropertyPanel({
                   options={[{ value: "lazy", label: "Lazy" }, { value: "eager", label: "Eager" }]}
                   value={((element.element as HTMLImageElement).loading === "lazy") ? "lazy" : "eager"}
                   onChange={(v) => {
+                    const oldVal = (element.element as HTMLImageElement).loading || "eager";
                     (element.element as HTMLImageElement).loading = v as "lazy" | "eager";
-                    onPropertyChange("loading", v);
+                    onAttributeChange?.("loading", oldVal, v);
                   }}
                 />
               </Field>
@@ -1834,8 +1838,9 @@ export function PropertyPanel({
                   value={(element.element as HTMLImageElement).alt || ""}
                   onChange={(prop, value) => {
                     if (element.element) {
+                      const oldVal = (element.element as HTMLImageElement).alt || "";
                       (element.element as HTMLImageElement).alt = value;
-                      onPropertyChange(prop, value);
+                      onAttributeChange?.(prop, oldVal, value);
                     }
                   }}
                 />
@@ -1850,8 +1855,9 @@ export function PropertyPanel({
                     options={[{ value: "true", label: "Yes" }, { value: "false", label: "No" }]}
                     value={(element.element as HTMLVideoElement).autoplay ? "true" : "false"}
                     onChange={(v) => {
+                      const oldVal = (element.element as HTMLVideoElement).autoplay ? "true" : "false";
                       (element.element as HTMLVideoElement).autoplay = v === "true";
-                      onPropertyChange("autoplay", v === "true" ? "true" : "false");
+                      onAttributeChange?.("autoplay", oldVal, v === "true" ? "true" : "false");
                     }}
                   />
                 </Field>
@@ -1860,8 +1866,9 @@ export function PropertyPanel({
                     options={[{ value: "true", label: "Yes" }, { value: "false", label: "No" }]}
                     value={(element.element as HTMLVideoElement).loop ? "true" : "false"}
                     onChange={(v) => {
+                      const oldVal = (element.element as HTMLVideoElement).loop ? "true" : "false";
                       (element.element as HTMLVideoElement).loop = v === "true";
-                      onPropertyChange("loop", v === "true" ? "true" : "false");
+                      onAttributeChange?.("loop", oldVal, v === "true" ? "true" : "false");
                     }}
                   />
                 </Field>
@@ -1872,8 +1879,9 @@ export function PropertyPanel({
                     options={[{ value: "true", label: "Yes" }, { value: "false", label: "No" }]}
                     value={(element.element as HTMLVideoElement).muted ? "true" : "false"}
                     onChange={(v) => {
+                      const oldVal = (element.element as HTMLVideoElement).muted ? "true" : "false";
                       (element.element as HTMLVideoElement).muted = v === "true";
-                      onPropertyChange("muted", v === "true" ? "true" : "false");
+                      onAttributeChange?.("muted", oldVal, v === "true" ? "true" : "false");
                     }}
                   />
                 </Field>
@@ -1882,8 +1890,9 @@ export function PropertyPanel({
                     options={[{ value: "true", label: "Show" }, { value: "false", label: "Hide" }]}
                     value={(element.element as HTMLVideoElement).controls ? "true" : "false"}
                     onChange={(v) => {
+                      const oldVal = (element.element as HTMLVideoElement).controls ? "true" : "false";
                       (element.element as HTMLVideoElement).controls = v === "true";
-                      onPropertyChange("controls", v === "true" ? "true" : "false");
+                      onAttributeChange?.("controls", oldVal, v === "true" ? "true" : "false");
                     }}
                   />
                 </Field>

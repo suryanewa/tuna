@@ -141,6 +141,8 @@ export interface ElementChange {
   unlinkedProperties?: Array<{ property: string; value: string }>;
   /** React prop changes (prop name → { from, to }) */
   propChanges?: Array<{ prop: string; from: unknown; to: unknown }>;
+  /** HTML/SVG attribute changes (alt, loading, autoplay, etc.) */
+  attributeChanges?: Array<{ attr: string; from: string; to: string }>;
 }
 
 /** A child element within a reorderable container */

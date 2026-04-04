@@ -1,6 +1,6 @@
 ---
 name: retune-visual-changes
-description: Apply visual changes from the Retune overlay to source code. Use this skill when receiving output from retune MCP tools (retune_get_formatted_changes, retune_get_pending_changes) OR when the user pastes structured visual change output containing "# Visual Changes", "# Comments", "Prop Changes", a Before/After changes table, or property diffs with Token/Variable columns. Triggers on: retune, "Visual Changes", "apply these changes", style diff, design tokens, design variables, property before/after table, visual tweaks, overlay changes, "Comment #", "Address each comment", "Prop Changes".
+description: Apply visual changes from the Retune overlay to source code. Use this skill when receiving output from retune MCP tools (retune_get_formatted_changes, retune_get_pending_changes) OR when the user pastes structured visual change output containing "# Visual Changes", "# Comments", "Prop Changes", "Attribute Changes", "SVG Attribute Changes", a Before/After changes table, or property diffs with Token/Variable columns. Triggers on: retune, "Visual Changes", "apply these changes", style diff, design tokens, design variables, property before/after table, visual tweaks, overlay changes, "Comment #", "Address each comment", "Prop Changes", "Attribute Changes".
 ---
 
 # Applying Retune Visual Changes
@@ -86,6 +86,25 @@ To apply prop changes:
 ```
 
 Prop changes may appear alongside CSS changes on the same element. Apply both. The prop change affects the JSX attribute; the CSS change affects the stylesheet or utility classes.
+
+### Attribute Changes
+
+When the output includes `### Attribute Changes` or `### SVG Attribute Changes`, the user changed an HTML or SVG attribute (not a CSS property):
+
+```
+### Attribute Changes
+
+Apply these changes to the HTML element's attributes:
+
+| Attribute | From | To |
+|-----------|------|----|
+| `alt` | `""` | `"Sunset over the Pacific"` |
+| `loading` | `eager` | `lazy` |
+```
+
+For HTML attributes (`alt`, `loading`, `autoplay`, `loop`, `muted`, `controls`): modify the attribute on the JSX element. For framework components (Next.js `<Image>`), these may be props instead of attributes.
+
+For SVG attributes (`fill`, `stroke`, `stroke-width`): modify the attribute on the SVG element directly. These are NOT CSS properties -- do not add them to a stylesheet.
 
 ### Pseudo-State Changes
 
@@ -336,10 +355,11 @@ When modifying components (adding props, changing variants) or design tokens (ad
    c. Apply using the project's styling approach
    d. Watch for competing rules and scope
 3. For **prop changes**: find the JSX where the component is rendered and update the prop value
-4. For **structural actions** (delete, text edit, reorder, reparent): apply the DOM change to the JSX source
-5. For each **comment**:
+4. For **attribute changes**: modify HTML/SVG attributes on the element (alt, loading, fill, stroke, etc.)
+5. For **structural actions** (delete, text edit, reorder, reparent): apply the DOM change to the JSX source
+6. For each **comment**:
    a. Read the comment text to understand the user's intent
    b. Locate the element using Component → Selector → Classes
    c. Make the described changes using the project's conventions
-6. Verify all changes make sense in context (don't blindly apply if something looks wrong)
-7. **Call `retune_clear_changes`** to clear the applied changes and comments from the overlay
+7. Verify all changes make sense in context (don't blindly apply if something looks wrong)
+8. **Call `retune_clear_changes`** to clear the applied changes and comments from the overlay

@@ -4146,6 +4146,21 @@ function RetuneInner(props: RetuneConfig) {
                 element={selectedElement}
                 position={side}
                 onPropertyChange={handlePropertyChange}
+                onAttributeChange={(attr, oldValue, newValue) => {
+                  const tracker = trackerRef.current;
+                  if (!tracker || !selectedElement) return;
+                  const el = selectedElement;
+                  tracker.track(
+                    el.selector, el.tagName, el.textContent, el.classes,
+                    el.reactComponents, el.computedStyles, el.sourceFile,
+                    el.stylingApproach, el.inlineStyles, el.elementId,
+                    el.accessibleName, el.parentContext, el.childSummary,
+                    el.domPath, el.nearbySiblings, el.position,
+                  );
+                  tracker.recordAttributeChange(el.selector, attr, oldValue, newValue);
+                  syncTrackerState();
+                  setChangeRevision(r => r + 1);
+                }}
                 onPropertyHover={setHoveredBoxModel}
                 onApplyToElement={handleApplyToElement}
                 onVariableSwap={handleVariableSwap}

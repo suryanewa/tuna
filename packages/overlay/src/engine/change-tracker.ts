@@ -26,6 +26,10 @@ interface TrackedElement {
   variableAssociations?: Record<string, TrackedVariableRef>;
   /** Properties explicitly unlinked from their variable */
   unlinkedVariables?: Set<string>;
+  /** Original HTML/SVG attribute values */
+  originalAttrs?: Record<string, string>;
+  /** Current HTML/SVG attribute values */
+  currentAttrs?: Record<string, string>;
   sourceFile?: { fileName: string; lineNumber: number; columnNumber?: number } | null;
   stylingApproach?: string;
   inlineStyles?: string | null;
@@ -137,6 +141,20 @@ export class ChangeTracker {
     entry.currentProps[propName] = original;
     this.persist();
     return original;
+  }
+
+  /** Record an HTML/SVG attribute change (alt, loading, autoplay, etc.) */
+  recordAttributeChange(selector: string, attr: string, oldValue: string, newValue: string): void {
+    const entry = this.tracked.get(selector);
+    if (!entry) return;
+    if (!entry.originalAttrs) entry.originalAttrs = {};
+    if (!entry.currentAttrs) entry.currentAttrs = {};
+    // Only store original once
+    if (!(attr in entry.originalAttrs)) {
+      entry.originalAttrs[attr] = oldValue;
+    }
+    entry.currentAttrs[attr] = newValue;
+    this.persist();
   }
 
   /** Set an initial value for a property if it hasn't been set yet.
@@ -367,13 +385,24 @@ export class ChangeTracker {
         }
       }
 
+      // Collect attribute changes
+      const attributeChanges: Array<{ attr: string; from: string; to: string }> = [];
+      if (tracked.originalAttrs && tracked.currentAttrs) {
+        for (const [attr, currentVal] of Object.entries(tracked.currentAttrs)) {
+          const originalVal = tracked.originalAttrs[attr] || "";
+          if (currentVal !== originalVal) {
+            attributeChanges.push({ attr, from: originalVal, to: currentVal });
+          }
+        }
+      }
+
       const unlinked = tracked.unlinkedVariables
         ? Array.from(tracked.unlinkedVariables).map(prop => ({
             property: prop,
             value: tracked.currentStyles[prop] || "",
           }))
         : [];
-      const hasChanges = propertyChanges.length > 0 || unlinked.length > 0 || propChanges.length > 0;
+      const hasChanges = propertyChanges.length > 0 || unlinked.length > 0 || propChanges.length > 0 || attributeChanges.length > 0;
 
       if (hasChanges) {
         const change: ElementChange = {
@@ -403,6 +432,9 @@ export class ChangeTracker {
         }
         if (propChanges.length > 0) {
           change.propChanges = propChanges;
+        }
+        if (attributeChanges.length > 0) {
+          change.attributeChanges = attributeChanges;
         }
         changes.push(change);
       }

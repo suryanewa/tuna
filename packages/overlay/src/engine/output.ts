@@ -440,6 +440,23 @@ function formatSingleChange(change: ElementChange, fidelity: Fidelity, tokenMap:
     }
   }
 
+  // Attribute changes (HTML/SVG attributes — alt, loading, autoplay, fill, stroke, etc.)
+  if (change.attributeChanges && change.attributeChanges.length > 0) {
+    const isSvgElement = ["SVG", "PATH", "CIRCLE", "ELLIPSE", "RECT", "LINE", "POLYGON", "POLYLINE", "G", "TEXT", "USE", "DEFS"].includes(change.tagName.toUpperCase());
+    lines.push("");
+    lines.push(isSvgElement ? "### SVG Attribute Changes" : "### Attribute Changes");
+    lines.push("");
+    lines.push(isSvgElement
+      ? "Apply these changes to the SVG element's attributes:"
+      : "Apply these changes to the HTML element's attributes:");
+    lines.push("");
+    lines.push("| Attribute | From | To |");
+    lines.push("|-----------|------|----|");
+    for (const { attr, from, to } of change.attributeChanges) {
+      lines.push(`| \`${attr}\` | \`${from || "—"}\` | \`${to}\` |`);
+    }
+  }
+
   // Prop changes (React component prop edits)
   if (change.propChanges && change.propChanges.length > 0) {
     lines.push("");
