@@ -108,12 +108,16 @@
         "color-bg": { "value": "#ffffff", "variable": "--color-bg" },
         "color-bg-subtle": { "value": "#fafaf9", "variable": "--color-bg-subtle" },
         "color-bg-muted": { "value": "#f5f5f4", "variable": "--color-bg-muted" },
-        "color-bg-hover": { "value": "#e7e5e4", "variable": "--color-bg-hover" }
+        "color-bg-hover": { "value": "#e7e5e4", "variable": "--color-bg-hover" },
+        "background-primary": { "value": "255 255 255", "variable": "--background-primary" },
+        "background-subtle": { "value": "250 250 249", "variable": "--background-subtle" }
       },
       "foreground": {
         "color-text": { "value": "#1c1917", "variable": "--color-text" },
         "color-text-muted": { "value": "#78716c", "variable": "--color-text-muted" },
-        "color-text-subtle": { "value": "#a8a29e", "variable": "--color-text-subtle" }
+        "color-text-subtle": { "value": "#a8a29e", "variable": "--color-text-subtle" },
+        "foreground-primary": { "value": "28 25 23", "variable": "--foreground-primary" },
+        "foreground-secondary": { "value": "120 113 108", "variable": "--foreground-secondary" }
       },
       "border": {
         "color-border": { "value": "#e7e5e4", "variable": "--color-border" },
@@ -135,14 +139,6 @@
         "spectrum-purple-5": { "value": "168 85 247", "variable": "--spectrum-purple-5" },
         "spectrum-gray-3": { "value": "212 212 216", "variable": "--spectrum-gray-3" },
         "spectrum-gray-10": { "value": "63 63 70", "variable": "--spectrum-gray-10" }
-      },
-      "foreground-rgb": {
-        "foreground-primary": { "value": "28 25 23", "variable": "--foreground-primary" },
-        "foreground-secondary": { "value": "120 113 108", "variable": "--foreground-secondary" }
-      },
-      "background-rgb": {
-        "background-primary": { "value": "255 255 255", "variable": "--background-primary" },
-        "background-subtle": { "value": "250 250 249", "variable": "--background-subtle" }
       }
     },
     "spacing": {
