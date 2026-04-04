@@ -1668,31 +1668,55 @@ export function PropertyPanel({
       </Section>}
 
       {/* SVG Fill — always visible for SVG child shapes */}
-      {isSvgChild && (
-        <Section label="Fill">
-          <RowGroup label="Color">
-            <div className="retune-row">
-              <ColorInput prop="fill" value={s.fill || "none"} onChange={onPropertyChange} {...variableProps("fill")} {...changeProps("fill")} />
-            </div>
-          </RowGroup>
-        </Section>
-      )}
+      {isSvgChild && (() => {
+        const hasFill = s.fill && s.fill !== "none" && s.fill !== "transparent";
+        return (
+          <Section label="Fill" action={
+            hasFill ? (
+              <Tooltip content="Remove fill" side="top"><button className="retune-section-action" onClick={() => onPropertyChange("fill", "none")}><Minus /></button></Tooltip>
+            ) : (
+              <Tooltip content="Add fill" side="top"><button className="retune-section-action" onClick={() => onPropertyChange("fill", "#000000")}><Plus /></button></Tooltip>
+            )
+          }>
+            {hasFill && (
+              <RowGroup label="Color">
+                <div className="retune-row">
+                  <ColorInput prop="fill" value={s.fill} onChange={onPropertyChange} {...variableProps("fill")} {...changeProps("fill")} />
+                </div>
+              </RowGroup>
+            )}
+          </Section>
+        );
+      })()}
 
       {/* SVG Stroke — always visible for SVG child shapes */}
-      {isSvgChild && (
-        <Section label="Stroke">
-          <RowGroup label="Color">
-            <div className="retune-row">
-              <ColorInput prop="stroke" value={s.stroke || "none"} onChange={onPropertyChange} {...variableProps("stroke")} {...changeProps("stroke")} />
-            </div>
-          </RowGroup>
-          <RowGroup label="Width">
-            <div className="retune-row">
-              <NumberInput label="" prop="strokeWidth" value={s.strokeWidth || "0"} onChange={onPropertyChange} min={0} step={0.5} {...variableProps("strokeWidth")} {...changeProps("strokeWidth")} />
-            </div>
-          </RowGroup>
-        </Section>
-      )}
+      {isSvgChild && (() => {
+        const hasStroke = s.stroke && s.stroke !== "none" && s.stroke !== "transparent";
+        return (
+          <Section label="Stroke" action={
+            hasStroke ? (
+              <Tooltip content="Remove stroke" side="top"><button className="retune-section-action" onClick={() => { onPropertyChange("stroke", "none"); onPropertyChange("strokeWidth", "0"); }}><Minus /></button></Tooltip>
+            ) : (
+              <Tooltip content="Add stroke" side="top"><button className="retune-section-action" onClick={() => { onPropertyChange("stroke", "#000000"); onPropertyChange("strokeWidth", "1"); }}><Plus /></button></Tooltip>
+            )
+          }>
+            {hasStroke && (
+              <>
+                <RowGroup label="Color">
+                  <div className="retune-row">
+                    <ColorInput prop="stroke" value={s.stroke} onChange={onPropertyChange} {...variableProps("stroke")} {...changeProps("stroke")} />
+                  </div>
+                </RowGroup>
+                <RowGroup label="Width">
+                  <div className="retune-row">
+                    <NumberInput label="" prop="strokeWidth" value={s.strokeWidth || "1"} onChange={onPropertyChange} min={0} step={0.5} {...variableProps("strokeWidth")} {...changeProps("strokeWidth")} />
+                  </div>
+                </RowGroup>
+              </>
+            )}
+          </Section>
+        );
+      })()}
 
       {/* Fill (hidden for images/videos and SVG child shapes) */}
       {!isMedia && !isSvgChild && (() => {
