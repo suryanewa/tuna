@@ -358,6 +358,7 @@ export function PropertyPanel({
   const isImage = element.tagName === "IMG" || element.tagName === "PICTURE" || element.tagName === "CANVAS";
   const isVideo = element.tagName === "VIDEO";
   const isSvg = element.tagName === "SVG" || element.tagName === "svg";
+  const isSvgChild = !isSvg && !!element.element?.closest("svg");
   const isMedia = isImage || isVideo;
   const hasBackgroundImage = s.backgroundImage && s.backgroundImage !== "none" && !s.backgroundImage.startsWith("linear-gradient") && !s.backgroundImage.startsWith("radial-gradient");
 
@@ -919,8 +920,8 @@ export function PropertyPanel({
         )}
       </Section>
 
-      {/* Position */}
-      <Section label="Position">
+      {/* Position (hidden for SVG child shapes) */}
+      {!isSvgChild && <Section label="Position">
         {/* Unified alignment row — always visible, disabled when not applicable */}
         {(() => {
           const isAbsoluteOrFixed = positionType === "absolute" || positionType === "fixed";
@@ -1051,7 +1052,7 @@ export function PropertyPanel({
             </div>
           </RowGroup>
         )}
-      </Section>
+      </Section>}
 
       {/* Layout */}
       <Section label="Layout">
@@ -1261,8 +1262,8 @@ export function PropertyPanel({
         </RowGroup>
       </Section>
 
-      {/* Size */}
-      <Section
+      {/* Size (hidden for SVG child shapes) */}
+      {!isSvgChild && <Section
         label="Size"
         action={
           <>
@@ -1457,10 +1458,10 @@ export function PropertyPanel({
             </div>
           </div>
         )}
-      </Section>
+      </Section>}
 
-      {/* Typography */}
-      {isText && (
+      {/* Typography (hidden for SVG child shapes) */}
+      {isText && !isSvgChild && (
         <Section label="Typography">
           <Row>
             <Field label="Font">
@@ -1666,8 +1667,39 @@ export function PropertyPanel({
         </Row>
       </Section>
 
-      {/* Fill (hidden for images/videos — not meaningful) */}
-      {!isMedia && (() => {
+      {/* SVG Fill — shows SVG fill color for SVG child shapes */}
+      {isSvgChild && s.fill && s.fill !== "none" && (
+        <Section label="Fill">
+          <RowGroup label="Color">
+            <div className="retune-row">
+              <ColorInput prop="fill" value={s.fill} onChange={onPropertyChange} {...variableProps("fill")} {...changeProps("fill")} />
+            </div>
+          </RowGroup>
+        </Section>
+      )}
+
+      {/* SVG Stroke — shows stroke controls for SVG child shapes */}
+      {isSvgChild && (
+        <Section label="Stroke">
+          {s.stroke && s.stroke !== "none" && (
+            <RowGroup label="Color">
+              <div className="retune-row">
+                <ColorInput prop="stroke" value={s.stroke} onChange={onPropertyChange} {...variableProps("stroke")} {...changeProps("stroke")} />
+              </div>
+            </RowGroup>
+          )}
+          {s.strokeWidth && (
+            <RowGroup label="Width">
+              <div className="retune-row">
+                <NumberInput label="" prop="strokeWidth" value={s.strokeWidth} onChange={onPropertyChange} min={0} step={0.5} {...variableProps("strokeWidth")} {...changeProps("strokeWidth")} />
+              </div>
+            </RowGroup>
+          )}
+        </Section>
+      )}
+
+      {/* Fill (hidden for images/videos and SVG child shapes) */}
+      {!isMedia && !isSvgChild && (() => {
         const fillVarMatch = getVariableMatch("backgroundColor");
         const fillHasVariable = !!fillVarMatch;
 
@@ -1726,41 +1758,6 @@ export function PropertyPanel({
         );
       })()}
 
-      {/* SVG Colors */}
-      {(isSvg || (element.element?.closest("svg") != null)) && (s.fill || s.stroke) && (
-        <Section label="SVG">
-          {s.fill && s.fill !== "none" && (
-            <RowGroup label="Fill">
-              <div className="retune-row">
-                <ColorInput prop="fill" value={s.fill} onChange={onPropertyChange} {...variableProps("fill")} {...changeProps("fill")} />
-              </div>
-            </RowGroup>
-          )}
-          {s.stroke && s.stroke !== "none" && (
-            <RowGroup label="Stroke">
-              <div className="retune-row">
-                <ColorInput prop="stroke" value={s.stroke} onChange={onPropertyChange} {...variableProps("stroke")} {...changeProps("stroke")} />
-              </div>
-            </RowGroup>
-          )}
-          {s.strokeWidth && s.strokeWidth !== "0" && (
-            <RowGroup label="Width">
-              <div className="retune-row">
-                <NumberInput
-                  label=""
-                  prop="strokeWidth"
-                  value={s.strokeWidth}
-                  onChange={onPropertyChange}
-                  min={0}
-                  step={0.5}
-                  {...variableProps("strokeWidth")}
-                  {...changeProps("strokeWidth")}
-                />
-              </div>
-            </RowGroup>
-          )}
-        </Section>
-      )}
 
       {/* Image / Media */}
       {isMedia && (
@@ -1933,8 +1930,8 @@ export function PropertyPanel({
         </Section>
       )}
 
-      {/* Border */}
-      <Section
+      {/* Border (hidden for SVG child shapes — they use Stroke) */}
+      {!isSvgChild && (<Section
         label="Border"
         action={
           hasBorder ? (
@@ -2014,7 +2011,7 @@ export function PropertyPanel({
             </Row>
           </>
         )}
-      </Section>
+      </Section>)}
 
       {/* Shadow */}
       {(() => {
@@ -2136,8 +2133,8 @@ export function PropertyPanel({
         );
       })()}
 
-      {/* Filters */}
-      <Section
+      {/* Filters (hidden for SVG child shapes) */}
+      {!isSvgChild && <Section
         label="Filters"
         action={
           <div style={{ position: "relative" }}>
@@ -2253,7 +2250,7 @@ export function PropertyPanel({
             </>
           );
         })()}
-      </Section>
+      </Section>}
       <div ref={filterSectionRef} />
     </>
   );

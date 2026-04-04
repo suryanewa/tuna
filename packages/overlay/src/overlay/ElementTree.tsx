@@ -103,14 +103,18 @@ const TEXT_TAGS = new Set([
 /** Image-like tags */
 const IMAGE_TAGS = new Set(["IMG", "PICTURE", "VIDEO", "CANVAS"]);
 
+/** SVG shape tags that get a mini preview icon */
+const SVG_SHAPE_TAGS = new Set(["path", "circle", "ellipse", "rect", "line", "polyline", "polygon"]);
+
 /** Determine the layer icon type based on element and computed layout */
-type LayerIconType = "frame-h" | "frame-v" | "grid" | "block" | "text" | "image" | "component" | "svg" | "input";
+type LayerIconType = "frame-h" | "frame-v" | "grid" | "block" | "text" | "image" | "component" | "svg" | "svg-shape" | "input";
 
 function getLayerIcon(el: Element, component: string | null): LayerIconType {
   if (component) return "component";
   if (TEXT_TAGS.has(el.tagName)) return "text";
   if (IMAGE_TAGS.has(el.tagName)) return "image";
-  if (el.tagName === "SVG" || el.tagName === "svg") return "svg";
+  if (el.tagName === "SVG" || el.tagName === "svg") return "svg-shape"; // show full SVG preview
+  if (SVG_SHAPE_TAGS.has(el.tagName.toLowerCase())) return "svg-shape";
   if (el.tagName === "INPUT" || el.tagName === "SELECT" || el.tagName === "TEXTAREA" || el.tagName === "BUTTON") return "input";
 
   // Layout-based icon for container elements
@@ -176,6 +180,90 @@ function formatNodeLabel(el: Element): {
 
   // Fallback to tag name
   return { iconType, name: tag, component: null };
+}
+
+/** Render a mini preview of an SVG shape element */
+function SvgShapeIcon({ element }: { element: Element }) {
+  const tag = element.tagName.toLowerCase();
+  try {
+    // Root <svg> — show full contents as preview
+    if (tag === "svg") {
+      const vb = element.getAttribute("viewBox");
+      const w = element.getAttribute("width") || "16";
+      const h = element.getAttribute("height") || "16";
+      const viewBox = vb || `0 0 ${w} ${h}`;
+      // Parse viewBox to compute a reasonable stroke width
+      const vbParts = viewBox.split(/\s+/).map(Number);
+      const vbSize = Math.max(vbParts[2] || 16, vbParts[3] || 16);
+      const defaultSw = vbSize / 14;
+      const inner = element.innerHTML
+        .replace(/fill="[^"]*"/g, 'fill="none"')
+        .replace(/stroke="[^"]*"/g, 'stroke="currentColor"')
+        .replace(/stroke-width="[^"]*"/g, `stroke-width="${defaultSw}"`)
+        .replace(/style="[^"]*"/g, '')
+        // Add stroke to elements that had fill but no stroke
+        .replace(/<(path|circle|ellipse|rect|polygon|polyline|line)(?![^>]*stroke)/g, `<$1 stroke="currentColor" stroke-width="${defaultSw}"`);
+      return (
+        <svg width="16" height="16" viewBox={viewBox} preserveAspectRatio="xMidYMid meet" fill="none" dangerouslySetInnerHTML={{ __html: inner }} />
+      );
+    }
+    if (tag === "path") {
+      const d = element.getAttribute("d");
+      if (!d) return <LayerIconFallback />;
+      const bbox = (element as SVGGraphicsElement).getBBox?.();
+      // ~19% padding matches the 16px icon grid safe area (3px inset on each side)
+      const pad = bbox ? Math.max(bbox.width, bbox.height) * 0.23 : 2;
+      const vb = bbox
+        ? `${bbox.x - pad} ${bbox.y - pad} ${bbox.width + pad * 2} ${bbox.height + pad * 2}`
+        : "0 0 24 24";
+      return (
+        <svg width="16" height="16" viewBox={vb} preserveAspectRatio="xMidYMid meet" fill="none">
+          <path d={d} fill="none" stroke="currentColor" strokeWidth={bbox ? Math.max(bbox.width, bbox.height) / 10 : 2} strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    }
+    if (tag === "circle" || tag === "ellipse" || tag === "rect" || tag === "line") {
+      const bbox = (element as SVGGraphicsElement).getBBox?.();
+      if (bbox) {
+        const pad = Math.max(bbox.width, bbox.height) * 0.23;
+        const vb = `${bbox.x - pad} ${bbox.y - pad} ${bbox.width + pad * 2} ${bbox.height + pad * 2}`;
+        const sw = Math.max(bbox.width, bbox.height) / 10;
+        const clone = element.cloneNode(false) as SVGElement;
+        clone.setAttribute("fill", "none");
+        clone.setAttribute("stroke", "currentColor");
+        clone.setAttribute("stroke-width", String(sw));
+        return (
+          <svg width="16" height="16" viewBox={vb} preserveAspectRatio="xMidYMid meet" fill="none" dangerouslySetInnerHTML={{ __html: clone.outerHTML }} />
+        );
+      }
+    }
+    if (tag === "polygon" || tag === "polyline") {
+      const points = element.getAttribute("points");
+      if (!points) return <LayerIconFallback />;
+      const bbox = (element as SVGGraphicsElement).getBBox?.();
+      const pad = bbox ? Math.max(bbox.width, bbox.height) * 0.23 : 2;
+      const vb = bbox
+        ? `${bbox.x - pad} ${bbox.y - pad} ${bbox.width + pad * 2} ${bbox.height + pad * 2}`
+        : "0 0 24 24";
+      const Tag = tag as "polygon" | "polyline";
+      return (
+        <svg width="16" height="16" viewBox={vb} preserveAspectRatio="xMidYMid meet" fill="none">
+          <Tag points={points} fill="none" stroke="currentColor" strokeWidth={bbox ? Math.max(bbox.width, bbox.height) / 10 : 2} strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    }
+  } catch {
+    // getBBox can throw if element isn't rendered
+  }
+  return <LayerIconFallback />;
+}
+
+function LayerIconFallback() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path fillRule="evenodd" clipRule="evenodd" d="M11.5 4H4.5C4.22386 4 4 4.22386 4 4.5V11.5C4 11.7761 4.22386 12 4.5 12H11.5C11.7761 12 12 11.7761 12 11.5V4.5C12 4.22386 11.7761 4 11.5 4ZM4.5 3C3.67157 3 3 3.67157 3 4.5V11.5C3 12.3284 3.67157 13 4.5 13H11.5C12.3284 13 13 12.3284 13 11.5V4.5C13 3.67157 12.3284 3 11.5 3H4.5Z" fill="currentColor" fillOpacity={0.9} />
+    </svg>
+  );
 }
 
 /** Inline SVG icons for the layer tree (16x16, currentColor) */
@@ -345,7 +433,7 @@ const TreeNode = memo(function TreeNode({
           )}
         </span>
         <span className={`retune-tree-icon${isComponent ? " retune-tree-icon--component" : ""}`}>
-          <LayerIcon type={iconType} />
+          {iconType === "svg-shape" ? <SvgShapeIcon element={element} /> : <LayerIcon type={iconType} />}
         </span>
         <span className={`retune-tree-name${isComponent ? " retune-tree-name--component" : ""}`}>{name}</span>
         {isReparented && <span className="retune-tree-moved">moved</span>}
