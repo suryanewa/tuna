@@ -1054,8 +1054,8 @@ export function PropertyPanel({
         )}
       </Section>}
 
-      {/* Layout */}
-      <Section label="Layout">
+      {/* Layout (hidden for SVG child shapes) */}
+      {!isSvgChild && <Section label="Layout">
         <Row>
           <Field label="Display">
             <SegmentedControl
@@ -1260,7 +1260,7 @@ export function PropertyPanel({
             </div>
           )}
         </RowGroup>
-      </Section>
+      </Section>}
 
       {/* Size (hidden for SVG child shapes) */}
       {!isSvgChild && <Section
@@ -1613,8 +1613,8 @@ export function PropertyPanel({
         </Section>
       )}
 
-      {/* Appearance */}
-      <Section label="Appearance">
+      {/* Appearance (hidden for SVG child shapes) */}
+      {!isSvgChild && <Section label="Appearance">
         <Row>
           <Field label="Opacity">
             <NumberInput prop="opacity" value={s.opacity} onChange={onPropertyChange} min={0} max={1} step={0.01} {...variableProps("opacity")} {...changeProps("opacity")} />
@@ -1665,7 +1665,7 @@ export function PropertyPanel({
             <SelectInput prop="overflow" value={s.overflow} options={["visible", "hidden", "auto", "scroll"]} onChange={onPropertyChange} />
           </Field>
         </Row>
-      </Section>
+      </Section>}
 
       {/* SVG Fill — shows SVG fill color for SVG child shapes */}
       {isSvgChild && s.fill && s.fill !== "none" && (
