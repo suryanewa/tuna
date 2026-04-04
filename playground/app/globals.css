@@ -394,7 +394,7 @@
 .message-detail__body {
   font-size: var(--font-base);
   line-height: var(--leading-relaxed);
-  color: var(--color-text);
+  color: #00fa49;
 }
 .message-detail__body p { margin-bottom: var(--spacing-4); }
 .message-detail__labels { display: flex; gap: var(--spacing-2); margin-top: var(--spacing-6); }
