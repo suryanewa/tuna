@@ -1667,34 +1667,30 @@ export function PropertyPanel({
         </Row>
       </Section>}
 
-      {/* SVG Fill — shows SVG fill color for SVG child shapes */}
-      {isSvgChild && s.fill && s.fill !== "none" && (
+      {/* SVG Fill — always visible for SVG child shapes */}
+      {isSvgChild && (
         <Section label="Fill">
           <RowGroup label="Color">
             <div className="retune-row">
-              <ColorInput prop="fill" value={s.fill} onChange={onPropertyChange} {...variableProps("fill")} {...changeProps("fill")} />
+              <ColorInput prop="fill" value={s.fill || "none"} onChange={onPropertyChange} {...variableProps("fill")} {...changeProps("fill")} />
             </div>
           </RowGroup>
         </Section>
       )}
 
-      {/* SVG Stroke — shows stroke controls for SVG child shapes */}
+      {/* SVG Stroke — always visible for SVG child shapes */}
       {isSvgChild && (
         <Section label="Stroke">
-          {s.stroke && s.stroke !== "none" && (
-            <RowGroup label="Color">
-              <div className="retune-row">
-                <ColorInput prop="stroke" value={s.stroke} onChange={onPropertyChange} {...variableProps("stroke")} {...changeProps("stroke")} />
-              </div>
-            </RowGroup>
-          )}
-          {s.strokeWidth && (
-            <RowGroup label="Width">
-              <div className="retune-row">
-                <NumberInput label="" prop="strokeWidth" value={s.strokeWidth} onChange={onPropertyChange} min={0} step={0.5} {...variableProps("strokeWidth")} {...changeProps("strokeWidth")} />
-              </div>
-            </RowGroup>
-          )}
+          <RowGroup label="Color">
+            <div className="retune-row">
+              <ColorInput prop="stroke" value={s.stroke || "none"} onChange={onPropertyChange} {...variableProps("stroke")} {...changeProps("stroke")} />
+            </div>
+          </RowGroup>
+          <RowGroup label="Width">
+            <div className="retune-row">
+              <NumberInput label="" prop="strokeWidth" value={s.strokeWidth || "0"} onChange={onPropertyChange} min={0} step={0.5} {...variableProps("strokeWidth")} {...changeProps("strokeWidth")} />
+            </div>
+          </RowGroup>
         </Section>
       )}
 
