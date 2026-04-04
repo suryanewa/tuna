@@ -297,7 +297,9 @@ function appendAncestorLevels(levels: ScopeLevel[], ancestorScopes: AncestorScop
 }
 
 export function Retune(props: RetuneConfig = {}) {
-  const isDev = typeof process !== "undefined" && process.env?.NODE_ENV === "development";
+  // Detect dev mode: Node process.env (Next.js, CRA) or import.meta.env (Vite, Astro)
+  const isDev = (typeof process !== "undefined" && process.env?.NODE_ENV === "development")
+    || (typeof import.meta !== "undefined" && (import.meta as any).env?.DEV === true);
   if (!isDev && !props.force) return null;
 
   const [wide, setWide] = useState(() =>
@@ -3903,6 +3905,19 @@ function RetuneInner(props: RetuneConfig) {
   }, []);
 
   if (!portalTarget) return null;
+
+  // Keep hotkey listener alive even when hidden so alt+d can bring it back
+  useEffect(() => {
+    if (!sessionHidden) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (matchesHotkey(e, config.hotkey)) {
+        e.preventDefault();
+        setSessionHidden(false);
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [sessionHidden, config.hotkey]);
 
   if (sessionHidden) return null;
 

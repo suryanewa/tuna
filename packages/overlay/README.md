@@ -27,7 +27,17 @@ export default function Layout({ children }) {
 }
 ```
 
+**Vite / Astro / SvelteKit:** These frameworks use `import.meta.env.DEV` instead of `process.env.NODE_ENV`. Retune detects both automatically since v0.7.2. If your dev check fails, use the `force` prop:
+
+```tsx
+<Retune force />
+```
+
 Press **Alt+D** (or **Option+D** on macOS) to toggle edit mode, then click any element to start tweaking.
+
+### Monorepo Setup
+
+Run `npx retune setup` from your **repo root**. It detects common app directories (`app/`, `client/`, `web/`, `packages/app`) by looking for framework config files (next.config, vite.config) and places `retune.manifest.json` in the correct `public/` folder. If your app directory isn't detected, run setup from within the app directory instead.
 
 ## How It Works
 
