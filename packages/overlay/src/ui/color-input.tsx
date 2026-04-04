@@ -213,8 +213,8 @@ export function ColorInput({ prop, value, onChange, variableMatch, property, onV
         >
           <div className="retune-color-swatch-inner" style={swatchStyle}>
             {isNone && (
-              <svg width="100%" height="100%" viewBox="0 0 16 16" preserveAspectRatio="none" style={{ position: "absolute", top: 0, left: 0 }}>
-                <line x1="0" y1="16" x2="16" y2="0" stroke="#dc2626" strokeWidth="1.5" />
+              <svg width="100%" height="100%" viewBox="0 0 16 16" style={{ position: "absolute", top: 0, left: 0 }}>
+                <line x1="3" y1="13" x2="13" y2="3" stroke="var(--retune-red-500)" strokeWidth="1" strokeLinecap="round" />
               </svg>
             )}
           </div>
