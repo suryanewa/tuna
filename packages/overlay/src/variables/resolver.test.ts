@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // Mock scanDesignTokens before importing resolver
 vi.mock("../inspector/tokens", () => ({
@@ -449,5 +449,152 @@ describe("getVariablesForProperty — includes class tokens", () => {
   it("does not include class tokens for non-color properties", () => {
     const vars = getVariablesForProperty("padding");
     expect(vars.every(v => v.className.startsWith("var("))).toBe(true);
+  });
+});
+
+// ── Manifest token integration tests ──
+
+import { setManifestTokens } from "./resolver";
+
+describe("Manifest token integration", () => {
+  beforeEach(() => {
+    invalidateCssVariables();
+    mockStyleSheets([]);
+  });
+
+  afterEach(() => {
+    setManifestTokens(null);
+    invalidateCssVariables();
+  });
+
+  it("manifest tokens replace scanner tokens for covered categories", () => {
+    setManifestTokens({
+      tokens: {
+        spacing: {
+          "custom-spacing": { value: "99px", variable: "--custom-spacing" },
+        },
+      },
+    });
+    invalidateCssVariables();
+    const vars = getVariablesForProperty("padding");
+    // Should have manifest token
+    expect(vars.map(v => v.className)).toContain("var(--custom-spacing)");
+    // Should NOT have scanner tokens for spacing (manifest replaces)
+    expect(vars.map(v => v.className)).not.toContain("var(--spacing-1)");
+    expect(vars.map(v => v.className)).not.toContain("var(--spacing-2)");
+    expect(vars.map(v => v.className)).not.toContain("var(--spacing-4)");
+  });
+
+  it("scanner tokens remain for categories not covered by manifest", () => {
+    setManifestTokens({
+      tokens: {
+        spacing: {
+          "custom-spacing": { value: "99px", variable: "--custom-spacing" },
+        },
+      },
+    });
+    invalidateCssVariables();
+    // Colors not in manifest — scanner should still provide them
+    const colorVars = getVariablesForProperty("color");
+    expect(colorVars.map(v => v.className)).toContain("var(--color-brand)");
+    expect(colorVars.map(v => v.className)).toContain("var(--color-text)");
+  });
+
+  it("handles nested color sub-groups", () => {
+    setManifestTokens({
+      tokens: {
+        colors: {
+          brand: {
+            "my-brand": { value: "#ff0000", variable: "--my-brand" },
+          },
+          status: {
+            "my-success": { value: "#00ff00", variable: "--my-success" },
+          },
+        },
+      },
+    });
+    invalidateCssVariables();
+    const vars = getVariablesForProperty("color");
+    expect(vars.map(v => v.className)).toContain("var(--my-brand)");
+    expect(vars.map(v => v.className)).toContain("var(--my-success)");
+    // Scanner colors should be replaced
+    expect(vars.map(v => v.className)).not.toContain("var(--color-brand)");
+  });
+
+  it("manifest tokens have manifestGroup from sub-groups", () => {
+    setManifestTokens({
+      tokens: {
+        colors: {
+          brand: {
+            "my-brand": { value: "#ff0000", variable: "--my-brand" },
+          },
+        },
+      },
+    });
+    invalidateCssVariables();
+    const vars = getVariablesForProperty("color");
+    const brandToken = vars.find(v => v.className === "var(--my-brand)");
+    expect(brandToken).toBeDefined();
+    expect(brandToken!.manifestGroup).toBe("brand");
+  });
+
+  it("manifest tokens with class field populate manifestClassLookup", () => {
+    setManifestTokens({
+      tokens: {
+        colors: {
+          "blue-500": { value: "#3b82f6", class: "bg-blue-500" },
+        },
+      },
+    });
+    invalidateCssVariables();
+    const vars = getVariablesForProperty("backgroundColor");
+    const token = vars.find(v => v.manifestClass === "bg-blue-500");
+    expect(token).toBeDefined();
+  });
+
+  it("class-only tokens (no variable) are included", () => {
+    setManifestTokens({
+      tokens: {
+        spacing: {
+          "p-4": { value: "1rem", class: "p-4" },
+        },
+      },
+    });
+    invalidateCssVariables();
+    const vars = getVariablesForProperty("padding");
+    const token = vars.find(v => v.className === "p-4");
+    expect(token).toBeDefined();
+    expect(token!.values._value).toBe("1rem");
+  });
+
+  it("typography tokens are sub-categorized by name", () => {
+    setManifestTokens({
+      tokens: {
+        typography: {
+          "font-bold": { value: "700", class: "font-bold" },
+          "text-sm": { value: "0.875rem", class: "text-sm" },
+          "leading-tight": { value: "1.25", class: "leading-tight" },
+        },
+      },
+    });
+    invalidateCssVariables();
+    expect(getVariablesForProperty("fontWeight").map(v => v.className)).toContain("font-bold");
+    expect(getVariablesForProperty("fontSize").map(v => v.className)).toContain("text-sm");
+    expect(getVariablesForProperty("lineHeight").map(v => v.className)).toContain("leading-tight");
+  });
+
+  it("framework internal prefixes are filtered from manifest", () => {
+    setManifestTokens({
+      tokens: {
+        colors: {
+          "tw-internal": { value: "#000", variable: "--tw-ring-color" },
+          "valid-color": { value: "#fff", variable: "--my-white" },
+        },
+      },
+    });
+    invalidateCssVariables();
+    const vars = getVariablesForProperty("color");
+    expect(vars.map(v => v.className)).not.toContain("var(--tw-ring-color)");
+    expect(vars.map(v => v.className)).toContain("var(--my-white)");
   });
 });

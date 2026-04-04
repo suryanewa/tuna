@@ -396,13 +396,14 @@ const MANIFEST_CATEGORY_MAP: Record<string, VariableCategory> = {
   shadows: "box-shadow",
 };
 
-/** Sub-categorize typography tokens by variable name pattern */
-function categorizeTypographyToken(varName: string): VariableCategory | null {
-  if (/font-weight|font_weight/.test(varName)) return "font-weight";
-  if (/leading|line-height|line_height/.test(varName)) return "line-height";
-  if (/tracking|letter-spacing|letter_spacing/.test(varName)) return "letter-spacing";
-  if (/font-family|font_family|font-heading|font-body|font-mono/.test(varName)) return "font-family";
-  if (/font|text|size/.test(varName)) return "font-size";
+/** Sub-categorize typography tokens by variable name or value pattern */
+function categorizeTypographyToken(nameHint: string, value?: string): VariableCategory | null {
+  // Check name patterns
+  if (/font-weight|font_weight|font-(thin|extralight|light|normal|medium|semibold|bold|extrabold|black)/.test(nameHint)) return "font-weight";
+  if (/leading|line-height|line_height/.test(nameHint)) return "line-height";
+  if (/tracking|letter-spacing|letter_spacing/.test(nameHint)) return "letter-spacing";
+  if (/font-family|font_family|font-heading|font-body|font-mono|font-(sans|serif|mono|centra|gelica|guardian|yahoosans)/.test(nameHint)) return "font-family";
+  if (/font|text|size/.test(nameHint)) return "font-size";
   return "font-size"; // default for typography
 }
 
