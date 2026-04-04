@@ -726,6 +726,7 @@ input, textarea, [contenteditable] {
   opacity: 0.5;
 }
 .retune-tree-node.selected .retune-tree-icon,
+.retune-tree-node.descendant-selected .retune-tree-icon,
 .retune-tree-node:hover .retune-tree-icon {
   opacity: 1;
 }
