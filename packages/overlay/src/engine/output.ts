@@ -150,7 +150,7 @@ export function formatChanges(changes: ElementChange[], fidelity: Fidelity, comm
   if (changes.length > 0) {
     lines.push(`# Visual Changes (${changes.length} element${changes.length !== 1 ? "s" : ""})`);
     lines.push("");
-    const sections = changes.map((change) => formatSingleChange(change, fidelity, tokenMap, bulkCount));
+    const sections = changes.map((change) => formatSingleChange(change, fidelity, tokenMap, bulkCount, manifest));
     lines.push(sections.join("\n---\n\n"));
   }
 
@@ -205,7 +205,7 @@ export function formatChanges(changes: ElementChange[], fidelity: Fidelity, comm
   return lines.join("\n");
 }
 
-function formatSingleChange(change: ElementChange, fidelity: Fidelity, tokenMap: TokenMap, bulkInstanceCount = 0): string {
+function formatSingleChange(change: ElementChange, fidelity: Fidelity, tokenMap: TokenMap, bulkInstanceCount = 0, manifest?: Record<string, any> | null): string {
   const lines: string[] = [];
 
   // Element identification
@@ -221,6 +221,41 @@ function formatSingleChange(change: ElementChange, fidelity: Fidelity, tokenMap:
   // Component hierarchy
   if (change.reactComponents.length > 0) {
     lines.push(`**Component:** ${change.reactComponents.join(" → ")}`);
+
+    // Per-element manifest context — show component props/class_map for the nearest component
+    if (manifest?.components && fidelity !== "minimal") {
+      const compName = change.reactComponents[0];
+      const compDef = manifest.components[compName];
+      if (compDef?.props) {
+        const propSummaries: string[] = [];
+        for (const [propName, propDef] of Object.entries<any>(compDef.props)) {
+          if (propDef.type === "function") continue; // skip callbacks
+          let summary = `${propName}: ${propDef.type}`;
+          if (propDef.type === "enum" && propDef.values) {
+            summary += `(${propDef.values.join(", ")})`;
+          }
+          if (propDef.default !== undefined) {
+            summary += ` = ${JSON.stringify(propDef.default)}`;
+          }
+          if (propDef.class_map) {
+            const mappings = Object.entries(propDef.class_map).map(([v, c]) => `${v}→${c}`).join(", ");
+            summary += ` [${mappings}]`;
+          }
+          propSummaries.push(summary);
+        }
+        if (propSummaries.length > 0) {
+          if (fidelity === "full") {
+            lines.push(`**Component props:** ${propSummaries.join("; ")}`);
+          } else {
+            // Standard: only show enum props with class_map (most useful for the agent)
+            const enumProps = propSummaries.filter(s => s.includes("enum") || s.includes("→"));
+            if (enumProps.length > 0) {
+              lines.push(`**Variants:** ${enumProps.join("; ")}`);
+            }
+          }
+        }
+      }
+    }
   }
 
   // Styling approach
