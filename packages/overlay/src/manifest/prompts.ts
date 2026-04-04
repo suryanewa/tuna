@@ -61,7 +61,7 @@ The "colors" category MUST use nested groups. Group colors by their design syste
 - By hue ramp for primitive palettes (e.g., "blue", "red", "gray")
 - By semantic role for semantic tokens (e.g., "brand", "status", "ui")
 - By component/feature for scoped tokens (e.g., "pagination", "article-ui")
-Each group is an object containing its token entries. Read the project's Tailwind config, design system docs, or CSS variable naming to determine the natural groupings.
+Each group is an object containing its token entries. Read the project's Tailwind config, design system docs, or CSS variable naming to determine the natural groupings. Group by purpose, NOT by value format -- tokens with hex values and space-separated RGB values belong in the same group if they serve the same role (e.g., all background colors together regardless of format).
 
 ## Example
 
