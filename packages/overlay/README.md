@@ -77,32 +77,49 @@ Controls appear based on the selected element:
 | Text | font-size, weight, line-height, letter-spacing, color, alignment, font family |
 | Flex container | direction, gap, align, justify, wrap |
 | Grid container | columns, rows, gap |
-| Image | object-fit, aspect-ratio, border-radius |
+| Image | object-fit, object-position, alt text, loading (lazy/eager) |
+| Video | object-fit, autoplay, loop, muted, controls |
+| SVG shapes | fill, stroke color, stroke width |
 | Positioned | position offsets, z-index |
+| Background image | background-size, position, repeat |
 
-### Pseudo-State Editing
+### Component Props & State
 
-Toggle between `:hover`, `:focus`, and `:active` states to inspect and edit styles that only apply in those states — without needing to hold the mouse in place.
+View and edit React component props and state hooks directly in the panel. Enum props show as dropdowns, booleans as toggle controls. When a manifest is present, state hooks display with their actual variable names and enum values.
 
-### Class Selector Picker
+### Comments
 
-When you select an element, Retune shows its CSS classes as clickable tags. Pick "This element" to scope changes to just that element, or pick a class to apply changes everywhere that class is used. Each tag shows how many elements share the class.
+Annotate elements (click) or areas (drag) with text notes. Comment markers follow scroll, expand on hover with a text preview. Comments are included in the output so your AI agent can address them alongside visual changes.
 
-### Styling Approach Detection
+### Manifest System
 
-Retune analyzes your stylesheets at runtime to detect whether you're using utility CSS (Tailwind, UnoCSS, etc.) or semantic CSS (CSS Modules, plain CSS). This context helps your AI agent write changes in the right format.
+Generate a `retune.manifest.json` to describe your design system's components, props, state hooks, and tokens. The manifest powers accurate token pickers, component variant controls, scope pill labels, and richer output context for your AI agent. Generate via the in-app banner prompt, MCP nudge, or `npx retune setup`.
+
+### Aspect Ratio Lock
+
+Lock toggle in the Size section constrains proportions when editing width or height. Images and video lock by default during resize (hold Shift to unlock).
+
+### Trigger Editing
+
+Toggle between Hover, Focus, and Active states to inspect and edit styles that only apply in those interaction states.
+
+### Scope Targeting
+
+When you select an element with multiple classes, Retune shows scope levels so you can choose how broadly your changes apply — from the base class (all buttons) to a variant (ghost buttons) to "This instance". When a manifest is present, variant classes are labeled accurately using the manifest's prop values.
 
 ### Design Token Resolution
 
-When you change a value, Retune finds matching design tokens (CSS variables, utility classes, semantic tokens) and suggests the best match. Your AI agent uses the token instead of a raw value.
+When you change a value, Retune finds matching design tokens (CSS variables, utility classes, semantic tokens) and suggests the best match. When a manifest is present, manifest tokens replace the runtime scanner for more accurate results with proper categorization.
 
-### Scrub-to-Adjust
+### Elements Tab
 
-Click and drag on any numeric value to scrub it up or down. Hold Shift for 10x increments, Alt for 0.1x precision.
+Figma-style tree view with layout-aware icons (flex-row, flex-column, grid, block, text, image, component). SVG shapes render as mini path previews. Text elements show content preview as the layer name. Drag to reorder or reparent. Selecting an element highlights its descendants.
 
-### Dark Mode
+### More
 
-Full dark mode support for the Retune overlay. Toggle in Settings or follow system preference.
+- **Scrub-to-adjust** — Click and drag on numeric values. Shift for 10x, Alt for 0.1x.
+- **Dark mode** — Full dark mode for the overlay. Toggle in Settings or follow system preference.
+- **Styling approach detection** — Detects Tailwind, CSS Modules, plain CSS to help your AI agent write changes in the right format.
 
 ### Keyboard Shortcuts
 
@@ -119,9 +136,15 @@ Full dark mode support for the Retune overlay. Toggle in Settings or follow syst
 | Delete | ⌫ | Delete |
 | Measure spacing | ⌥+Hover | Alt+Hover |
 
-### Elements Tab
+## Setup
 
-Tree view of the DOM with drag-to-reorder and drag-to-reparent. Shows React component names, reflects visual order after reorder.
+Auto-configure MCP, install the AI skill, and extract design tokens:
+
+```bash
+npx retune setup
+```
+
+This detects Claude Code and Cursor, configures the MCP server, installs the skill, and generates a partial manifest with your project's design tokens from CSS files. The output prompts your AI agent to complete the manifest with component definitions.
 
 ## AI Integration (MCP Server)
 
@@ -147,6 +170,8 @@ Retune includes a built-in MCP server. Configure your AI tool to use it:
 | `retune_get_formatted_changes` | Get changes as structured markdown, ready to apply to code |
 | `retune_watch_changes` | Wait for new changes (blocks up to 30s) |
 | `retune_clear_changes` | Clear pending changes after applying them |
+| `retune_get_comments` | Get all comments/annotations left by the user |
+| `retune_manifest_loaded` | Notify the overlay after generating or updating the manifest |
 | `retune_status` | Check overlay connection status |
 
 ## Configuration
@@ -171,7 +196,7 @@ Retune uses layered identification to help AI agents find elements in your code:
 
 ## Compatibility
 
-- **Frameworks:** Next.js, Vite, Remix
+- **Frameworks:** Next.js, Vite, Remix, Astro, SvelteKit
 - **Styling:** Tailwind CSS, CSS Modules, plain CSS, any utility-first framework
 - **AI tools:** Claude Code and Cursor via MCP, plus clipboard fallback for others
 - **Viewport:** Desktop only (hidden below 768px)
