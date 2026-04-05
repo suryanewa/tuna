@@ -3904,8 +3904,6 @@ function RetuneInner(props: RetuneConfig) {
     return () => { delete (window as any).__retune; };
   }, []);
 
-  if (!portalTarget) return null;
-
   // Keep hotkey listener alive even when hidden so alt+d can bring it back
   useEffect(() => {
     if (!sessionHidden) return;
@@ -3918,6 +3916,8 @@ function RetuneInner(props: RetuneConfig) {
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [sessionHidden, config.hotkey]);
+
+  if (!portalTarget) return null;
 
   if (sessionHidden) return null;
 
