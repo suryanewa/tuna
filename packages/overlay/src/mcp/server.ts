@@ -23,6 +23,10 @@ function checkManifest(): { exists: boolean; hasComponents: boolean; prompt: str
         if (data && !("components" in data)) {
           return { exists: true, hasComponents: false, prompt: MANIFEST_COMPONENTS_PROMPT };
         }
+        // Check manifest version — v1 manifests should be regenerated
+        if (data && (!data.version || data.version < 2)) {
+          return { exists: true, hasComponents: true, prompt: `Your retune.manifest.json is version ${data.version || 1}. Regenerate it with the latest format (version 2) for better component filtering, conditional prop visibility (hidden_unless), and designer-focused prop selection.\n\n${MANIFEST_PROMPT}` };
+        }
         return { exists: true, hasComponents: true, prompt: null };
       } catch {
         return { exists: true, hasComponents: false, prompt: null };

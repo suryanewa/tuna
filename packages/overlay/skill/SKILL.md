@@ -317,26 +317,37 @@ Retune uses a `retune.manifest.json` file in the project's public directory to p
 - When a tool response says "No retune.manifest.json found" or "missing component definitions"
 - When `npx retune setup` output asks you to complete the manifest
 
-### Manifest format:
+### Manifest format (v2):
 
-The manifest has two sections:
+Always include `"version": 2` at the top level.
 
-**components** -- React components with props (types, enum values, class_map) and state hooks (names, types, defaults).
+**components** -- Only components that render visible UI and have props that produce visible changes. Think like a designer using Figma.
+
+Include: Buttons, cards, modals, dropdowns, navigation, form inputs, layout containers with visual variants.
+Skip: Context providers, analytics wrappers, HOCs, page shells, error boundaries, animation config wrappers.
+
+Props:
+- Only visually meaningful props (variant, size, label, disabled, isOpen)
+- Types: "string", "number", "boolean", "enum" (with "values" array)
+- `"class_map"` when props determine CSS classes
+- `"hidden_unless"` for conditional visibility: `"borderColor": { "type": "string", "hidden_unless": { "variant": "outline" } }`
+- Skip: event handlers, refs, data objects, tracking props, className, style, children
+
+State: Only visible state (isOpen, activeTab). Skip internal state (timers, refs, previous values).
 
 **tokens** -- Design tokens organized by category: `colors`, `spacing`, `sizing`, `radii`, `borderWidths`, `shadows`, `typography`.
 
 Each token has:
-- `"value"` -- the token's value exactly as defined. All formats valid: hex, rgb, space-separated RGB (e.g., `"59 130 246"`), rgba, hsl, oklch, named colors, px, rem, em, unitless. Do not skip or transform values.
-- `"variable"` -- CSS custom property name starting with `--` (when the project uses CSS variables)
-- `"class"` -- utility class name (when the project uses Tailwind or similar utility classes)
+- `"value"` -- the token's value exactly as defined. All formats valid: hex, rgb, space-separated RGB, oklch, px, rem, em, unitless. Do not transform values.
+- `"variable"` -- CSS custom property name starting with `--` (when the project uses CSS variables). Tokens with variables appear in the variable picker.
+- `"class"` -- utility class name (when the project uses Tailwind or similar). Class-only tokens (no variable) are used for output guidance but don't appear in the variable picker.
 
-**Colors must be organized into sub-groups** by hue ramp (e.g., "blue", "red"), semantic role (e.g., "brand", "status"), or component scope (e.g., "pagination").
+**Colors must be organized into sub-groups** by hue ramp, semantic role, or component scope.
 
 ### Key rules:
 - Include the FULL spacing scale and FULL color palette (every step/shade)
 - Omit framework internals (`--tw-ring-*`, `--tw-shadow*`, `--tw-translate-*`, etc.)
 - Include tokens from design system packages in node_modules
-- `"value"` must be a single CSS value, not descriptions or compound values
 - For Tailwind projects: extract tokens from `tailwind.config.js` theme values
 - For components: include `class_map` when props determine which CSS class is applied
 

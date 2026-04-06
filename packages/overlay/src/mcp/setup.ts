@@ -284,6 +284,7 @@ function generateManifest(): boolean {
     return false;
   }
 
+  manifest.version = 2;
   manifest.tokens = tokens;
 
   // Ensure public directory exists

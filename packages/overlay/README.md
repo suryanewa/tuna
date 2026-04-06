@@ -91,9 +91,16 @@ View and edit React component props and state hooks directly in the panel. Enum 
 
 Annotate elements (click) or areas (drag) with text notes. Comment markers follow scroll, expand on hover with a text preview. Comments are included in the output so your AI agent can address them alongside visual changes.
 
-### Manifest System
+### Manifest System (v2)
 
-Generate a `retune.manifest.json` to describe your design system's components, props, state hooks, and tokens. The manifest powers accurate token pickers, component variant controls, scope pill labels, and richer output context for your AI agent. Generate via the in-app banner prompt, MCP nudge, or `npx retune setup`.
+Generate a `retune.manifest.json` to describe your design system's components, props, state hooks, and tokens. The manifest powers accurate token pickers, component variant controls, scope pill labels, and richer output context for your AI agent.
+
+**v2 features:**
+- **Smart prop filtering** — non-manifest components auto-filter to show only designer-relevant props. Framework plumbing components are hidden entirely.
+- **Conditional visibility** — props can declare `"hidden_unless"` to only show when relevant.
+- **Variable picker cleanup** — class-only tokens excluded from the variable picker. Only CSS custom properties show.
+
+Generate via the in-app banner prompt, MCP nudge, or `npx retune setup`. Existing v1 manifests trigger a regeneration nudge.
 
 ### Aspect Ratio Lock
 
