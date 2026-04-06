@@ -276,8 +276,23 @@ export function AlignmentGrid({ justifyContent, alignItems, flexDirection, onCha
   }, [flow, isSpaceBetween, onChange]);
 
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
-    console.log("[AlignmentGrid] dblclick fired, isSpaceBetween:", isSpaceBetween);
+    // Find which cell was double-clicked to determine the target position
+    const cell = (e.target as HTMLElement).closest?.(".retune-alignment-cell");
     if (isSpaceBetween) {
+      // Exit space-between: use the clicked cell's position for justifyContent
+      if (cell) {
+        const cells = Array.from(cell.parentElement?.querySelectorAll(".retune-alignment-cell") || []);
+        const idx = cells.indexOf(cell);
+        if (idx >= 0) {
+          const row = Math.floor(idx / 3);
+          const col = idx % 3;
+          const css = positionToCss(row, col, flow);
+          onChange("justifyContent", css.justifyContent);
+          onChange("alignItems", css.alignItems);
+          return;
+        }
+      }
+      // Fallback: use current coords
       const css = positionToCss(selectedCoords.row, selectedCoords.col, flow);
       onChange("justifyContent", css.justifyContent);
     } else {
