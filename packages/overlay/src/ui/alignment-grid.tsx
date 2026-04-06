@@ -275,7 +275,8 @@ export function AlignmentGrid({ justifyContent, alignItems, flexDirection, onCha
     }
   }, [flow, isSpaceBetween, onChange]);
 
-  const handleDoubleClick = useCallback(() => {
+  const handleDoubleClick = useCallback((e: React.MouseEvent) => {
+    console.log("[AlignmentGrid] dblclick fired, isSpaceBetween:", isSpaceBetween);
     if (isSpaceBetween) {
       const css = positionToCss(selectedCoords.row, selectedCoords.col, flow);
       onChange("justifyContent", css.justifyContent);

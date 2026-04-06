@@ -2580,6 +2580,10 @@ export function createPicker(
 
   function handleDblClick(e: MouseEvent) {
     if (!active || !selectedElement) return;
+    // Don't intercept double-clicks inside Retune's own UI (same check as handleClick)
+    const path = e.composedPath();
+    const host = shadowRoot.host;
+    if (path.includes(host)) return;
     e.preventDefault();
     e.stopPropagation();
 
