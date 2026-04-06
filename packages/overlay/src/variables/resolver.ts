@@ -442,12 +442,19 @@ function addManifestToken(
   if (!tokenDef.value && !tokenDef.variable && !tokenDef.class) return;
 
   const varName = tokenDef.variable; // may be undefined for class-only tokens
-  const dedupeKey = varName || tokenDef.class || tokenDef.value;
+
+  // Skip class-only tokens from the variable picker — these are utility classes
+  // (like p-9, rounded-xl) that don't have a CSS variable. The output/skill will
+  // guide the agent to apply utility classes; the variable picker shows only
+  // intentional CSS custom properties.
+  if (!varName) return;
+
+  const dedupeKey = varName;
   if (seen.has(dedupeKey)) return;
   seen.add(dedupeKey);
 
   // Skip framework internals
-  if (varName && FRAMEWORK_INTERNAL_PREFIXES.some(p => varName.startsWith(p))) return;
+  if (FRAMEWORK_INTERNAL_PREFIXES.some(p => varName.startsWith(p))) return;
 
   // Determine category
   let category: VariableCategory | null = MANIFEST_CATEGORY_MAP[categoryKey] ?? null;
