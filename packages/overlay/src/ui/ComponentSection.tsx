@@ -203,6 +203,11 @@ export function ComponentSection({ selectedElement, onRefresh, onPropChange, cha
   const isInManifest = !!(manifest?.components && componentName && manifest.components[componentName]);
   const manifestComp = isInManifest ? manifest!.components[componentName!] : null;
 
+  // When a manifest exists but this component isn't in it, skip entirely —
+  // the component isn't designer-relevant. Only manifest-declared components
+  // get the Props section.
+  if (manifest?.components && !isInManifest) return null;
+
   // Build prop list — manifest-registered props are authoritative
   const propEntries: Array<[string, unknown]> = [];
   const seen = new Set<string>();
