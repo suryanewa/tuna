@@ -341,6 +341,16 @@ export function PropertyPanel({
         onPropertyReset={onPropertyReset}
       />
 
+      {/* Image / Video / Background Image — after Appearance, before Border */}
+      {(isImage || isVideo || hasBackgroundImage) && (
+        <ImageSection
+          {...baseProps}
+          isImage={isImage}
+          isVideo={isVideo}
+          hasBackgroundImage={!!hasBackgroundImage}
+        />
+      )}
+
       {/* Border (hidden for SVG child shapes — they use Stroke in FillSection) */}
       {!isSvgChild && (
         <BorderSection
@@ -362,16 +372,6 @@ export function PropertyPanel({
       {!isSvgChild && (
         <FiltersSection
           {...baseProps}
-        />
-      )}
-
-      {/* Image / Video / Background Image */}
-      {(isImage || isVideo || hasBackgroundImage) && (
-        <ImageSection
-          {...baseProps}
-          isImage={isImage}
-          isVideo={isVideo}
-          hasBackgroundImage={!!hasBackgroundImage}
         />
       )}
     </>
