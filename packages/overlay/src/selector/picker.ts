@@ -11,6 +11,7 @@
  */
 
 import { canFill, type SizingContext } from "../ui/sizing-utils";
+import { getElementTitle } from "./identifier";
 import {
   computeSelectionChromeLayout,
   measureDimensionLabelWidth,
@@ -41,6 +42,8 @@ export const SELECTION_CLICK_PAD = 8;
 const MARQUEE_DRAG_THRESHOLD = 5;
 const MARQUEE_MIN_SIZE = 10;
 const MARQUEE_SAMPLE_STEP = 16;
+const HOVER_TITLE_OFFSET_X = 12;
+const HOVER_TITLE_OFFSET_Y = 16;
 
 /** True when (x, y) lies inside any selected element's bounds (plus pad). */
 export function isPointInsideSelectionBounds(
@@ -496,6 +499,7 @@ export function createPicker(
   }
 
   initBoxStyles(highlight, label);
+  highlight.style.transition = "top 0.15s cubic-bezier(0.23, 1, 0.32, 1), left 0.15s cubic-bezier(0.23, 1, 0.32, 1), width 0.15s cubic-bezier(0.23, 1, 0.32, 1), height 0.15s cubic-bezier(0.23, 1, 0.32, 1)";
   initBoxStyles(selection, selectionLabel);
 
   // ── Resize handles (corners + edges) ──
@@ -2456,10 +2460,45 @@ export function createPicker(
     box.style.display = "";
   }
 
+  let lastPointer = { x: 0, y: 0 };
+
+  function hideHoverTitle() {
+    label.style.display = "none";
+  }
+
+  function updateHoverTitle(el: Element) {
+    if (commentMode || suspended || marqueeDrag?.dragging) {
+      hideHoverTitle();
+      return;
+    }
+    if (selectedElements.includes(el)) {
+      hideHoverTitle();
+      return;
+    }
+
+    const title = getElementTitle(el);
+    if (!title) {
+      hideHoverTitle();
+      return;
+    }
+
+    label.textContent = title;
+    label.style.background = PICKER_OUTLINE_COLOR;
+    label.style.top = `${lastPointer.y + HOVER_TITLE_OFFSET_Y}px`;
+    label.style.left = `${lastPointer.x + HOVER_TITLE_OFFSET_X}px`;
+    label.style.transform = "none";
+    label.style.display = "";
+  }
+
   function updateHighlight(el: Element) {
     const rect = el.getBoundingClientRect();
+    if (highlight.style.display === "none" && selectedElement) {
+      const fromRect = selectedElement.getBoundingClientRect();
+      positionBox(highlight, fromRect, "solid", "0");
+      highlight.offsetHeight; // force reflow to ensure CSS transition runs
+    }
     positionBox(highlight, rect, "solid", "0");
-    label.style.display = "none";
+    updateHoverTitle(el);
   }
 
   function showSelection() {
@@ -2585,7 +2624,7 @@ export function createPicker(
 
   function hideHighlight() {
     highlight.style.display = "none";
-    label.style.display = "none";
+    hideHoverTitle();
     hideSpacing();
     hideSiblingOutlines();
   }
@@ -2694,7 +2733,8 @@ export function createPicker(
   }
 
   function handleMouseMove(e: MouseEvent) {
-    if (!active || suspended || repositionDrag || resizeDrag || reorderDrag) return;
+    lastPointer = { x: e.clientX, y: e.clientY };
+    if (!active || suspended || commentMode || repositionDrag || resizeDrag || reorderDrag) return;
     // Skip if cursor is over overlay UI (toolbar, panel) inside the shadow root.
     // elementFromPoint on a ShadowRoot falls through to page elements when no
     // shadow element is at the point, so we verify the hit actually belongs to
@@ -2711,8 +2751,19 @@ export function createPicker(
       }
     }
     const el = pageElementAtPoint(e.clientX, e.clientY);
-    if (!el) return;
-    if (el === hoveredElement) return;
+    if (!el) {
+      if (hoveredElement) {
+        hoveredElement = null;
+        hideHighlight();
+      }
+      return;
+    }
+    if (el === hoveredElement) {
+      if (!selectedElements.includes(el)) {
+        updateHoverTitle(el);
+      }
+      return;
+    }
 
     // If moving to an ancestor of the current hover target, debounce
     // to avoid flashing parents when crossing gaps between siblings
@@ -3146,8 +3197,16 @@ export function createPicker(
   const cursorStyle = document.createElement("style");
   cursorStyle.setAttribute("data-retune-cursor", "");
 
+  // Select-mode cursor — matches toolbar IconCursor1, sized to the comment cursor footprint (~17px in 32px canvas)
+  const SELECT_CURSOR_SCALE = 17 / 24;
+  const selectCursorHotspotX = Math.round(5 + 3.45 * SELECT_CURSOR_SCALE);
+  const selectCursorHotspotY = Math.round(5 + 3.93 * SELECT_CURSOR_SCALE);
+  const selectCursorSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none"><defs><filter id="s" x="2" y="2" width="23" height="23" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="a"/><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="b"/><feOffset dy="1"/><feGaussianBlur stdDeviation="1.5"/><feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.35 0"/><feBlend in2="a" result="c"/><feBlend in="SourceGraphic" in2="c" result="d"/></filter></defs><g filter="url(#s)" transform="translate(5 5) scale(${SELECT_CURSOR_SCALE})"><path d="M3.45158 4.72779L9.06387 20.5551C9.36964 21.4174 10.577 21.4503 10.9293 20.6059L13.6196 14.157C13.721 13.9138 13.9143 13.7205 14.1575 13.6191L20.6064 10.9288C21.4508 10.5765 21.4179 9.36915 20.5556 9.06338L4.72828 3.45109C3.93501 3.1698 3.17029 3.93452 3.45158 4.72779Z" fill="white" stroke="black" stroke-width="1.5" stroke-linejoin="round"/></g></svg>`;
+  const selectCursorB64 = typeof btoa === "function" ? btoa(selectCursorSvg) : "";
+  const selectCursorUrl = `url("data:image/svg+xml;base64,${selectCursorB64}") ${selectCursorHotspotX} ${selectCursorHotspotY}, default`;
+
   const ACTIVE_PAGE_STYLES = `
-    * { cursor: default !important; user-select: none !important; -webkit-user-select: none !important; }
+    * { cursor: ${selectCursorUrl} !important; user-select: none !important; -webkit-user-select: none !important; }
     *:focus, *:focus-visible { outline: none !important; }
     html[data-retune-active] *:active {
       transform: none !important;
@@ -3358,9 +3417,9 @@ export function createPicker(
     commentMode = enabled;
     if (enabled) {
       clearSelection();
-      cursorStyle.textContent = `* { cursor: ${commentCursorUrl} !important; }`;
+      cursorStyle.textContent = `* { cursor: ${commentCursorUrl} !important; user-select: none !important; -webkit-user-select: none !important; }`;
     } else if (active) {
-      cursorStyle.textContent = "* { cursor: default !important; }";
+      cursorStyle.textContent = ACTIVE_PAGE_STYLES;
     }
   }
 

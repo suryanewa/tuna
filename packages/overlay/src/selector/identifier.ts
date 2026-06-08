@@ -662,6 +662,35 @@ export function getDirectReactComponent(element: Element): string | null {
   return null;
 }
 
+const TITLE_TEXT_TAGS = new Set([
+  "P", "H1", "H2", "H3", "H4", "H5", "H6", "SPAN", "LABEL", "A",
+  "LI", "TD", "TH", "BLOCKQUOTE", "FIGCAPTION", "CAPTION", "LEGEND",
+  "DT", "DD", "EM", "STRONG", "B", "I", "SMALL", "MARK", "DEL", "INS", "SUB", "SUP",
+  "ABBR", "CITE", "CODE", "PRE", "TIME", "BUTTON",
+]);
+
+/** Human-readable title for hover labels and tree nodes. */
+export function getElementTitle(element: Element): string {
+  const component = getDirectReactComponent(element);
+  if (component) return component;
+
+  if (TITLE_TEXT_TAGS.has(element.tagName)) {
+    const text = (element.textContent || "").trim();
+    if (text.length > 0) {
+      return text.length > 24 ? `${text.slice(0, 22)}...` : text;
+    }
+  }
+
+  if (element.className && typeof element.className === "string") {
+    const first = element.className.trim().split(/\s+/)[0];
+    if (first) return first;
+  }
+
+  if (element.id) return `#${element.id}`;
+
+  return element.tagName.toLowerCase();
+}
+
 /** Get the component fiber if this element is its root DOM node. Returns null otherwise. */
 function getDirectComponentFiber(element: Element): any | null {
   const fiber = getFiber(element);
