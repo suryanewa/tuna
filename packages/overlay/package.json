@@ -26,7 +26,7 @@
   "scripts": {
     "build:css": "node scripts/build-css.js",
     "watch:css": "node scripts/build-css.js --watch",
-    "build": "npm run build:css && tsup",
+    "build": "npm run build:css && rm -rf dist && tsup",
     "dev": "npm run build:css && node scripts/dev.js",
     "test": "vitest run"
   },

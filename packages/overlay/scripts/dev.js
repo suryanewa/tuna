@@ -6,8 +6,8 @@ import { dirname, join } from "path";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const pkgRoot = join(__dirname, "..");
 
-// Full build before watch so dist/ always has complete chunk graph for Next.js.
-execSync("npx tsup", { cwd: pkgRoot, stdio: "inherit" });
+// Full clean build before watch so dist/ is complete before Next.js reads it.
+execSync("npm run build", { cwd: pkgRoot, stdio: "inherit" });
 
 function run(command, args, name) {
   const child = spawn(command, args, {

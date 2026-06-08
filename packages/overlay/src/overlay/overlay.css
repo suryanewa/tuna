@@ -3421,25 +3421,27 @@ input, textarea, [contenteditable] {
 }
 .retune-comment-input-wrap {
   flex: 1;
+  position: relative;
   display: flex;
   align-items: center;
   min-width: 0;
   overflow: hidden;
-  gap: 0;
 }
-.retune-comment-mention {
-  flex-shrink: 0;
+.retune-comment-placeholder {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--retune-text-tertiary);
   font-size: 13px;
-  font-weight: 400;
   line-height: 1.4;
+  pointer-events: none;
   white-space: nowrap;
-  user-select: none;
-  margin-right: 0.25em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
-.retune-comment-mention + .retune-comment-mention {
-  margin-left: 0.35em;
-}
-.retune-comment-input {
+.retune-comment-editor {
   flex: 1;
   min-width: 4ch;
   background: transparent;
@@ -3447,12 +3449,43 @@ input, textarea, [contenteditable] {
   color: var(--retune-text);
   font-size: 13px;
   font-family: inherit;
+  line-height: 1.4;
   outline: none;
   padding: 0;
   box-sizing: border-box;
+  white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
-.retune-comment-input::placeholder {
+.retune-comment-editor:empty {
+  min-height: 1.4em;
+}
+.retune-comment-mention {
+  display: inline;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.retune-comment-inline-placeholder,
+.retune-comment-user-text {
+  margin-left: 0.25em;
+}
+.retune-comment-inline-placeholder {
   color: var(--retune-text-tertiary);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+.retune-comment-user-text {
+  display: inline;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
+  white-space: nowrap;
 }
 .retune-comment-pill-actions {
   display: flex;

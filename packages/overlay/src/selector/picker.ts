@@ -2387,6 +2387,63 @@ export function createPicker(
     }
   }
 
+  let commentDraftActive = false;
+
+  /** Dedicated overflow boxes for comment-draft multi-element fills. */
+  const commentDraftPool: HTMLDivElement[] = [];
+
+  function createCommentDraftBox(): HTMLDivElement {
+    const box = document.createElement("div");
+    box.setAttribute("data-retune-comment-selection", "");
+    box.style.cssText = `
+      position: fixed;
+      pointer-events: none;
+      z-index: 2147483644;
+      box-sizing: border-box;
+      display: none;
+      outline: none;
+      transition: background 0.25s cubic-bezier(0.23, 1, 0.32, 1), border-color 0.25s cubic-bezier(0.23, 1, 0.32, 1);
+    `;
+    shadowRoot.appendChild(box);
+    return box;
+  }
+
+  function getCommentDraftBox(index: number): HTMLElement {
+    if (index === 0) return selection;
+    const multiIndex = index - 1;
+    if (multiIndex < multiSelectPool.length) return multiSelectPool[multiIndex];
+    const scopeIndex = multiIndex - multiSelectPool.length;
+    if (scopeIndex < scopeHighlightPool.length) return scopeHighlightPool[scopeIndex];
+
+    const overflowIndex = scopeIndex - scopeHighlightPool.length;
+    while (commentDraftPool.length <= overflowIndex) {
+      commentDraftPool.push(createCommentDraftBox());
+    }
+    return commentDraftPool[overflowIndex];
+  }
+
+  function hideCommentDraftOutlines() {
+    for (const box of [selection, ...multiSelectPool, ...scopeHighlightPool, ...commentDraftPool]) {
+      box.style.display = "none";
+    }
+  }
+
+  function updateCommentDraftOutlines() {
+    if (selectedElements.length === 0) return;
+
+    let poolIndex = 0;
+    for (let i = 0; i < selectedElements.length; i++) {
+      const el = selectedElements[i];
+      const rect = el.getBoundingClientRect();
+      const box = getCommentDraftBox(poolIndex++);
+      positionColoredBox(box, rect, "solid", SELECTION_FILL_ALPHA, selectionColorForIndex(i));
+    }
+    for (; poolIndex < 1 + multiSelectPool.length + scopeHighlightPool.length + commentDraftPool.length; poolIndex++) {
+      getCommentDraftBox(poolIndex).style.display = "none";
+    }
+    lastSelectedElement = selectedElement;
+  }
+
   function observeSelectedElements() {
     resizeObserver?.disconnect();
     for (const el of selectedElements) {
@@ -2526,6 +2583,16 @@ export function createPicker(
     // Don't show selection during canvas reorder drag
     if (reorderDragActive) return;
 
+    if (commentDraftActive) {
+      updateCommentDraftOutlines();
+      selectionLabel.style.display = "none";
+      selection.style.pointerEvents = "none";
+      hideHandles();
+      parentIndicator.style.display = "none";
+      hidePinLines();
+      return;
+    }
+
     updateMultiSelectBoxes();
     const rect = selectedElement.getBoundingClientRect();
     lastSelRect = { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
@@ -2598,6 +2665,12 @@ export function createPicker(
       rect.width === lastSelRect.width &&
       rect.height === lastSelRect.height
     );
+
+    if (commentDraftActive) {
+      updateCommentDraftOutlines();
+      lastSelRect = { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
+      return;
+    }
 
     updateMultiSelectBoxes();
     lastSelRect = { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
@@ -3101,12 +3174,21 @@ export function createPicker(
     }
 
     if (elementStack.length === 0) {
-      if (!commentMode && selectedElements.length > 0 && !e.shiftKey) {
+      if (!commentMode && !commentDraftActive && selectedElements.length > 0 && !e.shiftKey) {
         deselect();
       }
       return;
     }
     const el = elementStack[stackIndex];
+
+    // Comment draft: add clicked element without mutating picker selection state here
+    if (commentDraftActive) {
+      hideHighlight();
+      hoveredElement = null;
+      blurPageFocus();
+      callbacks.onSelect(el, { shiftKey: e.shiftKey, selectedElements: [el] });
+      return;
+    }
 
     // Click outside selected bounds → deselect, or select a different element under the cursor
     if (!commentMode && selectedElements.length > 0 && !e.shiftKey) {
@@ -3334,6 +3416,8 @@ export function createPicker(
   }
 
   function clearSelection() {
+    if (commentDraftActive) hideCommentDraftOutlines();
+    commentDraftActive = false;
     selectedElement = null;
     selectedElements = [];
     syncedChromeLayout = null;
@@ -3377,6 +3461,7 @@ export function createPicker(
     selection.remove();
     selectionLabel.remove();
     for (const box of multiSelectPool) box.remove();
+    for (const box of commentDraftPool) box.remove();
     spacingContainer.remove();
     parentIndicator.remove();
     for (const line of Object.values(pinLines)) line.remove();
@@ -3386,6 +3471,7 @@ export function createPicker(
 
   /** Programmatically select an element (e.g. from the element tree) */
   function selectElement(el: Element) {
+    commentDraftActive = false;
     selectedElement = el;
     selectedElements = [el];
     selectionLabelHidden = false;
@@ -3463,11 +3549,52 @@ export function createPicker(
   /** Show selection fills/outlines without handles, badges, or edit chrome. */
   function showSelectionOutline(elements: Element[], primary?: Element) {
     if (elements.length === 0) return;
-    selectedElements = [...elements];
-    selectedElement = primary && elements.includes(primary)
+    commentDraftActive = true;
+    hideScopeHighlights();
+    const seen = new Set<Element>();
+    selectedElements = elements.filter((el) => {
+      if (seen.has(el)) return false;
+      seen.add(el);
+      const rect = el.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return false;
+      const cs = getComputedStyle(el);
+      return cs.display !== "none" && cs.visibility !== "hidden";
+    });
+    if (selectedElements.length === 0) return;
+    selectedElement = primary && selectedElements.includes(primary)
       ? primary
-      : elements[elements.length - 1];
+      : selectedElements[selectedElements.length - 1];
     selectionLabelHidden = true;
+    observeSelectedElements();
+    showSelection();
+  }
+
+  function setCommentDraftActive(active: boolean) {
+    commentDraftActive = active;
+    if (!active) {
+      hideCommentDraftOutlines();
+      selectionLabelHidden = false;
+    }
+  }
+
+  /** Exit comment-draft outlines and restore normal selection chrome. */
+  function restoreSelection(elements: Element[], primary?: Element) {
+    commentDraftActive = false;
+    hideCommentDraftOutlines();
+    selectionLabelHidden = false;
+    if (elements.length === 0) {
+      clearSelection();
+      return;
+    }
+    const seen = new Set<Element>();
+    selectedElements = elements.filter((el) => {
+      if (seen.has(el)) return false;
+      seen.add(el);
+      return true;
+    });
+    selectedElement = primary && selectedElements.includes(primary)
+      ? primary
+      : selectedElements[selectedElements.length - 1];
     observeSelectedElements();
     showSelection();
   }
@@ -3483,5 +3610,5 @@ export function createPicker(
     }
   }
 
-  return { activate, deactivate, destroy, hideHighlight, clearSelection, deselect, selectElement, highlightElement, refreshSelection: showSelection, updatePinLines, suspend, resume, showScopeHighlights, hideScopeHighlights, setCommentMode, setPropertyEditMode, setSelectionLabelHidden, showSelectionOutline, setChromeLayout };
+  return { activate, deactivate, destroy, hideHighlight, clearSelection, deselect, selectElement, highlightElement, refreshSelection: showSelection, updatePinLines, suspend, resume, showScopeHighlights, hideScopeHighlights, setCommentMode, setPropertyEditMode, setSelectionLabelHidden, showSelectionOutline, setCommentDraftActive, restoreSelection, setChromeLayout };
 }

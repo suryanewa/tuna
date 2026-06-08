@@ -5,17 +5,15 @@ import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 const pkg = require("./package.json");
 
-/** Avoid wiping dist between watch rebuilds — Next reads linked chunks mid-compile. */
-const isWatch = process.argv.includes("--watch");
-
 export default defineConfig([
-  // React component bundle
+  // React component bundle — single file (no chunk splits) for stable linked-package HMR
   {
     entry: ["src/index.ts"],
     format: ["esm"],
     dts: true,
     sourcemap: true,
-    clean: !isWatch,
+    clean: false,
+    splitting: false,
     external: ["react", "react-dom"],
     treeshake: true,
     define: {

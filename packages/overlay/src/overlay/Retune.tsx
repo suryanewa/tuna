@@ -22,7 +22,9 @@ import { PreviewBridgeContext } from "../ui/preview-bridge-context";
 import { LivePreviewEngine } from "../engine/live-preview";
 import { ChangeTracker } from "../engine/change-tracker";
 import { CommentStore, type Comment, type CommentElementTarget } from "../engine/comment-store";
+import { enrichPropertyChanges } from "../engine/candidates";
 import { formatChanges, formatElementInfo, collapseShorthands, type Fidelity } from "../engine/output";
+import { scanDesignTokens } from "../inspector/tokens";
 import { BridgeClient } from "../bridge/ws-client";
 import { formatToggleHotkeyShortcut, inspectElement, matchesToggleHotkey } from "../ui/helpers";
 import { getSelector, getSelectorCandidates, getAncestorScopes, getSharedSelector, scoreNamePattern, isHashedClass, setReactProp, type SelectorCandidate, type AncestorScope } from "../selector/identifier";
@@ -718,6 +720,153 @@ function RetuneLogo({ size = 20 }: { size?: number }) {
 
 // ── Comment Popover ──
 
+function getMentionName(tagName: string, componentName: string | null): string {
+  const rawName = componentName || tagName.toLowerCase();
+  return componentName ? rawName : rawName.charAt(0).toUpperCase() + rawName.slice(1);
+}
+
+function createMentionSpan(name: string, color: string): HTMLSpanElement {
+  const span = document.createElement("span");
+  span.className = "retune-comment-mention";
+  span.style.color = color;
+  span.contentEditable = "false";
+  span.dataset.mention = "true";
+  span.textContent = `@${name}`;
+  return span;
+}
+
+function createInlinePlaceholderSpan(): HTMLSpanElement {
+  const span = document.createElement("span");
+  span.className = "retune-comment-inline-placeholder";
+  span.contentEditable = "false";
+  span.dataset.placeholder = "true";
+  span.textContent = "Describe the change";
+  return span;
+}
+
+function removeInlinePlaceholder(editor: HTMLElement) {
+  editor.querySelector('[data-placeholder="true"]')?.remove();
+}
+
+function getOrCreateUserTextSpan(editor: HTMLElement): HTMLSpanElement {
+  const existing = editor.querySelector(".retune-comment-user-text");
+  if (existing instanceof HTMLSpanElement) return existing;
+
+  let anchor: Node = editor;
+  for (let i = editor.childNodes.length - 1; i >= 0; i--) {
+    const node = editor.childNodes[i];
+    if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).dataset.placeholder === "true") continue;
+    anchor = node;
+    break;
+  }
+
+  const span = document.createElement("span");
+  span.className = "retune-comment-user-text";
+  if (anchor === editor) {
+    editor.appendChild(span);
+  } else if (anchor.nextSibling) {
+    anchor.parentNode?.insertBefore(span, anchor.nextSibling);
+  } else {
+    anchor.parentNode?.appendChild(span);
+  }
+  return span;
+}
+
+function placeCaretInUserTextSpan(editor: HTMLElement) {
+  const span = getOrCreateUserTextSpan(editor);
+  const range = document.createRange();
+  range.selectNodeContents(span);
+  range.collapse(false);
+  const sel = window.getSelection();
+  sel?.removeAllRanges();
+  sel?.addRange(range);
+}
+
+function getEditorPlainText(editor: HTMLElement): string {
+  const clone = editor.cloneNode(true) as HTMLElement;
+  clone.querySelectorAll("[data-placeholder='true']").forEach((node) => node.remove());
+  return clone.innerText.replace(/\u00a0/g, " ").trim();
+}
+
+function placeCaretAtEnd(editor: HTMLElement) {
+  const range = document.createRange();
+  range.selectNodeContents(editor);
+  range.collapse(false);
+  const sel = window.getSelection();
+  sel?.removeAllRanges();
+  sel?.addRange(range);
+}
+
+function insertMentionAtSelection(editor: HTMLElement, name: string, color: string) {
+  editor.focus();
+  const span = createMentionSpan(name, color);
+  const sel = window.getSelection();
+  let range: Range;
+  if (sel?.rangeCount && sel.anchorNode && editor.contains(sel.anchorNode)) {
+    range = sel.getRangeAt(0);
+    range.deleteContents();
+  } else {
+    range = document.createRange();
+    range.selectNodeContents(editor);
+    range.collapse(false);
+  }
+  range.insertNode(span);
+  const space = document.createTextNode(" ");
+  range.setStartAfter(span);
+  range.insertNode(space);
+  range.setStartAfter(space);
+  range.collapse(true);
+  sel?.removeAllRanges();
+  sel?.addRange(range);
+}
+
+function insertTextAtSelection(editor: HTMLElement, text: string) {
+  editor.focus();
+  removeInlinePlaceholder(editor);
+  const userSpan = getOrCreateUserTextSpan(editor);
+  const node = document.createTextNode(text);
+  userSpan.appendChild(node);
+  const range = document.createRange();
+  range.setStartAfter(node);
+  range.collapse(true);
+  const sel = window.getSelection();
+  sel?.removeAllRanges();
+  sel?.addRange(range);
+}
+
+function editorHasUserText(editor: HTMLElement): boolean {
+  const userSpan = editor.querySelector(".retune-comment-user-text");
+  if (userSpan?.textContent?.replace(/\s/g, "")) return true;
+
+  for (const node of editor.childNodes) {
+    if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).dataset.placeholder === "true") continue;
+    if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).classList.contains("retune-comment-user-text")) continue;
+    if (node.nodeType === Node.TEXT_NODE && node.textContent?.replace(/\s/g, "")) return true;
+    if (
+      node.nodeType === Node.ELEMENT_NODE
+      && (node as HTMLElement).dataset.mention !== "true"
+      && (node as HTMLElement).textContent?.trim()
+    ) return true;
+  }
+  return false;
+}
+
+function placeCaretBeforePlaceholder(editor: HTMLElement) {
+  let anchor: Node = editor;
+  for (let i = editor.childNodes.length - 1; i >= 0; i--) {
+    const node = editor.childNodes[i];
+    if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).dataset.placeholder === "true") continue;
+    anchor = node;
+    break;
+  }
+  const range = document.createRange();
+  range.setStartAfter(anchor);
+  range.collapse(true);
+  const sel = window.getSelection();
+  sel?.removeAllRanges();
+  sel?.addRange(range);
+}
+
 function CommentPopover({
   position,
   initialText,
@@ -726,6 +875,8 @@ function CommentPopover({
   onDelete,
   onTextChange,
   elementInfo,
+  spanMentionCount,
+  insertRequest,
 }: {
   position: { x: number; y: number };
   initialText: string;
@@ -734,22 +885,87 @@ function CommentPopover({
   onDelete?: () => void;
   onTextChange?: (text: string) => void;
   elementInfo?: Comment["elementInfo"];
+  /** Elements shown as colored @ spans before the input (frozen at draft open). */
+  spanMentionCount?: number;
+  /** Insert colored mentions at the editor cursor when token changes. */
+  insertRequest?: { mentions: Array<{ name: string; color: string }>; token: number };
 }) {
   const [text, setText] = useState(initialText);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [showPlaceholder, setShowPlaceholder] = useState(!initialText.trim());
+  const editorRef = useRef<HTMLDivElement>(null);
   const isEdit = !!onDelete;
 
   const [isDictating, setIsDictating] = useState(false);
   const recognitionRef = useRef<any>(null);
 
   const popoverElRef = useRef<HTMLDivElement>(null);
+
+  const mentions = useMemo(() => {
+    if (!elementInfo) return [];
+    const spanCount = spanMentionCount ?? 1;
+    if (elementInfo.selectedElements && elementInfo.selectedElements.length > 0) {
+      return elementInfo.selectedElements.slice(0, spanCount).map((target, idx) => ({
+        name: getMentionName(target.tagName, target.componentName),
+        color: SELECTION_COLORS[idx % SELECTION_COLORS.length],
+      }));
+    }
+    return [{
+      name: getMentionName(elementInfo.tagName, elementInfo.componentName),
+      color: SELECTION_COLORS[0],
+    }];
+  }, [elementInfo, spanMentionCount]);
+
+  const syncFromEditor = useCallback(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    if (editorHasUserText(editor)) {
+      removeInlinePlaceholder(editor);
+    }
+    const plain = getEditorPlainText(editor);
+    setText(plain);
+    onTextChange?.(plain);
+    setShowPlaceholder(!editorHasUserText(editor) && mentions.length === 0);
+  }, [onTextChange, mentions.length]);
+
+  const handleEditorFocus = useCallback(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    placeCaretBeforePlaceholder(editor);
+  }, []);
+
   useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor || editor.dataset.initialized) return;
+    editor.innerHTML = "";
+    for (let i = 0; i < mentions.length; i++) {
+      editor.appendChild(createMentionSpan(mentions[i].name, mentions[i].color));
+      if (i < mentions.length - 1) {
+        editor.appendChild(document.createTextNode(" "));
+      }
+    }
+    if (initialText.trim()) {
+      editor.appendChild(document.createTextNode(initialText));
+    } else if (mentions.length > 0) {
+      editor.appendChild(createInlinePlaceholderSpan());
+    }
+    editor.dataset.initialized = "true";
+    syncFromEditor();
     setTimeout(() => {
-      inputRef.current?.focus();
-      // Kill entrance animation after it completes so it doesn't replay on class changes
+      editor.focus();
+      placeCaretBeforePlaceholder(editor);
       if (popoverElRef.current) popoverElRef.current.style.animation = "none";
     }, 200);
-  }, []);
+  }, [mentions, initialText, syncFromEditor]);
+
+  useEffect(() => {
+    if (!insertRequest?.token) return;
+    const editor = editorRef.current;
+    if (!editor) return;
+    for (const mention of insertRequest.mentions) {
+      insertMentionAtSelection(editor, mention.name, mention.color);
+    }
+    syncFromEditor();
+  }, [insertRequest?.token, syncFromEditor]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = () => {
     const trimmed = text.trim();
@@ -760,6 +976,11 @@ function CommentPopover({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     e.stopPropagation();
     e.nativeEvent.stopImmediatePropagation();
+    const editor = editorRef.current;
+    if (editor?.querySelector('[data-placeholder="true"]') && e.key.length === 1 && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      removeInlinePlaceholder(editor);
+      placeCaretInUserTextSpan(editor);
+    }
     if (e.key === "Enter") {
       e.preventDefault();
       handleSubmit();
@@ -788,7 +1009,10 @@ function CommentPopover({
     rec.onstart = () => setIsDictating(true);
     rec.onresult = (e: any) => {
       const result = e.results[0][0].transcript;
-      setText((prev) => (prev ? prev + " " + result : result));
+      const editor = editorRef.current;
+      if (!editor) return;
+      insertTextAtSelection(editor, result);
+      syncFromEditor();
     };
     rec.onerror = () => setIsDictating(false);
     rec.onend = () => setIsDictating(false);
@@ -826,26 +1050,6 @@ function CommentPopover({
     zIndex: 2147483647,
   };
 
-  const mentions = useMemo(() => {
-    if (!elementInfo) return [];
-    if (elementInfo.selectedElements && elementInfo.selectedElements.length > 0) {
-      return elementInfo.selectedElements.map((target, idx) => {
-        const rawName = target.componentName || target.tagName.toLowerCase();
-        const name = target.componentName ? rawName : rawName.charAt(0).toUpperCase() + rawName.slice(1);
-        return {
-          name,
-          color: SELECTION_COLORS[idx % SELECTION_COLORS.length],
-        };
-      });
-    }
-    const rawName = elementInfo.componentName || elementInfo.tagName.toLowerCase();
-    const name = elementInfo.componentName ? rawName : rawName.charAt(0).toUpperCase() + rawName.slice(1);
-    return [{
-      name,
-      color: SELECTION_COLORS[0],
-    }];
-  }, [elementInfo]);
-
   return (
     <div
       ref={popoverElRef}
@@ -858,25 +1062,22 @@ function CommentPopover({
     >
       <div
         className="retune-comment-input-wrap"
-        onPointerDown={() => inputRef.current?.focus()}
+        onPointerDown={() => editorRef.current?.focus()}
       >
-        {mentions.map((mention, idx) => (
-          <span
-            key={idx}
-            className="retune-comment-mention"
-            style={{ color: mention.color }}
-          >
-            @{mention.name}
+        {showPlaceholder && mentions.length === 0 && (
+          <span className="retune-comment-placeholder" aria-hidden="true">
+            Describe the change
           </span>
-        ))}
-        <input
-          ref={inputRef}
-          type="text"
-          className="retune-comment-input"
-          value={text}
-          onChange={(e) => { setText(e.target.value); onTextChange?.(e.target.value); }}
+        )}
+        <div
+          ref={editorRef}
+          className="retune-comment-editor"
+          contentEditable
+          role="textbox"
+          aria-label="Describe the change"
+          onFocus={handleEditorFocus}
+          onInput={syncFromEditor}
           onKeyDown={handleKeyDown}
-          placeholder="Describe the change"
         />
       </div>
       <div className="retune-comment-pill-actions">
@@ -1094,7 +1295,15 @@ function RetuneInner(props: RetuneConfig) {
     area?: { x: number; y: number; width: number; height: number };
     areaScroll?: { x: number; y: number };
     elementInfo?: Comment["elementInfo"];
+    spanMentionCount?: number;
   } | null>(null);
+  const commentDraftRef = useRef(commentDraft);
+  commentDraftRef.current = commentDraft;
+  const [mentionInsert, setMentionInsert] = useState<{
+    mentions: Array<{ name: string; color: string }>;
+    token: number;
+  } | null>(null);
+  const mentionInsertTokenRef = useRef(0);
   const previewBridgeRef = useRef(new PreviewBridge());
   const bridgeRef = useRef<BridgeClient | null>(null);
   const selectedElementRef = useRef<InspectedElement | null>(null);
@@ -1143,8 +1352,6 @@ function RetuneInner(props: RetuneConfig) {
             changes: collapseShorthands(c.changes),
           }));
         case "getEnrichedChanges": {
-          const { scanDesignTokens } = await import("../inspector/tokens");
-          const { enrichPropertyChanges } = await import("../engine/candidates");
           const tokenMap = scanDesignTokens();
           return t.getPendingChanges().map((c) => ({
             ...c,
@@ -1412,11 +1619,15 @@ function RetuneInner(props: RetuneConfig) {
 
     const picker = createPicker(mount.root, {
       onHover: () => {},
-      shouldBlockClick: () => shouldBlockForPopoverRef.current(),
+      shouldBlockClick: () => {
+        if (commentDraftRef.current?.type === "element" && popoverOpenRef.current) return false;
+        return shouldBlockForPopoverRef.current();
+      },
       onSelect: (element, meta) => {
         const selectedEls = meta?.selectedElements ?? [element];
 
         if (selectedEls.length === 0) {
+          if (commentDraftRef.current?.type === "element" && popoverOpenRef.current) return;
           setSelectedElement(null);
           setSelectedElements([]);
           selectedElementRef.current = null;
@@ -1426,10 +1637,16 @@ function RetuneInner(props: RetuneConfig) {
           return;
         }
 
+        // Append newly selected elements to an open element comment draft
+        if (commentDraftRef.current?.type === "element" && popoverOpenRef.current) {
+          if (areaDragJustEndedRef.current) return;
+          appendElementsToCommentDraft([inspectElement(element)]);
+          return;
+        }
+
         // In comment mode, create a comment instead of selecting for editing
         if (modeRef.current === "comment") {
-          // Skip if area drag just ended or popover is already open
-          if (areaDragJustEndedRef.current || popoverOpenRef.current) return;
+          if (areaDragJustEndedRef.current) return;
           const cursor = lastClickRef.current;
           const selector = getQuickSelector(element);
           const componentName = getQuickComponentName(element);
@@ -1442,11 +1659,13 @@ function RetuneInner(props: RetuneConfig) {
           }
           const fullSelector = selectorPath.join(" > ");
           const rect = element.getBoundingClientRect();
+          const inspected = inspectElement(element);
           const draft = {
             position: { x: cursor.x, y: cursor.y },
             type: "element" as const,
             selector: fullSelector,
             anchorOffset: { x: cursor.x - rect.left, y: cursor.y - rect.top },
+            spanMentionCount: 1,
             elementInfo: {
               tagName: element.tagName.toLowerCase(),
               componentName,
@@ -1456,6 +1675,12 @@ function RetuneInner(props: RetuneConfig) {
             },
           };
           popoverOpenRef.current = true; popoverTextRef.current = ""; popoverInitialTextRef.current = "";
+          selectedElementRef.current = inspected;
+          selectedElementsRef.current = [inspected];
+          setSelectedElement(inspected);
+          setSelectedElements([inspected]);
+          setMentionInsert(null);
+          mentionInsertTokenRef.current = 0;
           setCommentDraft(draft);
           pickerRef.current?.showSelectionOutline([element]);
           return;
@@ -1995,6 +2220,7 @@ function RetuneInner(props: RetuneConfig) {
       type: "element" as const,
       selector: selectorPath.join(" > "),
       anchorOffset: { x: cursor.x - rect.left, y: cursor.y - rect.top },
+      spanMentionCount: 1,
       elementInfo: {
         tagName: element.tagName.toLowerCase(),
         componentName,
@@ -2024,6 +2250,7 @@ function RetuneInner(props: RetuneConfig) {
       type: "element" as const,
       selector: selectorPath.join(" > "),
       anchorOffset: { x: cursor.x - rect.left, y: cursor.y - rect.top },
+      spanMentionCount: selectedTargets.length,
       elementInfo: {
         tagName: primaryTarget.tagName,
         componentName: primaryTarget.componentName,
@@ -2036,6 +2263,99 @@ function RetuneInner(props: RetuneConfig) {
       },
     };
   }, [buildCommentTargetFromInspected, getQuickSelector]);
+
+  const getCommentOutlineElements = useCallback((): Element[] => {
+    const fromSelection = selectedElementsRef.current.length > 0
+      ? selectedElementsRef.current.map((t) => t.element)
+      : selectedElementRef.current
+        ? [selectedElementRef.current.element]
+        : [];
+
+    const scope = activeSelectorRef.current;
+    const level = scopeLevelsRef.current[activeLevelIndexRef.current];
+    if (!scope || !level || level.count <= 1) return fromSelection;
+
+    try {
+      const scoped = Array.from(document.querySelectorAll(scope)).filter((el) => {
+        if (el.closest("[data-retune-host]")) return false;
+        const cs = getComputedStyle(el);
+        return cs.display !== "none" && cs.visibility !== "hidden";
+      });
+      if (scoped.length > fromSelection.length) return scoped;
+    } catch { /* invalid selector */ }
+    return fromSelection;
+  }, []);
+
+  const getDraftElementTargets = useCallback((draft: NonNullable<typeof commentDraft>): CommentElementTarget[] => {
+    const info = draft.elementInfo;
+    if (!info) return [];
+    if (info.selectedElements && info.selectedElements.length > 0) return info.selectedElements;
+    return [{
+      tagName: info.tagName,
+      selector: draft.selector ?? "",
+      componentName: info.componentName,
+      componentPath: info.componentPath,
+      classes: info.classes,
+      textContent: info.textContent,
+      source: info.source,
+      domPath: info.domPath,
+    }];
+  }, []);
+
+  const appendElementsToCommentDraft = useCallback((inspectedTargets: InspectedElement[]) => {
+    const draft = commentDraftRef.current;
+    if (!draft || draft.type !== "element" || !popoverOpenRef.current) return;
+
+    const existing = getDraftElementTargets(draft);
+    const knownElements = new Set(selectedElementsRef.current.map((t) => t.element));
+    const knownSelectors = new Set(existing.map((t) => t.selector));
+    const novel = inspectedTargets.filter(
+      (t) => !knownElements.has(t.element) && !knownSelectors.has(t.selector),
+    );
+    if (novel.length === 0) return;
+
+    const newTargets = [
+      ...existing,
+      ...novel.map(buildCommentTargetFromInspected),
+    ];
+    const primaryTarget = newTargets[0];
+
+    setCommentDraft((prev) => {
+      if (!prev || prev.type !== "element") return prev;
+      return {
+        ...prev,
+        elementInfo: {
+          ...prev.elementInfo!,
+          tagName: primaryTarget.tagName,
+          componentName: primaryTarget.componentName,
+          componentPath: primaryTarget.componentPath ?? [],
+          classes: primaryTarget.classes,
+          textContent: primaryTarget.textContent,
+          source: primaryTarget.source,
+          domPath: primaryTarget.domPath,
+          selectedElements: newTargets,
+        },
+      };
+    });
+
+    const inserts = novel.map((t, i) => ({
+      name: getMentionName(t.tagName, t.reactComponents.at(-1) ?? null),
+      color: SELECTION_COLORS[(existing.length + i) % SELECTION_COLORS.length],
+    }));
+    mentionInsertTokenRef.current += 1;
+    setMentionInsert({ mentions: inserts, token: mentionInsertTokenRef.current });
+
+    const multiInspected = [...selectedElementsRef.current, ...novel];
+    selectedElementsRef.current = multiInspected;
+    selectedElementRef.current = selectedElementRef.current ?? multiInspected[0] ?? null;
+    setSelectedElement(selectedElementRef.current);
+    setSelectedElements(multiInspected);
+    const outlineElements = multiInspected.map((t) => t.element);
+    pickerRef.current?.showSelectionOutline(
+      outlineElements,
+      selectedElementRef.current?.element,
+    );
+  }, [buildCommentTargetFromInspected, getDraftElementTargets]);
 
   const closeEditPanel = useCallback(() => {
     setEditPanelOpen(false);
@@ -2059,36 +2379,48 @@ function RetuneInner(props: RetuneConfig) {
   const handleSelectionComment = useCallback(() => {
     const inspected = selectedElementRef.current;
     if (!inspected) return;
-    const targets = selectedElementsRef.current.length > 0
-      ? selectedElementsRef.current
-      : [inspected];
-    const outlineElements = targets.map((el) => el.element);
-    const rect = inspected.element.getBoundingClientRect();
+    const outlineElements = getCommentOutlineElements();
+    const targets = outlineElements.map((el) => inspectElement(el));
+    const primary = targets.find((t) => t.element === inspected.element) ?? inspected;
+    const rect = primary.element.getBoundingClientRect();
     const cursor = {
       x: rect.left + rect.width / 2,
       y: rect.top + rect.height / 2,
     };
-    const draft = buildSelectionCommentDraft(targets, inspected, cursor);
+    const draft = buildSelectionCommentDraft(targets, primary, cursor);
+    selectedElementRef.current = primary;
+    selectedElementsRef.current = targets;
+    setSelectedElement(primary);
+    setSelectedElements(targets);
     popoverOpenRef.current = true;
     popoverTextRef.current = "";
     popoverInitialTextRef.current = "";
+    setMentionInsert(null);
+    mentionInsertTokenRef.current = 0;
     setCommentDraft(draft);
     setEditPanelOpen(false);
     pickerRef.current?.setPropertyEditMode(false);
     pickerRef.current?.setChromeLayout(null);
-    pickerRef.current?.showSelectionOutline(outlineElements, inspected.element);
-  }, [buildSelectionCommentDraft]);
+    pickerRef.current?.hideScopeHighlights();
+    pickerRef.current?.showSelectionOutline(outlineElements, primary.element);
+  }, [buildSelectionCommentDraft, getCommentOutlineElements]);
 
   const dismissCommentDraft = useCallback(() => {
     popoverOpenRef.current = false;
     popoverTextRef.current = "";
     popoverInitialTextRef.current = "";
+    setMentionInsert(null);
+    mentionInsertTokenRef.current = 0;
     setCommentDraft(null);
     if (modeRef.current === "comment") {
       pickerRef.current?.clearSelection();
     } else if (selectedElementsRef.current.length > 0 || selectedElementRef.current) {
-      pickerRef.current?.setSelectionLabelHidden(false);
-      pickerRef.current?.refreshSelection();
+      pickerRef.current?.restoreSelection(
+        selectedElementsRef.current.map((t) => t.element),
+        selectedElementRef.current?.element,
+      );
+    } else {
+      pickerRef.current?.setCommentDraftActive(false);
     }
   }, []);
 
@@ -4731,6 +5063,8 @@ function RetuneInner(props: RetuneConfig) {
           position={commentDraft.position}
           initialText=""
           elementInfo={commentDraft.elementInfo}
+          spanMentionCount={commentDraft.spanMentionCount}
+          insertRequest={mentionInsert ?? undefined}
           onTextChange={(t) => { popoverTextRef.current = t; }}
           onSubmit={(text) => {
             const store = commentStoreRef.current;
