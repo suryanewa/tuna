@@ -836,6 +836,8 @@ function RetuneInner(props: RetuneConfig) {
   const activeRef = useRef(false);
   activeRef.current = active;
   const [editPanelOpen, setEditPanelOpen] = useState(false);
+  const editPanelOpenRef = useRef(false);
+  editPanelOpenRef.current = editPanelOpen;
   const [mode, setMode] = useState<"edit" | "comment">("edit");
   const [selectedElement, setSelectedElement] = useState<InspectedElement | null>(null);
   const [selectedElements, setSelectedElements] = useState<InspectedElement[]>([]);
@@ -1386,9 +1388,12 @@ function RetuneInner(props: RetuneConfig) {
         const newActiveSelector = levels[defaultIndex]?.selector ?? null;
         activeSelectorRef.current = newActiveSelector;
 
-        setEditPanelOpen(false);
-        pickerRef.current?.setPropertyEditMode(false);
-        pickerRef.current?.setChromeLayout(null);
+        const keepEditPanelOpen = editPanelOpenRef.current && !!meta?.shiftKey;
+        if (!keepEditPanelOpen) {
+          setEditPanelOpen(false);
+          pickerRef.current?.setPropertyEditMode(false);
+          pickerRef.current?.setChromeLayout(null);
+        }
 
         // Apply scoped styles if a class selector is the default (skip for parent-scoped selectors)
         const isParentScoped = newActiveSelector && newActiveSelector.includes(' ');
@@ -2174,34 +2179,52 @@ function RetuneInner(props: RetuneConfig) {
     const preview = previewRef.current;
     const tracker = trackerRef.current;
     if (!el || !preview || !tracker) return;
-    const baseSelector = activeSelectorRef.current ?? el.selector;
-    const selector = forcedStateRef.current
-      ? baseSelector + forcedStateRef.current
-      : baseSelector;
-    preview.applyChange(selector, property, value);
-    // When editing under a forced pseudo-state, also apply as inline style
-    // on the DOM element so it visually reflects the change immediately.
-    if (forcedStateRef.current) {
-      const domEl = el.element as HTMLElement | undefined;
-      if (domEl?.style) {
-        const kebab = property.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`);
-        domEl.style.setProperty(kebab, value, 'important');
+
+    const targets = selectedElementsRef.current.length > 0 ? selectedElementsRef.current : [el];
+    const usePrimaryScope = targets.length === 1;
+    const kebab = property.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`);
+
+    for (const target of targets) {
+      const baseSelector = usePrimaryScope ? (activeSelectorRef.current ?? target.selector) : target.selector;
+      const selector = forcedStateRef.current
+        ? baseSelector + forcedStateRef.current
+        : baseSelector;
+      preview.applyChange(selector, property, value);
+
+      // When editing under a forced pseudo-state, also apply as inline style
+      // on the DOM element so it visually reflects the change immediately.
+      if (forcedStateRef.current) {
+        const domEl = target.element as HTMLElement | undefined;
+        if (domEl?.style) {
+          domEl.style.setProperty(kebab, value, 'important');
+        }
+        // Track in forcedStylesRef so cleanup removes it when toggling back
+        const forced = forcedStylesRef.current;
+        if (forced.selector === baseSelector && !forced.props.includes(property)) {
+          forced.props.push(property);
+        }
       }
-      // Track in forcedStylesRef so cleanup removes it when toggling back
-      const forced = forcedStylesRef.current;
-      if (forced.selector === baseSelector && !forced.props.includes(property)) {
-        forced.props.push(property);
-      }
+
+      // Ensure element is tracked (may have been cleared by reset)
+      tracker.track(
+        selector, target.tagName, target.textContent, target.classes,
+        target.reactComponents, target.computedStyles, target.sourceFile,
+        target.stylingApproach, target.inlineStyles, target.elementId,
+        target.accessibleName, target.parentContext, target.childSummary,
+        target.domPath, target.nearbySiblings, target.position,
+      );
+      tracker.recordChange(selector, property, value);
     }
-    // Ensure element is tracked (may have been cleared by reset)
-    tracker.track(
-      selector, el.tagName, el.textContent, el.classes,
-      el.reactComponents, el.computedStyles, el.sourceFile,
-      el.stylingApproach, el.inlineStyles, el.elementId,
-      el.accessibleName, el.parentContext, el.childSummary,
-      el.domPath, el.nearbySiblings, el.position,
-    );
-    tracker.recordChange(selector, property, value);
+
+    setSelectedElement((prev) => prev ? { ...prev, computedStyles: { ...prev.computedStyles, [property]: value } } : prev);
+    setSelectedElements((prev) => {
+      const next = prev.map((selected) => ({
+        ...selected,
+        computedStyles: { ...selected.computedStyles, [property]: value },
+      }));
+      selectedElementsRef.current = next;
+      return next;
+    });
     syncTrackerStateRef.current();
     refreshSelectedElementRef.current();
     pickerRef.current?.refreshSelection();
@@ -4361,8 +4384,9 @@ function RetuneInner(props: RetuneConfig) {
                 }}
               />
               <PropertyPanel
-                key={selectedElement.selector}
+                key="property-panel"
                 element={selectedElement}
+                selectedElements={selectedElements.length > 0 ? selectedElements : [selectedElement]}
                 position={side}
                 onPropertyChange={handlePropertyChange}
                 onAttributeChange={(attr, oldValue, newValue) => {

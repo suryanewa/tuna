@@ -22,6 +22,7 @@ function middleTruncate(str: string, maxLen: number): string {
 
 export function ScopeSection({
   element,
+  selectedCount = 1,
   scopeLevels,
   activeLevelIndex,
   onScopeLevelChange,
@@ -29,6 +30,26 @@ export function ScopeSection({
   forcedState,
   onForcedStateChange,
 }: ScopeSectionProps) {
+  if (selectedCount > 1) {
+    return (
+      <Section label="Selection">
+        <Row label="Target">
+          <div className="retune-selector-field">
+            <button
+              type="button"
+              className="retune-selector-tag active"
+              tabIndex={-1}
+              aria-disabled="true"
+            >
+              <span className="retune-selector-tag-name">Multiple elements</span>
+              <span className="retune-selector-tag-count">{selectedCount}</span>
+            </button>
+          </div>
+        </Row>
+      </Section>
+    );
+  }
+
   return (
     <Section label={element.reactComponents?.[0] ? "Scope" : element.tagName.toLowerCase()}>
       {scopeLevels.length > 1 && onScopeLevelChange && (() => {

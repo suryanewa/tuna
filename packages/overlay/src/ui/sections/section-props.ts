@@ -56,6 +56,7 @@ export interface BaseSectionProps {
 /** Props for the Scope section */
 export interface ScopeSectionProps {
   element: InspectedElement;
+  selectedCount?: number;
   scopeLevels: ScopeLevel[];
   activeLevelIndex: number;
   onScopeLevelChange?: (index: number) => void;

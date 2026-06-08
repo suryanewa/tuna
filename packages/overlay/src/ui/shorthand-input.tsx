@@ -11,6 +11,7 @@ import { roundCssValue, inferCssUnit } from "./round-css-value";
 import type { VariableMatch } from "../variables/types";
 import { ChangeIndicator } from "./change-indicator";
 import { VariableAction } from "./variable-action";
+import { isMixedValue, MIXED_LABEL } from "./mixed-value";
 
 function clampNum(val: number, min?: number, max?: number): number {
   if (min !== undefined && val < min) return min;
@@ -55,6 +56,7 @@ export interface ShorthandInputProps {
 }
 
 function computeDisplay(values: string[]): string {
+  if (values.some(isMixedValue)) return MIXED_LABEL;
   const rounded = values.map((v) => roundCssValue(v || ""));
   if (rounded.every((v) => v === rounded[0])) return rounded[0];
   return rounded.join(", ");
@@ -79,6 +81,7 @@ export function ShorthandInput({ label, props, values, onChange, placeholder, mi
   const scrubRef = useRef({ startX: 0, startVals: [] as number[], active: false });
 
   const handleLabelPointerDown = (e: React.PointerEvent) => {
+    if (values.some(isMixedValue)) return;
     const nums = values.map((v) => parseFloat(v));
     if (nums.some(isNaN)) return;
     scrubRef.current = { startX: e.clientX, startVals: nums, active: true };
@@ -103,6 +106,7 @@ export function ShorthandInput({ label, props, values, onChange, placeholder, mi
 
   const handleInputPointerDown = (e: React.PointerEvent<HTMLInputElement>) => {
     if (label) return;
+    if (values.some(isMixedValue)) return;
     const rect = e.currentTarget.getBoundingClientRect();
     if (e.clientX - rect.left > SCRUB_ZONE) return;
     const nums = values.map((v) => parseFloat(v));
@@ -163,6 +167,7 @@ export function ShorthandInput({ label, props, values, onChange, placeholder, mi
     }
     if (e.key === "ArrowUp" || e.key === "ArrowDown") {
       e.preventDefault();
+      if (values.some(isMixedValue) && localValue.trim() === MIXED_LABEL) return;
       const step = e.shiftKey ? 10 : 1;
       const delta = e.key === "ArrowUp" ? step : -step;
       // Parse from localValue (up-to-date) not values prop (may be stale)
@@ -207,7 +212,7 @@ export function ShorthandInput({ label, props, values, onChange, placeholder, mi
         onPointerDown={!label && !variableMatch ? handleInputPointerDown : undefined}
         onPointerMove={!label && !variableMatch ? handleInputPointerMove : undefined}
         onPointerUp={!label && !variableMatch ? handleInputPointerUp : undefined}
-        onFocus={variableMatch ? undefined : (e) => e.target.select()}
+        onFocus={variableMatch ? undefined : (e) => { if (values.some(isMixedValue)) setLocalValue(""); e.target.select(); }}
         onChange={variableMatch ? undefined : (e) => setLocalValue(e.target.value)}
         onBlur={variableMatch ? undefined : () => { if (localValue !== computeDisplay(values)) commitValue(localValue); }}
         onKeyDown={variableMatch ? undefined : handleKeyDown}

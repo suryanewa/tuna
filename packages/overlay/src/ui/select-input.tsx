@@ -10,6 +10,7 @@ import { calcMenuPosition, type MenuPosition } from "./menu-position";
 import { ChevronDown } from "./icons";
 import { ChangeIndicator } from "./change-indicator";
 import { useScrollLock } from "./use-scroll-lock";
+import { isMixedValue, MIXED_LABEL } from "./mixed-value";
 
 export interface SelectInputProps {
   label?: string;
@@ -84,6 +85,8 @@ export function SelectInput({ label, prop, value, options, onChange, isChanged, 
     closeDropdown();
   };
 
+  const displayValue = isMixedValue(localValue) ? MIXED_LABEL : sentenceCase(localValue);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
@@ -119,7 +122,7 @@ export function SelectInput({ label, prop, value, options, onChange, isChanged, 
         onKeyDown={handleKeyDown}
       >
         {label && <span className="retune-select-label">{label}</span>}
-        <span className="retune-select-value" style={label ? undefined : { paddingLeft: 8 }}>{sentenceCase(localValue)}</span>
+        <span className="retune-select-value" style={label ? undefined : { paddingLeft: 8 }}>{displayValue}</span>
         <span className="retune-select-chevron">
           <ChevronDown />
         </span>

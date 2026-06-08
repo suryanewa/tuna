@@ -11,6 +11,7 @@ import type { InspectedElement } from "../types";
 import type { BoxModelProperty } from "../ui/box-model-overlay";
 import type { VariableMatch } from "../variables/types";
 import { resolveVariablesForElement, isRawUtility } from "../variables/resolver";
+import { MIXED_VALUE } from "../ui/mixed-value";
 
 // ── Section components ──
 import { ScopeSection } from "../ui/sections/ScopeSection";
@@ -33,6 +34,7 @@ type StyleSource = { selector: string; value: string };
 
 export function PropertyPanel({
   element,
+  selectedElements = [element],
   position,
   onPropertyChange,
   onAttributeChange,
@@ -59,6 +61,7 @@ export function PropertyPanel({
   frameDimensions,
 }: {
   element: InspectedElement;
+  selectedElements?: InspectedElement[];
   position: "left" | "right";
   onPropertyChange: (property: string, value: string) => void;
   /** Record an HTML/SVG attribute change (not CSS) */
@@ -93,7 +96,24 @@ export function PropertyPanel({
   /** When set, the Size section shows iframe dimensions instead of computed CSS width/height */
   frameDimensions?: { width: number; height: number; onResize: (width: number, height: number) => void };
 }) {
-  const rawStyles = element.computedStyles;
+  const rawStyles = useMemo(() => {
+    if (selectedElements.length <= 1) return element.computedStyles;
+
+    const styles = { ...element.computedStyles };
+    const keys = new Set<string>(Object.keys(styles));
+    for (const selected of selectedElements) {
+      for (const key of Object.keys(selected.computedStyles)) keys.add(key);
+    }
+
+    for (const key of keys) {
+      const first = selectedElements[0]?.computedStyles[key] ?? "";
+      const mixed = selectedElements.some((selected) => (selected.computedStyles[key] ?? "") !== first);
+      if (mixed) styles[key] = MIXED_VALUE;
+      else styles[key] = first;
+    }
+
+    return styles;
+  }, [element.computedStyles, selectedElements]);
 
   // Scope-aware styles: getScopedStyles already returns scoped values for owned
   // properties and computed values for the rest. No Proxy needed.
@@ -281,6 +301,7 @@ export function PropertyPanel({
       {!frameDimensions && (
         <ScopeSection
           element={element}
+          selectedCount={selectedElements.length}
           scopeLevels={scopeLevels}
           activeLevelIndex={activeLevelIndex}
           onScopeLevelChange={onScopeLevelChange}

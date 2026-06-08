@@ -12,6 +12,7 @@ import { ChevronDown } from "./icons";
 import { Tooltip } from "./tooltip";
 import { claimDialog, releaseDialog } from "./dialog-singleton";
 import { ChangeIndicator } from "./change-indicator";
+import { isMixedValue, MIXED_LABEL } from "./mixed-value";
 
 const FALLBACK_FONTS = [
   "system-ui",
@@ -86,7 +87,7 @@ export interface FontInputProps {
 }
 
 export function FontInput({ prop, value, onChange, isChanged, onReset }: FontInputProps) {
-  const primaryFont = extractPrimaryFont(value || "");
+  const primaryFont = isMixedValue(value) ? MIXED_LABEL : extractPrimaryFont(value || "");
   const [localValue, setLocalValue] = useState(primaryFont);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [anchorRect, setAnchorRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
@@ -120,7 +121,7 @@ export function FontInput({ prop, value, onChange, isChanged, onReset }: FontInp
   const [prevValue, setPrevValue] = useState(value);
   if (value !== prevValue) {
     setPrevValue(value);
-    setLocalValue(extractPrimaryFont(value || ""));
+    setLocalValue(isMixedValue(value) ? MIXED_LABEL : extractPrimaryFont(value || ""));
   }
 
   // Build font sections

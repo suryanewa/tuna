@@ -20,6 +20,7 @@ import { VariableDialog } from "./variable-dialog";
 import { claimDialog, releaseDialog } from "./dialog-singleton";
 import { Tooltip } from "./tooltip";
 import { usePreviewValue } from "./use-preview-value";
+import { isMixedValue, MIXED_LABEL } from "./mixed-value";
 
 export interface ComboOption {
   value: string;
@@ -48,7 +49,7 @@ export interface ComboInputProps {
 }
 
 export function ComboInput({ label, prop, value, options, onChange, variableMatch, property, onVariableSelect, onVariableApply, onVariableUnlink, isChanged, onReset }: ComboInputProps) {
-  const [localValue, setLocalValue] = useState(roundCssValue(value || ""));
+  const [localValue, setLocalValue] = useState(isMixedValue(value) ? MIXED_LABEL : roundCssValue(value || ""));
   const [open, setOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [menuPos, setMenuPos] = useState<MenuPosition | null>(null);
@@ -79,7 +80,7 @@ export function ComboInput({ label, prop, value, options, onChange, variableMatc
     setPrevValue(value);
     // Don't overwrite what the user is typing or preview value during drag
     if (!editingRef.current && !previewActiveRef.current) {
-      setLocalValue(roundCssValue(value || ""));
+      setLocalValue(isMixedValue(value) ? MIXED_LABEL : roundCssValue(value || ""));
     }
   }
 
@@ -184,6 +185,7 @@ export function ComboInput({ label, prop, value, options, onChange, variableMatc
 
   const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
     editingRef.current = true;
+    if (isMixedValue(value)) setLocalValue("");
     e.target.select();
   };
 
@@ -203,6 +205,10 @@ export function ComboInput({ label, prop, value, options, onChange, variableMatc
 
   const handleBlur = () => {
     editingRef.current = false;
+    if (isMixedValue(value) && localValue.trim() === "") {
+      setLocalValue(MIXED_LABEL);
+      return;
+    }
     const resolved = inferCssUnit(localValue, value || "", prop);
     setLocalValue(resolved);
     if (resolved !== value) {
@@ -224,6 +230,11 @@ export function ComboInput({ label, prop, value, options, onChange, variableMatc
           closeDropdown();
         }
       } else {
+        if (isMixedValue(value) && localValue.trim() === "") {
+          setLocalValue(MIXED_LABEL);
+          (e.target as HTMLInputElement).blur();
+          return;
+        }
         const resolved = inferCssUnit(localValue, value || "", prop);
         setLocalValue(resolved);
         onChange(prop, resolved);

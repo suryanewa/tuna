@@ -5,6 +5,7 @@
  */
 
 import { useState } from "react";
+import { isMixedValue, MIXED_LABEL } from "./mixed-value";
 
 export interface TextInputProps {
   prop: string;
@@ -13,12 +14,12 @@ export interface TextInputProps {
 }
 
 export function TextInput({ prop, value, onChange }: TextInputProps) {
-  const [localValue, setLocalValue] = useState(value || "");
+  const [localValue, setLocalValue] = useState(isMixedValue(value) ? MIXED_LABEL : value || "");
 
   const [prevValue, setPrevValue] = useState(value);
   if (value !== prevValue) {
     setPrevValue(value);
-    setLocalValue(value || "");
+    setLocalValue(isMixedValue(value) ? MIXED_LABEL : value || "");
   }
 
   return (
@@ -27,9 +28,21 @@ export function TextInput({ prop, value, onChange }: TextInputProps) {
         className="retune-text-input-field"
         value={localValue}
         onChange={(e) => setLocalValue(e.target.value)}
-        onBlur={() => onChange(prop, localValue.trim())}
+        onFocus={(e) => { if (isMixedValue(value)) setLocalValue(""); e.target.select(); }}
+        onBlur={() => {
+          if (isMixedValue(value) && localValue.trim() === "") {
+            setLocalValue(MIXED_LABEL);
+            return;
+          }
+          onChange(prop, localValue.trim());
+        }}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
+            if (isMixedValue(value) && localValue.trim() === "") {
+              setLocalValue(MIXED_LABEL);
+              (e.target as HTMLInputElement).blur();
+              return;
+            }
             onChange(prop, localValue.trim());
             (e.target as HTMLInputElement).blur();
           }

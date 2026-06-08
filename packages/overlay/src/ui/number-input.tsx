@@ -9,6 +9,7 @@ import type { VariableMatch } from "../variables/types";
 import { ChangeIndicator } from "./change-indicator";
 import { VariableAction } from "./variable-action";
 import { usePreviewValue } from "./use-preview-value";
+import { isMixedValue, MIXED_LABEL } from "./mixed-value";
 
 
 function clampNum(val: number, min?: number, max?: number): number {
@@ -56,7 +57,8 @@ export interface NumberInputProps {
 }
 
 export function NumberInput({ label, prop, value, placeholder, onChange, min, max, step: stepProp, variableMatch, property, onVariableSelect, onVariableApply, onVariableUnlink, isChanged, onReset }: NumberInputProps) {
-  const [localValue, setLocalValue] = useState(roundCssValue(value || ""));
+  const displayValue = isMixedValue(value) ? MIXED_LABEL : roundCssValue(value || "");
+  const [localValue, setLocalValue] = useState(displayValue);
   const labelRef = useRef<HTMLSpanElement>(null);
   const varPickerRef = useRef<(() => void) | null>(null);
 
@@ -73,7 +75,7 @@ export function NumberInput({ label, prop, value, placeholder, onChange, min, ma
     setPrevValue(value);
     // Don't overwrite preview value during drag
     if (!previewActiveRef.current) {
-      setLocalValue(roundCssValue(value || ""));
+      setLocalValue(isMixedValue(value) ? MIXED_LABEL : roundCssValue(value || ""));
     }
   }
 
@@ -145,6 +147,7 @@ export function NumberInput({ label, prop, value, placeholder, onChange, min, ma
   };
 
   const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    if (isMixedValue(value)) setLocalValue("");
     e.target.select();
   };
 
@@ -153,12 +156,20 @@ export function NumberInput({ label, prop, value, placeholder, onChange, min, ma
   };
 
   const commitValue = (val: string) => {
+    if (isMixedValue(value) && val.trim() === "") {
+      setLocalValue(MIXED_LABEL);
+      return;
+    }
     const resolved = clampCssValue(inferCssUnit(val, value || "", prop), min, max);
     setLocalValue(resolved);
     onChange(prop, resolved);
   };
 
   const handleBlur = () => {
+    if (isMixedValue(value) && localValue.trim() === "") {
+      setLocalValue(MIXED_LABEL);
+      return;
+    }
     const resolved = clampCssValue(inferCssUnit(localValue, value || "", prop), min, max);
     if (resolved !== value) {
       commitValue(localValue);

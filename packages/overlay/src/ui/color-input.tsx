@@ -11,6 +11,7 @@ import type { VariableMatch, DesignVariable } from "../variables/types";
 import { ChangeIndicator } from "./change-indicator";
 import { VariableAction } from "./variable-action";
 import { claimDialog, releaseDialog } from "./dialog-singleton";
+import { isMixedValue, MIXED_LABEL } from "./mixed-value";
 
 export interface ColorInputProps {
   prop: string;
@@ -36,9 +37,10 @@ function formatVarName(className: string): string {
 }
 
 export function ColorInput({ prop, value, onChange, variableMatch, property, onVariableSelect, onVariableApply, onVariableUnlink, isChanged, onReset }: ColorInputProps) {
-  const parsed = parseCssColor(value || "");
-  const [hexLocal, setHexLocal] = useState(parsed.hex.replace("#", "").toUpperCase());
-  const [opacityLocal, setOpacityLocal] = useState(String(parsed.opacity));
+  const mixed = isMixedValue(value);
+  const parsed = parseCssColor(mixed ? "" : value || "");
+  const [hexLocal, setHexLocal] = useState(mixed ? MIXED_LABEL : parsed.hex.replace("#", "").toUpperCase());
+  const [opacityLocal, setOpacityLocal] = useState(mixed ? MIXED_LABEL : String(parsed.opacity));
   const [pickerOpen, setPickerOpen] = useState(false);
   const [initialTab, setInitialTab] = useState<"custom" | "tokens">("custom");
   const [anchorRect, setAnchorRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
@@ -55,14 +57,15 @@ export function ColorInput({ prop, value, onChange, variableMatch, property, onV
   const [prevValue, setPrevValue] = useState(value);
   if (value !== prevValue) {
     setPrevValue(value);
-    const p = parseCssColor(value || "");
+    const mixedValue = isMixedValue(value);
+    const p = parseCssColor(mixedValue ? "" : value || "");
     currentHexRef.current = p.hex;
     currentOpacityRef.current = p.opacity;
     if (!hexFocusedRef.current) {
-      setHexLocal(p.hex.replace("#", "").toUpperCase());
+      setHexLocal(mixedValue ? MIXED_LABEL : p.hex.replace("#", "").toUpperCase());
     }
     if (!opacityFocusedRef.current) {
-      setOpacityLocal(String(p.opacity));
+      setOpacityLocal(mixedValue ? MIXED_LABEL : String(p.opacity));
     }
   }
 
@@ -143,6 +146,10 @@ export function ColorInput({ prop, value, onChange, variableMatch, property, onV
   const commitHex = useCallback(() => {
     hexFocusedRef.current = false;
     let cleaned = hexLocal.replace(/^#/, "").trim();
+    if (mixed && cleaned === "") {
+      setHexLocal(MIXED_LABEL);
+      return;
+    }
     if (cleaned.length === 3) {
       cleaned = cleaned[0] + cleaned[0] + cleaned[1] + cleaned[1] + cleaned[2] + cleaned[2];
     }
@@ -153,15 +160,19 @@ export function ColorInput({ prop, value, onChange, variableMatch, property, onV
       // Revert to current
       setHexLocal(currentHexRef.current.replace("#", "").toUpperCase());
     }
-  }, [hexLocal, emitColor]);
+  }, [mixed, hexLocal, emitColor]);
 
   // ── Opacity input ──
   const commitOpacity = useCallback(() => {
     opacityFocusedRef.current = false;
+    if (mixed && opacityLocal.trim() === "") {
+      setOpacityLocal(MIXED_LABEL);
+      return;
+    }
     const val = Math.max(0, Math.min(100, Math.round(Number(opacityLocal) || 0)));
     setOpacityLocal(String(val));
     emitColor(currentHexRef.current, val);
-  }, [opacityLocal, emitColor]);
+  }, [mixed, opacityLocal, emitColor]);
 
   const handleOpacityKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
@@ -179,10 +190,13 @@ export function ColorInput({ prop, value, onChange, variableMatch, property, onV
   }, [emitColor]);
 
   // Detect "none" / "transparent" state
-  const isNone = !value || value === "none" || value === "transparent" || (currentHexRef.current === "#000000" && currentOpacityRef.current === 0);
+  const isNone = !mixed && (!value || value === "none" || value === "transparent" || (currentHexRef.current === "#000000" && currentOpacityRef.current === 0));
 
   // Swatch display: split view when opacity < 100 (left=solid, right=with opacity over checkerboard)
   const swatchStyle = (() => {
+    if (mixed) {
+      return { backgroundColor: "transparent", boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.18)" } as React.CSSProperties;
+    }
     if (isNone) {
       return { backgroundColor: "#fff", boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.1)" } as React.CSSProperties;
     }
@@ -221,11 +235,11 @@ export function ColorInput({ prop, value, onChange, variableMatch, property, onV
         </div>
         <input
           className="retune-color-hex-input"
-          value={isNone ? "None" : variableMatch ? formatVarName(variableMatch.variable.className) : hexLocal}
+          value={mixed ? MIXED_LABEL : isNone ? "None" : variableMatch ? formatVarName(variableMatch.variable.className) : hexLocal}
           readOnly={!!variableMatch}
           onClick={variableMatch ? handleTokenDotOpen : undefined}
           onChange={variableMatch ? undefined : (e) => setHexLocal(e.target.value.replace(/[^a-fA-F0-9]/g, "").slice(0, 6))}
-          onFocus={variableMatch ? undefined : (e) => { hexFocusedRef.current = true; e.target.select(); }}
+          onFocus={variableMatch ? undefined : (e) => { hexFocusedRef.current = true; if (mixed) setHexLocal(""); e.target.select(); }}
           onBlur={variableMatch ? undefined : commitHex}
           onKeyDown={variableMatch ? undefined : (e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
           spellCheck={false}
@@ -248,7 +262,7 @@ export function ColorInput({ prop, value, onChange, variableMatch, property, onV
             inputMode="numeric"
             value={opacityLocal}
             onChange={(e) => setOpacityLocal(e.target.value)}
-            onFocus={(e) => { opacityFocusedRef.current = true; e.target.select(); }}
+            onFocus={(e) => { opacityFocusedRef.current = true; if (mixed) setOpacityLocal(""); e.target.select(); }}
             onBlur={commitOpacity}
             onKeyDown={handleOpacityKeyDown}
           />
