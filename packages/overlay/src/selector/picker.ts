@@ -138,7 +138,7 @@ export function createPicker(
   `;
   shadowRoot.appendChild(captureLayer);
 
-  // Marquee selection box (shift+drag add, alt+drag remove)
+  // Marquee selection box (drag replace, shift+drag add, alt+drag remove)
   const marqueeBox = document.createElement("div");
   marqueeBox.setAttribute("data-retune-marquee", "");
   marqueeBox.style.cssText = `
@@ -2878,7 +2878,7 @@ export function createPicker(
     startX: number;
     startY: number;
     dragging: boolean;
-    mode: "add" | "remove";
+    mode: "add" | "remove" | "replace";
     pointerId: number;
     startElement: Element | null;
   } | null = null;
@@ -2924,7 +2924,29 @@ export function createPicker(
     return result;
   }
 
-  function applyMarqueeSelection(hits: Element[], mode: "add" | "remove") {
+  function applyMarqueeSelection(hits: Element[], mode: "add" | "remove" | "replace") {
+    if (mode === "replace") {
+      if (hits.length === 0) {
+        if (selectedElements.length > 0) {
+          deselect();
+        }
+        return;
+      }
+
+      const limited = hits.slice(0, MULTI_SELECT_POOL_SIZE + 1);
+      selectedElements = limited;
+      selectedElement = limited[limited.length - 1];
+      shiftHeldForSelection = false;
+      selectionLabelHidden = false;
+      observeSelectedElements();
+      showSelection();
+      hideHighlight();
+      hoveredElement = null;
+      blurPageFocus();
+      notifySelect(selectedElement!, false);
+      return;
+    }
+
     if (hits.length === 0) return;
 
     if (mode === "add") {
@@ -3002,7 +3024,6 @@ export function createPicker(
 
   function handleMarqueePointerDown(e: PointerEvent) {
     if (!active || commentMode || suspended) return;
-    if (!e.shiftKey && !e.altKey) return;
     if (isRetuneOverlayEvent(e)) return;
     if (callbacks.shouldBlockClick?.()) return;
     // Document listeners see a Shadow DOM-retargeted host as e.target, so use
@@ -3013,7 +3034,7 @@ export function createPicker(
       startX: e.clientX,
       startY: e.clientY,
       dragging: false,
-      mode: e.shiftKey ? "add" : "remove",
+      mode: e.altKey ? "remove" : e.shiftKey ? "add" : "replace",
       pointerId: e.pointerId,
       startElement: pageElementAtPoint(e.clientX, e.clientY),
     };
