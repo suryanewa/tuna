@@ -38,6 +38,10 @@ const MULTI_SELECT_POOL_SIZE = 20;
 /** Padding around selected element bounds for click-outside deselect. */
 export const SELECTION_CLICK_PAD = 8;
 
+const MARQUEE_DRAG_THRESHOLD = 5;
+const MARQUEE_MIN_SIZE = 10;
+const MARQUEE_SAMPLE_STEP = 16;
+
 /** True when (x, y) lies inside any selected element's bounds (plus pad). */
 export function isPointInsideSelectionBounds(
   x: number,
@@ -130,6 +134,19 @@ export function createPicker(
     display: none;
   `;
   shadowRoot.appendChild(captureLayer);
+
+  // Marquee selection box (shift+drag add, alt+drag remove)
+  const marqueeBox = document.createElement("div");
+  marqueeBox.setAttribute("data-retune-marquee", "");
+  marqueeBox.style.cssText = `
+    position: fixed;
+    pointer-events: none;
+    z-index: 2147483645;
+    border: 1px dashed ${PICKER_OUTLINE_COLOR};
+    background: rgba(13, 153, 255, 0.06);
+    display: none;
+  `;
+  shadowRoot.appendChild(marqueeBox);
 
   // Hover highlight
   const highlight = document.createElement("div");
@@ -2785,8 +2802,158 @@ export function createPicker(
     }
   }
 
+  let marqueeDrag: {
+    startX: number;
+    startY: number;
+    dragging: boolean;
+    mode: "add" | "remove";
+    pointerId: number;
+    startElement: Element | null;
+  } | null = null;
+  let marqueeDragJustEnded = false;
+
+  function hideMarqueeBox() {
+    marqueeBox.style.display = "none";
+  }
+
+  function updateMarqueeBox(x1: number, y1: number, x2: number, y2: number) {
+    const left = Math.min(x1, x2);
+    const top = Math.min(y1, y2);
+    marqueeBox.style.display = "block";
+    marqueeBox.style.left = `${left}px`;
+    marqueeBox.style.top = `${top}px`;
+    marqueeBox.style.width = `${Math.abs(x2 - x1)}px`;
+    marqueeBox.style.height = `${Math.abs(y2 - y1)}px`;
+  }
+
+  function getElementsInMarquee(
+    left: number,
+    top: number,
+    width: number,
+    height: number,
+    excludedElement: Element | null,
+  ): Element[] {
+    if (width < 1 || height < 1) return [];
+
+    const seen = new Set<Element>();
+    const result: Element[] = [];
+    const right = left + width;
+    const bottom = top + height;
+
+    for (let x = left + MARQUEE_SAMPLE_STEP / 2; x < right; x += MARQUEE_SAMPLE_STEP) {
+      for (let y = top + MARQUEE_SAMPLE_STEP / 2; y < bottom; y += MARQUEE_SAMPLE_STEP) {
+        const el = pageElementAtPoint(x, y);
+        if (!el || el === excludedElement || seen.has(el)) continue;
+        seen.add(el);
+        result.push(el);
+      }
+    }
+
+    return result;
+  }
+
+  function applyMarqueeSelection(hits: Element[], mode: "add" | "remove") {
+    if (hits.length === 0) return;
+
+    if (mode === "add") {
+      const previousPrimary = selectedElement;
+      const merged = selectedElements.length > 0 ? [...selectedElements] : [];
+      for (const el of hits) {
+        if (!merged.includes(el) && merged.length < MULTI_SELECT_POOL_SIZE + 1) {
+          merged.push(el);
+        }
+      }
+      if (merged.length === 0) return;
+
+      selectedElements = merged;
+      selectedElement = previousPrimary && merged.includes(previousPrimary)
+        ? previousPrimary
+        : merged[merged.length - 1];
+      shiftHeldForSelection = true;
+    } else {
+      if (selectedElements.length === 0) return;
+      const toRemove = new Set(hits);
+      const next = selectedElements.filter((el) => !toRemove.has(el));
+      if (next.length === selectedElements.length) return;
+      if (next.length === 0) {
+        deselect();
+        return;
+      }
+      selectedElements = next;
+      if (!selectedElement || !next.includes(selectedElement)) {
+        selectedElement = next[next.length - 1];
+      }
+    }
+
+    selectionLabelHidden = false;
+    observeSelectedElements();
+    showSelection();
+    hideHighlight();
+    hoveredElement = null;
+    blurPageFocus();
+    notifySelect(selectedElement!, mode === "add");
+  }
+
+  function endMarqueeDrag(e: PointerEvent) {
+    const drag = marqueeDrag;
+    if (!drag || e.pointerId !== drag.pointerId) return;
+
+    marqueeDrag = null;
+    hideMarqueeBox();
+
+    if (!drag.dragging) return;
+
+    const left = Math.min(e.clientX, drag.startX);
+    const top = Math.min(e.clientY, drag.startY);
+    const width = Math.abs(e.clientX - drag.startX);
+    const height = Math.abs(e.clientY - drag.startY);
+    if (width <= MARQUEE_MIN_SIZE || height <= MARQUEE_MIN_SIZE) return;
+
+    const hits = getElementsInMarquee(left, top, width, height, drag.startElement);
+    applyMarqueeSelection(hits, drag.mode);
+    marqueeDragJustEnded = true;
+    setTimeout(() => { marqueeDragJustEnded = false; }, 50);
+  }
+
+  function handleMarqueePointerMove(e: PointerEvent) {
+    if (!marqueeDrag || e.pointerId !== marqueeDrag.pointerId) return;
+
+    const dx = Math.abs(e.clientX - marqueeDrag.startX);
+    const dy = Math.abs(e.clientY - marqueeDrag.startY);
+    if (!marqueeDrag.dragging && (dx > MARQUEE_DRAG_THRESHOLD || dy > MARQUEE_DRAG_THRESHOLD)) {
+      marqueeDrag.dragging = true;
+    }
+    if (marqueeDrag.dragging) {
+      updateMarqueeBox(marqueeDrag.startX, marqueeDrag.startY, e.clientX, e.clientY);
+    }
+  }
+
+  function handleMarqueePointerDown(e: PointerEvent) {
+    if (!active || commentMode || suspended) return;
+    if (!e.shiftKey && !e.altKey) return;
+    if (isRetuneOverlayEvent(e)) return;
+    if (callbacks.shouldBlockClick?.()) return;
+    // Document listeners see a Shadow DOM-retargeted host as e.target, so use
+    // the composed path to distinguish the page capture layer from Retune UI.
+    if (!e.composedPath().includes(captureLayer)) return;
+
+    marqueeDrag = {
+      startX: e.clientX,
+      startY: e.clientY,
+      dragging: false,
+      mode: e.shiftKey ? "add" : "remove",
+      pointerId: e.pointerId,
+      startElement: pageElementAtPoint(e.clientX, e.clientY),
+    };
+  }
+
   function handleClick(e: MouseEvent) {
     if (!active) return;
+
+    if (marqueeDragJustEnded) {
+      marqueeDragJustEnded = false;
+      return;
+    }
 
     if (isRetuneOverlayEvent(e)) return;
 
@@ -3005,6 +3172,12 @@ export function createPicker(
     cursorStyle.textContent = ACTIVE_PAGE_STYLES;
     document.head.appendChild(cursorStyle);
     captureLayer.style.display = "block";
+    // Marquee must register before blockPagePointerDown — block stops propagation
+    // in the document capture phase, so capture-layer-only listeners never run.
+    document.addEventListener("pointerdown", handleMarqueePointerDown, true);
+    document.addEventListener("pointermove", handleMarqueePointerMove, true);
+    document.addEventListener("pointerup", endMarqueeDrag, true);
+    document.addEventListener("pointercancel", endMarqueeDrag, true);
     captureLayer.addEventListener("pointerdown", blockPagePointerDown, true);
     captureLayer.addEventListener("mousedown", blockPagePointerDown, true);
     document.addEventListener("pointerdown", blockPagePointerDown, true);
@@ -3023,11 +3196,18 @@ export function createPicker(
     suspended = false;
     propertyEditMode = false;
     shiftHeldForSelection = false;
+    marqueeDrag = null;
+    marqueeDragJustEnded = false;
+    hideMarqueeBox();
     document.documentElement.removeAttribute("data-retune-active");
     document.documentElement.removeAttribute("data-retune-suspended");
     cursorStyle.textContent = "";
     cursorStyle.remove();
     captureLayer.style.display = "none";
+    document.removeEventListener("pointerdown", handleMarqueePointerDown, true);
+    document.removeEventListener("pointermove", handleMarqueePointerMove, true);
+    document.removeEventListener("pointerup", endMarqueeDrag, true);
+    document.removeEventListener("pointercancel", endMarqueeDrag, true);
     captureLayer.removeEventListener("pointerdown", blockPagePointerDown, true);
     captureLayer.removeEventListener("mousedown", blockPagePointerDown, true);
     document.removeEventListener("pointerdown", blockPagePointerDown, true);
@@ -3088,6 +3268,7 @@ export function createPicker(
 
   function destroy() {
     deactivate();
+    marqueeBox.remove();
     captureLayer.remove();
     highlight.remove();
     label.remove();
