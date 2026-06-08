@@ -3455,6 +3455,23 @@ export function createPicker(
     if (selectedElement) showSelection();
   }
 
+  function setSelectionLabelHidden(hidden: boolean) {
+    selectionLabelHidden = hidden;
+    if (selectedElement) showSelection();
+  }
+
+  /** Show selection fills/outlines without handles, badges, or edit chrome. */
+  function showSelectionOutline(elements: Element[], primary?: Element) {
+    if (elements.length === 0) return;
+    selectedElements = [...elements];
+    selectedElement = primary && elements.includes(primary)
+      ? primary
+      : elements[elements.length - 1];
+    selectionLabelHidden = true;
+    observeSelectedElements();
+    showSelection();
+  }
+
   let commentMode = false;
   function setCommentMode(enabled: boolean) {
     commentMode = enabled;
@@ -3466,5 +3483,5 @@ export function createPicker(
     }
   }
 
-  return { activate, deactivate, destroy, hideHighlight, clearSelection, deselect, selectElement, highlightElement, refreshSelection: showSelection, updatePinLines, suspend, resume, showScopeHighlights, hideScopeHighlights, setCommentMode, setPropertyEditMode, setChromeLayout };
+  return { activate, deactivate, destroy, hideHighlight, clearSelection, deselect, selectElement, highlightElement, refreshSelection: showSelection, updatePinLines, suspend, resume, showScopeHighlights, hideScopeHighlights, setCommentMode, setPropertyEditMode, setSelectionLabelHidden, showSelectionOutline, setChromeLayout };
 }

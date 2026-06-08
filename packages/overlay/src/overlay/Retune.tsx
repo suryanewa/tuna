@@ -1365,8 +1365,7 @@ function RetuneInner(props: RetuneConfig) {
           };
           popoverOpenRef.current = true; popoverTextRef.current = ""; popoverInitialTextRef.current = "";
           setCommentDraft(draft);
-          // Hide selection UI (handles, badge) — we only need hover in comment mode
-          pickerRef.current?.clearSelection();
+          pickerRef.current?.showSelectionOutline([element]);
           return;
         }
         const inspected = inspectElement(element);
@@ -1911,19 +1910,37 @@ function RetuneInner(props: RetuneConfig) {
   const handleSelectionComment = useCallback(() => {
     const inspected = selectedElementRef.current;
     if (!inspected) return;
-    const draft = buildElementCommentDraft(inspected.element, lastClickRef.current);
+    const elements = selectedElementsRef.current.length > 0
+      ? selectedElementsRef.current.map((el) => el.element)
+      : [inspected.element];
+    const rect = inspected.element.getBoundingClientRect();
+    const cursor = {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+    };
+    const draft = buildElementCommentDraft(inspected.element, cursor);
     popoverOpenRef.current = true;
     popoverTextRef.current = "";
     popoverInitialTextRef.current = "";
     setCommentDraft(draft);
     setEditPanelOpen(false);
     pickerRef.current?.setPropertyEditMode(false);
-    pickerRef.current?.clearSelection();
-    setSelectedElement(null);
-    setSelectedElements([]);
-    selectedElementRef.current = null;
-    selectedElementsRef.current = [];
+    pickerRef.current?.setChromeLayout(null);
+    pickerRef.current?.showSelectionOutline(elements, inspected.element);
   }, [buildElementCommentDraft]);
+
+  const dismissCommentDraft = useCallback(() => {
+    popoverOpenRef.current = false;
+    popoverTextRef.current = "";
+    popoverInitialTextRef.current = "";
+    setCommentDraft(null);
+    if (modeRef.current === "comment") {
+      pickerRef.current?.clearSelection();
+    } else if (selectedElementsRef.current.length > 0 || selectedElementRef.current) {
+      pickerRef.current?.setSelectionLabelHidden(false);
+      pickerRef.current?.refreshSelection();
+    }
+  }, []);
 
   useEffect(() => {
     if (!editPanelOpen || !selectedElement) {
@@ -1958,13 +1975,10 @@ function RetuneInner(props: RetuneConfig) {
       return true;
     }
     // No changes — dismiss and let the action pass through
-    popoverOpenRef.current = false;
-    popoverTextRef.current = "";
-    popoverInitialTextRef.current = "";
-    setCommentDraft(null);
+    dismissCommentDraft();
     setActiveCommentId(null);
     return false;
-  }, [shakePopover]);
+  }, [shakePopover, dismissCommentDraft]);
   const shouldBlockForPopoverRef = useRef(shouldBlockForPopover);
   shouldBlockForPopoverRef.current = shouldBlockForPopover;
 
@@ -1981,9 +1995,8 @@ function RetuneInner(props: RetuneConfig) {
       if (e.key === "v" || e.key === "V") {
         e.preventDefault();
         setMode("edit");
-        setCommentDraft(null);
+        dismissCommentDraft();
         setActiveCommentId(null);
-        popoverOpenRef.current = false;
         pickerRef.current?.setCommentMode(false);
       } else if (e.key === "c" || e.key === "C") {
         e.preventDefault();
@@ -1996,7 +2009,7 @@ function RetuneInner(props: RetuneConfig) {
     };
     document.addEventListener("keydown", handleModeKey, true);
     return () => document.removeEventListener("keydown", handleModeKey, true);
-  }, [active]);
+  }, [active, dismissCommentDraft]);
 
   // Comment mode: area drag selection (element clicks are handled by picker's onSelect)
   useEffect(() => {
@@ -2097,11 +2110,7 @@ function RetuneInner(props: RetuneConfig) {
       e.stopImmediatePropagation();
       if (shouldBlockForPopoverRef.current()) return;
       if (popoverOpenRef.current) {
-        // Clean popover — dismiss it
-        popoverOpenRef.current = false;
-        popoverTextRef.current = "";
-        popoverInitialTextRef.current = "";
-        setCommentDraft(null);
+        dismissCommentDraft();
         setActiveCommentId(null);
       } else {
         setMode("edit");
@@ -2120,7 +2129,7 @@ function RetuneInner(props: RetuneConfig) {
       document.removeEventListener("pointerup", handlePointerUp, true);
       if (commentDragRef.current?.areaEl) commentDragRef.current.areaEl.remove();
     };
-  }, [active, mode]);
+  }, [active, mode, dismissCommentDraft]);
 
   // Flag to skip ownedProperties update in refreshSelectedElement when it was just set directly
   const skipOwnedUpdateRef = useRef(false);
@@ -4175,7 +4184,7 @@ function RetuneInner(props: RetuneConfig) {
           <Tooltip content="Edit" shortcut="V" side="top">
             <button
               className={`retune-toolbar-btn${mode === "edit" ? " active" : ""}`}
-              onClick={() => { setMode("edit"); setCommentDraft(null); setActiveCommentId(null); popoverOpenRef.current = false; }}
+              onClick={() => { setMode("edit"); dismissCommentDraft(); setActiveCommentId(null); pickerRef.current?.setCommentMode(false); }}
             >
               <IconCursor1 size={20} />
             </button>
@@ -4246,7 +4255,7 @@ function RetuneInner(props: RetuneConfig) {
         </div>
       </div>
 
-      {active && selectedElement && mode === "edit" && !editPanelOpen && !settingsOpen && !toolbarDragging && (
+      {active && selectedElement && mode === "edit" && !editPanelOpen && !commentDraft && !settingsOpen && !toolbarDragging && (
         <SelectionActionBar
           anchorElements={selectionActionBarAnchors}
           dimensionLabelWidth={selectionChromeLabelWidth}
@@ -4567,7 +4576,7 @@ function RetuneInner(props: RetuneConfig) {
       )}
 
       {/* Comment popover for new comment draft */}
-      {active && mode === "comment" && commentDraft && !activeCommentId && (
+      {active && commentDraft && !activeCommentId && (
         <CommentPopover
           position={commentDraft.position}
           initialText=""
@@ -4582,10 +4591,9 @@ function RetuneInner(props: RetuneConfig) {
               elementInfo: commentDraft.elementInfo,
             });
             syncCommentState();
-            popoverOpenRef.current = false;
-            setCommentDraft(null);
+            dismissCommentDraft();
           }}
-          onCancel={() => { popoverOpenRef.current = false; setCommentDraft(null); }}
+          onCancel={dismissCommentDraft}
         />
       )}
 
