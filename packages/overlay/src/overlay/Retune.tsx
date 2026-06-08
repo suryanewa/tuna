@@ -23,7 +23,7 @@ import { ChangeTracker } from "../engine/change-tracker";
 import { CommentStore, type Comment } from "../engine/comment-store";
 import { formatChanges, collapseShorthands, type Fidelity } from "../engine/output";
 import { BridgeClient } from "../bridge/ws-client";
-import { inspectElement, matchesHotkey } from "../ui/helpers";
+import { formatToggleHotkeyShortcut, inspectElement, matchesToggleHotkey } from "../ui/helpers";
 import { getSelector, getSelectorCandidates, getAncestorScopes, getSharedSelector, scoreNamePattern, isHashedClass, setReactProp, type SelectorCandidate, type AncestorScope } from "../selector/identifier";
 import { detectChildrenType } from "../drag/detect";
 import { getPseudoStateStyles, getStyleSources, getScopedStyles, type ForcedState, type StyleSource } from "../inspector/styles";
@@ -3522,7 +3522,7 @@ function RetuneInner(props: RetuneConfig) {
   // Hotkey listener
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if (matchesHotkey(e, config.hotkey)) {
+      if (matchesToggleHotkey(e, config.hotkey)) {
         e.preventDefault();
         toggleOverlay();
       }
@@ -3912,11 +3912,11 @@ function RetuneInner(props: RetuneConfig) {
     return () => { delete (window as any).__retune; };
   }, []);
 
-  // Keep hotkey listener alive even when hidden so alt+d can bring it back
+  // Keep hotkey listener alive even when hidden so toggle hotkeys can bring it back
   useEffect(() => {
     if (!sessionHidden) return;
     function handleKeyDown(e: KeyboardEvent) {
-      if (matchesHotkey(e, config.hotkey)) {
+      if (matchesToggleHotkey(e, config.hotkey)) {
         e.preventDefault();
         setSessionHidden(false);
       }
@@ -3941,7 +3941,7 @@ function RetuneInner(props: RetuneConfig) {
         onPointerUp={handleToolbarPointerUp}
       >
         {/* Collapsed: single activate button */}
-        <Tooltip content="Toggle edit mode" shortcut={config.hotkey} side="top">
+        <Tooltip content="Toggle edit mode" shortcut={formatToggleHotkeyShortcut(config.hotkey)} side="top">
           <button
             className="retune-toolbar-collapse-btn"
             onClick={activateOverlay}

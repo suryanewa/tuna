@@ -23,6 +23,7 @@ const ALT = isMac ? "⌥" : "Alt";
 const DEL = isMac ? "⌫" : "Del";
 
 const SHORTCUTS: Array<{ label: string; keys: string[] }> = [
+  { label: "Toggle Retune", keys: [ALT, "D"] },
   { label: "Undo", keys: [MOD, "Z"] },
   { label: "Redo", keys: [MOD, "⇧", "Z"] },
   { label: "Select Child", keys: ["Enter"] },

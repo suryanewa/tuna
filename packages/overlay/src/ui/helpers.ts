@@ -42,6 +42,23 @@ export function inspectElement(element: Element): InspectedElement {
   };
 }
 
+const BUILTIN_TOGGLE_HOTKEYS = ["meta+shift+d", "ctrl+shift+d"] as const;
+
+/** Hotkeys that toggle Retune design mode (custom + built-in shortcuts). */
+export function getToggleHotkeys(customHotkey = "alt+d"): string[] {
+  return customHotkey === "alt+d"
+    ? ["alt+d", ...BUILTIN_TOGGLE_HOTKEYS]
+    : [customHotkey, ...BUILTIN_TOGGLE_HOTKEYS];
+}
+
+/** Label for toggle hotkeys in tooltips. */
+export function formatToggleHotkeyShortcut(customHotkey = "alt+d"): string {
+  const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(navigator.platform);
+  const primary = customHotkey === "alt+d" ? (isMac ? "⌥D" : "Alt+D") : customHotkey;
+  const secondary = isMac ? "⌘⇧D" : "Ctrl+Shift+D";
+  return `${primary} / ${secondary}`;
+}
+
 /** Check if a keyboard event matches a hotkey string like "alt+d" */
 export function matchesHotkey(e: KeyboardEvent, hotkey: string): boolean {
   const parts = hotkey.toLowerCase().split("+");
@@ -62,6 +79,11 @@ export function matchesHotkey(e: KeyboardEvent, hotkey: string): boolean {
     e.metaKey === needsMeta &&
     e.shiftKey === needsShift
   );
+}
+
+/** Check if a keyboard event matches any toggle hotkey. */
+export function matchesToggleHotkey(e: KeyboardEvent, customHotkey = "alt+d"): boolean {
+  return getToggleHotkeys(customHotkey).some((hotkey) => matchesHotkey(e, hotkey));
 }
 
 /** Get only the element's own direct text, not children's text */
