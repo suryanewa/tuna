@@ -1,6 +1,6 @@
-import { describe, it, expect } from "vitest";
-import { collapseShorthands, parsePseudoState, describeSelectorScope } from "../engine/output";
-import type { PropertyChange } from "../types";
+import { describe, it, expect, beforeAll } from "vitest";
+import { collapseShorthands, parsePseudoState, describeSelectorScope, formatElementInfo } from "../engine/output";
+import type { PropertyChange, InspectedElement } from "../types";
 
 function makeChange(property: string, from: string, to: string): PropertyChange {
   return { property, from, to };
@@ -219,6 +219,73 @@ describe("describeSelectorScope", () => {
     const result = describeSelectorScope(".btn.btn-primary");
     expect(result).toMatch(/class-scoped/);
     expect(result).not.toMatch(/ancestor/);
+  });
+});
+
+function makeInspectedElement(overrides: Partial<InspectedElement> = {}): InspectedElement {
+  const element = {
+    textContent: "Get Started",
+  } as Element;
+  return {
+    element,
+    selector: "main > section.hero > button.btn-primary",
+    tagName: "BUTTON",
+    textContent: "Get Started",
+    classes: ["btn", "btn-primary"],
+    rect: { x: 340, y: 520, width: 120, height: 40 } as DOMRect,
+    computedStyles: {},
+    layoutMode: "block",
+    reactComponents: ["HeroSection", "Button"],
+    reactProps: null,
+    reactState: null,
+    sourceFile: { fileName: "src/components/HeroSection.tsx", lineNumber: 42, columnNumber: 10 },
+    stylingApproach: "tailwind",
+    inlineStyles: null,
+    elementId: null,
+    accessibleName: null,
+    parentContext: "div.hero__actions",
+    childSummary: null,
+    domPath: "body > main > section.hero > div > button.btn-primary",
+    nearbySiblings: "span, **button**, a",
+    position: { x: 340, y: 520, width: 120, height: 40 },
+    ...overrides,
+  };
+}
+
+describe("formatElementInfo", () => {
+  beforeAll(() => {
+    (globalThis as any).window = {
+      location: { href: "http://localhost:3000/" },
+      innerWidth: 1280,
+      innerHeight: 800,
+    };
+  });
+
+  it("includes core identification fields", () => {
+    const output = formatElementInfo(makeInspectedElement());
+    expect(output).toContain("Selected element from Retune:");
+    expect(output).toContain('Element: <button> "Get Started"');
+    expect(output).toContain("Component: HeroSection → Button");
+    expect(output).toContain("Source: `src/components/HeroSection.tsx:42:10`");
+    expect(output).toContain("Selector: `main > section.hero > button.btn-primary`");
+    expect(output).toContain("Classes: `btn btn-primary`");
+    expect(output).toContain("Dimensions: 120×40px at (340, 520)");
+    expect(output).toContain("Layout: block");
+    expect(output).toContain("Styling: Tailwind CSS");
+    expect(output).toContain("DOM Path:");
+    expect(output).toContain("Parent: `div.hero__actions`");
+    expect(output).toContain("Nearby elements:");
+  });
+
+  it("uses selector override when provided", () => {
+    const output = formatElementInfo(makeInspectedElement(), { selector: ".btn-primary" });
+    expect(output).toContain("Selector: `.btn-primary`");
+  });
+
+  it("adds file hint when source file is unavailable", () => {
+    const output = formatElementInfo(makeInspectedElement({ sourceFile: null }));
+    expect(output).toContain("File hint: search for `Button` component with text \"Get Started\"");
+    expect(output).not.toContain("Source:");
   });
 });
 

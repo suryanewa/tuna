@@ -3463,6 +3463,57 @@ input, textarea, [contenteditable] {
   flex-shrink: 0;
 }
 
+/* ── Selection action bar (comment / copy / edit) ── */
+.retune-selection-action-bar {
+  position: fixed;
+  z-index: 2147483646;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  background: var(--retune-surface);
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  pointer-events: auto;
+  transform: translateX(-50%);
+  user-select: none;
+}
+
+.retune-selection-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  color: var(--retune-text);
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.retune-selection-action-btn:hover {
+  background: var(--retune-surface-hover);
+}
+
+.retune-selection-action-btn.active {
+  background: var(--retune-blue-bg);
+  color: var(--retune-blue-text);
+}
+
+.retune-selection-action-btn.active:hover {
+  background: color-mix(in srgb, var(--retune-blue-bg) 80%, var(--retune-surface-hover));
+}
+
+.retune-selection-action-btn.disabled,
+.retune-selection-action-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+  pointer-events: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .retune-toolbar,
   .retune-toolbar-collapse-btn,

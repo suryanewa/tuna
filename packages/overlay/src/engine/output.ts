@@ -9,7 +9,7 @@
  * - Before/after values with token suggestions
  */
 
-import type { ElementChange, EnrichedPropertyChange } from "../types";
+import type { ElementChange, EnrichedPropertyChange, InspectedElement } from "../types";
 import { type TokenMap, scanDesignTokens, summarizeTokenSystem } from "../inspector/tokens";
 import { camelToKebab, truncate } from "../utils";
 import { getVariableRegistry } from "../variables/registry";
@@ -90,6 +90,96 @@ function getTokenMap(): TokenMap {
     cachedTokenMap = scanDesignTokens();
   }
   return cachedTokenMap;
+}
+
+/** Format selected element identification context for clipboard copy. */
+export function formatElementInfo(
+  element: InspectedElement,
+  options?: { selector?: string | null },
+): string {
+  const selector = options?.selector ?? element.selector;
+  const lines: string[] = [];
+
+  lines.push("Selected element from Retune:\n");
+
+  const textSnippet = element.textContent
+    ?? (element.element.textContent?.trim()
+      ? truncate(element.element.textContent.trim(), 60)
+      : null);
+  const textHint = textSnippet ? ` "${textSnippet}"` : "";
+  lines.push(`Element: <${element.tagName.toLowerCase()}>${textHint}`);
+
+  if (element.sourceFile) {
+    const col = element.sourceFile.columnNumber ? `:${element.sourceFile.columnNumber}` : "";
+    lines.push(`Source: \`${element.sourceFile.fileName}:${element.sourceFile.lineNumber}${col}\``);
+  }
+
+  if (element.reactComponents.length > 0) {
+    lines.push(`Component: ${element.reactComponents.join(" → ")}`);
+  }
+
+  if (element.stylingApproach && element.stylingApproach !== "unknown") {
+    lines.push(`Styling: ${formatStylingApproach(element.stylingApproach)}`);
+  }
+
+  if (element.domPath) {
+    lines.push(`DOM Path: \`${element.domPath}\``);
+  }
+
+  const { base: baseSelector, pseudoState } = parsePseudoState(selector);
+  const selectorAnnotations: string[] = [];
+  if (pseudoState) {
+    selectorAnnotations.push(`${pseudoState} state`);
+  }
+  const scope = describeSelectorScope(selector);
+  if (scope) {
+    selectorAnnotations.push(scope);
+  }
+  const selectorSuffix = selectorAnnotations.length > 0
+    ? ` (${selectorAnnotations.join(", ")})`
+    : "";
+  lines.push(`Selector: \`${baseSelector}\`${selectorSuffix}`);
+
+  if (element.classes.length > 0) {
+    lines.push(`Classes: \`${element.classes.join(" ")}\``);
+  }
+
+  if (element.elementId) {
+    lines.push(`ID: \`${element.elementId}\``);
+  }
+
+  if (element.accessibleName) {
+    lines.push(`Accessible name: "${element.accessibleName}"`);
+  }
+
+  lines.push(
+    `Dimensions: ${element.position.width}×${element.position.height}px at (${element.position.x}, ${element.position.y})`,
+  );
+  lines.push(`Layout: ${element.layoutMode}`);
+
+  if (element.parentContext) {
+    lines.push(`Parent: \`${element.parentContext}\``);
+  }
+
+  if (element.childSummary) {
+    lines.push(`Children: ${element.childSummary}`);
+  }
+
+  if (element.nearbySiblings) {
+    lines.push(`Nearby elements: ${element.nearbySiblings}`);
+  }
+
+  if (!element.sourceFile && element.reactComponents.length > 0) {
+    const comp = element.reactComponents[element.reactComponents.length - 1];
+    const textPart = textHint ? ` with text${textHint}` : "";
+    lines.push(`File hint: search for \`${comp}\` component${textPart}`);
+  }
+
+  lines.push("");
+  lines.push(`Page: ${window.location.href}`);
+  lines.push(`Viewport: ${window.innerWidth}×${window.innerHeight}`);
+
+  return lines.join("\n");
 }
 
 export function formatChanges(changes: ElementChange[], fidelity: Fidelity, comments?: Comment[], manifest?: Record<string, any> | null): string {

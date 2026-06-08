@@ -11,6 +11,10 @@
 
 import { canFill, type SizingContext } from "../ui/sizing-utils";
 
+const PICKER_OUTLINE_COLOR = "#0D99FF";
+/** Light fill on the selected element — same hue as the outline, much lower opacity. */
+const SELECTION_FILL_ALPHA = "0.08";
+
 export interface PickerCallbacks {
   onHover: (element: Element, rect: DOMRect) => void;
   onSelect: (element: Element) => void;
@@ -1043,9 +1047,9 @@ export function createPicker(
 
     // Update selection box and handles
     const newRect = selectedElement.getBoundingClientRect();
-    positionBox(selection, selectionLabel, newRect, "solid", "0");
+    positionBox(selection, newRect, "solid", SELECTION_FILL_ALPHA);
+    positionSelectionLabel(selectionLabel, newRect, formatLabel(selectedElement));
     positionHandles(newRect);
-    selectionLabel.textContent = formatLabel(selectedElement);
 
     // Show/hide snap guides
     if (guides.length > 0) {
@@ -1093,9 +1097,9 @@ export function createPicker(
 
     // Refresh selection box
     const newRect = selectedElement.getBoundingClientRect();
-    positionBox(selection, selectionLabel, newRect, "solid", "0");
+    positionBox(selection, newRect, "solid", SELECTION_FILL_ALPHA);
+    positionSelectionLabel(selectionLabel, newRect, formatLabel(selectedElement));
     positionHandles(newRect);
-    selectionLabel.textContent = formatLabel(selectedElement);
     refreshPinLines();
   }
 
@@ -1327,12 +1331,7 @@ export function createPicker(
     document.removeEventListener("pointermove", handleRepositionPointerMove, true);
     document.removeEventListener("pointerup", handleRepositionPointerUp, true);
 
-    // Refresh selection box
-    const newRect = selectedElement.getBoundingClientRect();
-    positionBox(selection, selectionLabel, newRect, "solid", "0");
-    positionHandles(newRect);
-    selectionLabel.textContent = formatLabel(selectedElement);
-    refreshPinLines();
+    showSelection();
   }
 
   // ── Canvas drag-to-reorder (flow elements in flex/grid/block containers) ──
@@ -1908,7 +1907,6 @@ export function createPicker(
           callbacks.onSelect(hit);
         } else {
           selection.style.display = "";
-          selectionLabel.style.display = "";
           showSelection();
         }
       }, 200);
@@ -2003,7 +2001,6 @@ export function createPicker(
     hideHandles();
     const hit = document.elementFromPoint(e.clientX, e.clientY);
     selection.style.display = "";
-    selectionLabel.style.display = "";
     showSelection();
 
     callbacks.onDoubleClick?.(hit || selectedElement);
@@ -2206,27 +2203,42 @@ export function createPicker(
     }
   }
 
-  function positionBox(box: HTMLElement, labelEl: HTMLElement, rect: DOMRect, borderStyle: string, bgAlpha: string) {
+  function positionSelectionLabel(labelEl: HTMLElement, rect: DOMRect, text: string) {
+    if (!text) {
+      labelEl.style.display = "none";
+      return;
+    }
+
+    const gap = 4;
+    labelEl.textContent = text;
+    labelEl.style.background = PICKER_OUTLINE_COLOR;
+    labelEl.style.left = `${rect.left + rect.width / 2}px`;
+
+    // Prefer above the selection so the action bar can sit below without overlap.
+    // Anchor the label's bottom edge to rect.top - gap via translateY(-100%).
+    if (rect.top - gap >= 14) {
+      labelEl.style.top = `${rect.top - gap}px`;
+      labelEl.style.transform = "translate(-50%, -100%)";
+    } else {
+      labelEl.style.top = `${rect.bottom + gap}px`;
+      labelEl.style.transform = "translateX(-50%)";
+    }
+    labelEl.style.display = "";
+  }
+
+  function positionBox(box: HTMLElement, rect: DOMRect, borderStyle: string, bgAlpha: string) {
     box.style.top = `${rect.top}px`;
     box.style.left = `${rect.left}px`;
     box.style.width = `${rect.width}px`;
     box.style.height = `${rect.height}px`;
-    box.style.border = `1px ${borderStyle} #0D99FF`;
+    box.style.border = `1px ${borderStyle} ${PICKER_OUTLINE_COLOR}`;
     box.style.background = `rgba(13, 153, 255, ${bgAlpha})`;
     box.style.display = "";
-
-    // Badge: below selection centered, flip to above if near bottom edge
-    const viewportH = window.innerHeight;
-    const labelY = rect.bottom + 4 + 20 < viewportH ? rect.bottom + 4 : rect.top - 24;
-    labelEl.style.top = `${labelY}px`;
-    labelEl.style.left = `${rect.left + rect.width / 2}px`;
-    labelEl.style.transform = "translateX(-50%)";
-    labelEl.style.background = "#0D99FF";
   }
 
   function updateHighlight(el: Element) {
     const rect = el.getBoundingClientRect();
-    positionBox(highlight, label, rect, "solid", "0");
+    positionBox(highlight, rect, "solid", "0");
     label.style.display = "none";
   }
 
@@ -2236,7 +2248,7 @@ export function createPicker(
     if (reorderDragActive) return;
 
     const rect = selectedElement.getBoundingClientRect();
-    positionBox(selection, selectionLabel, rect, "solid", "0");
+    positionBox(selection, rect, "solid", SELECTION_FILL_ALPHA);
     lastSelRect = { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
 
     // When suspended (e.g. text editing), only update the border position — no handles, badge, or indicators
@@ -2247,9 +2259,20 @@ export function createPicker(
     }
 
     if (!selectionLabelHidden) {
-      selectionLabel.style.display = "";
+      positionSelectionLabel(selectionLabel, rect, formatLabel(selectedElement));
+    } else {
+      selectionLabel.style.display = "none";
     }
-    selectionLabel.textContent = formatLabel(selectedElement);
+
+    if (!propertyEditMode) {
+      selection.style.pointerEvents = "none";
+      selection.style.cursor = "";
+      hideHandles();
+      parentIndicator.style.display = "none";
+      hidePinLines();
+      return;
+    }
+
     positionHandles(rect);
     updateSelectionCursor();
 
@@ -2299,15 +2322,14 @@ export function createPicker(
     selection.style.height = `${rect.height}px`;
     lastSelRect = { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
 
-    // When suspended (text editing), only update border position
     if (suspended) return;
 
-    const viewportH = window.innerHeight;
-    const labelY = rect.bottom + 4 + 20 < viewportH ? rect.bottom + 4 : rect.top - 24;
-    selectionLabel.style.top = `${labelY}px`;
-    selectionLabel.style.left = `${rect.left + rect.width / 2}px`;
-    selectionLabel.style.transform = "translateX(-50%)";
-    selectionLabel.textContent = formatLabel(selectedElement);
+    if (!selectionLabelHidden) {
+      positionSelectionLabel(selectionLabel, rect, formatLabel(selectedElement));
+    }
+
+    if (!propertyEditMode) return;
+
     positionHandles(rect);
 
     // Update parent indicator + pin lines
@@ -2416,7 +2438,7 @@ export function createPicker(
       hideSpacing();
       hideSiblingOutlines();
       selectionLabelHidden = false;
-      selectionLabel.style.display = "";
+      showSelection();
     } else {
       updateHighlight(el);
       if (selectedElement) {
@@ -2601,7 +2623,6 @@ export function createPicker(
     hideHandles();
     const deepest = document.elementFromPoint(e.clientX, e.clientY);
     selection.style.display = selDisplay;
-    selectionLabel.style.display = "";
     if (selectedElement) showSelection();
 
     callbacks.onDoubleClick?.(deepest || selectedElement);
@@ -2649,6 +2670,7 @@ export function createPicker(
 
   function deactivate() {
     active = false;
+    propertyEditMode = false;
     cursorStyle.textContent = "";
     cursorStyle.remove();
     hoveredElement = null;
@@ -2670,6 +2692,7 @@ export function createPicker(
 
   function clearSelection() {
     selectedElement = null;
+    propertyEditMode = false;
     selectionLabelHidden = false;
     elementStack = [];
     stackIndex = -1;
@@ -2752,6 +2775,12 @@ export function createPicker(
   const commentCursorB64 = typeof btoa === "function" ? btoa(commentCursorSvg) : "";
   const commentCursorUrl = `url("data:image/svg+xml;base64,${commentCursorB64}") 5 27, pointer`;
 
+  let propertyEditMode = false;
+  function setPropertyEditMode(enabled: boolean) {
+    propertyEditMode = enabled;
+    if (selectedElement) showSelection();
+  }
+
   let commentMode = false;
   function setCommentMode(enabled: boolean) {
     commentMode = enabled;
@@ -2763,5 +2792,5 @@ export function createPicker(
     }
   }
 
-  return { activate, deactivate, destroy, hideHighlight, clearSelection, selectElement, highlightElement, refreshSelection: showSelection, updatePinLines, suspend, resume, showScopeHighlights, hideScopeHighlights, setCommentMode };
+  return { activate, deactivate, destroy, hideHighlight, clearSelection, selectElement, highlightElement, refreshSelection: showSelection, updatePinLines, suspend, resume, showScopeHighlights, hideScopeHighlights, setCommentMode, setPropertyEditMode };
 }

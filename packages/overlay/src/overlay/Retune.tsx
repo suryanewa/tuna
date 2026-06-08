@@ -21,7 +21,7 @@ import { PreviewBridgeContext } from "../ui/preview-bridge-context";
 import { LivePreviewEngine } from "../engine/live-preview";
 import { ChangeTracker } from "../engine/change-tracker";
 import { CommentStore, type Comment } from "../engine/comment-store";
-import { formatChanges, collapseShorthands, type Fidelity } from "../engine/output";
+import { formatChanges, formatElementInfo, collapseShorthands, type Fidelity } from "../engine/output";
 import { BridgeClient } from "../bridge/ws-client";
 import { formatToggleHotkeyShortcut, inspectElement, matchesToggleHotkey } from "../ui/helpers";
 import { getSelector, getSelectorCandidates, getAncestorScopes, getSharedSelector, scoreNamePattern, isHashedClass, setReactProp, type SelectorCandidate, type AncestorScope } from "../selector/identifier";
@@ -44,6 +44,7 @@ import { IconCursor1 } from "@central-icons-react/round-outlined-radius-2-stroke
 import { Tooltip } from "../ui/tooltip";
 import { TooltipPortalContext } from "../ui/tooltip-portal-context";
 import { BoxModelOverlay, type BoxModelProperty } from "../ui/box-model-overlay";
+import { SelectionActionBar } from "../ui/selection-action-bar";
 
 const DEFAULT_CONFIG: Required<RetuneConfig> = {
   port: 9223,
@@ -831,6 +832,7 @@ function RetuneInner(props: RetuneConfig) {
   const config = { ...DEFAULT_CONFIG, ...props };
 
   const [active, setActive] = useState(false);
+  const [editPanelOpen, setEditPanelOpen] = useState(false);
   const [mode, setMode] = useState<"edit" | "comment">("edit");
   const [selectedElement, setSelectedElement] = useState<InspectedElement | null>(null);
   const [changeCount, setChangeCount] = useState(0);
@@ -1363,11 +1365,8 @@ function RetuneInner(props: RetuneConfig) {
         const newActiveSelector = levels[defaultIndex]?.selector ?? null;
         activeSelectorRef.current = newActiveSelector;
 
-        // Show scope highlights for the default level on initial selection
-        const defaultLevel = levels[defaultIndex];
-        if (defaultLevel?.selector && pickerRef.current) {
-          pickerRef.current.showScopeHighlights(defaultLevel.selector, element);
-        }
+        setEditPanelOpen(false);
+        pickerRef.current?.setPropertyEditMode(false);
 
         // Apply scoped styles if a class selector is the default (skip for parent-scoped selectors)
         const isParentScoped = newActiveSelector && newActiveSelector.includes(' ');
@@ -1680,6 +1679,7 @@ function RetuneInner(props: RetuneConfig) {
   const deactivateOverlay = useCallback(() => {
     if (forcedStateRef.current) clearForcedInlineStyles();
     setActive(false);
+    setEditPanelOpen(false);
     setSelectedElement(null);
     selectedElementRef.current = null;
     setSettingsOpen(false);
@@ -1692,6 +1692,7 @@ function RetuneInner(props: RetuneConfig) {
     setActive((prev) => {
       if (prev) {
         if (forcedStateRef.current) clearForcedInlineStyles();
+        setEditPanelOpen(false);
         setSelectedElement(null);
         selectedElementRef.current = null;
         setSettingsOpen(false);
@@ -1791,6 +1792,69 @@ function RetuneInner(props: RetuneConfig) {
   const popoverOpenRef = useRef(false);
   const popoverTextRef = useRef("");
   const popoverInitialTextRef = useRef("");
+
+  const buildElementCommentDraft = useCallback((element: Element, cursor: { x: number; y: number }) => {
+    const selector = getQuickSelector(element);
+    const componentName = getQuickComponentName(element);
+    const selectorPath: string[] = [selector];
+    let ancestor = element.parentElement;
+    for (let i = 0; i < 3 && ancestor && ancestor !== document.body; i++) {
+      selectorPath.unshift(getQuickSelector(ancestor));
+      ancestor = ancestor.parentElement;
+    }
+    const rect = element.getBoundingClientRect();
+    return {
+      position: { x: cursor.x, y: cursor.y },
+      type: "element" as const,
+      selector: selectorPath.join(" > "),
+      anchorOffset: { x: cursor.x - rect.left, y: cursor.y - rect.top },
+      elementInfo: {
+        tagName: element.tagName.toLowerCase(),
+        componentName,
+        componentPath: [],
+        classes: Array.from(element.classList),
+        textContent: (element.textContent || "").slice(0, 80).trim() || null,
+      },
+    };
+  }, [getQuickSelector, getQuickComponentName]);
+
+  const toggleSelectionEditMode = useCallback(() => {
+    setEditPanelOpen((prev) => {
+      const next = !prev;
+      pickerRef.current?.setPropertyEditMode(next);
+      if (!next) {
+        pickerRef.current?.hideScopeHighlights();
+      }
+      return next;
+    });
+  }, []);
+
+  const handleSelectionComment = useCallback(() => {
+    const inspected = selectedElementRef.current;
+    if (!inspected) return;
+    const draft = buildElementCommentDraft(inspected.element, lastClickRef.current);
+    popoverOpenRef.current = true;
+    popoverTextRef.current = "";
+    popoverInitialTextRef.current = "";
+    setCommentDraft(draft);
+    setEditPanelOpen(false);
+    pickerRef.current?.setPropertyEditMode(false);
+    pickerRef.current?.clearSelection();
+    setSelectedElement(null);
+    selectedElementRef.current = null;
+  }, [buildElementCommentDraft]);
+
+  useEffect(() => {
+    if (!editPanelOpen || !selectedElement) {
+      if (!editPanelOpen) pickerRef.current?.hideScopeHighlights();
+      return;
+    }
+    const level = scopeLevelsRef.current[activeLevelIndexRef.current];
+    if (level?.selector) {
+      pickerRef.current?.showScopeHighlights(level.selector, selectedElement.element);
+    }
+  }, [editPanelOpen, selectedElement]);
+
   const shakePopover = useCallback(() => {
     const el = mountRef.current?.root.querySelector(".retune-comment-popover") as HTMLElement | null;
     if (!el) return;
@@ -3860,6 +3924,16 @@ function RetuneInner(props: RetuneConfig) {
     copiedTimerRef.current = setTimeout(() => setCopied(false), 3000);
   }, [fidelity]);
 
+  const handleSelectionCopy = useCallback(() => {
+    const el = selectedElementRef.current;
+    if (!el) return;
+    const selector = activeSelectorRef.current ?? el.selector;
+    navigator.clipboard.writeText(formatElementInfo(el, { selector }));
+    setCopied(true);
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    copiedTimerRef.current = setTimeout(() => setCopied(false), 3000);
+  }, []);
+
   const handleClose = useCallback(() => {
     deactivateOverlay();
   }, [deactivateOverlay]);
@@ -4033,8 +4107,19 @@ function RetuneInner(props: RetuneConfig) {
         </div>
       </div>
 
+      {active && selectedElement && mode === "edit" && !editPanelOpen && !settingsOpen && !toolbarDragging && (
+        <SelectionActionBar
+          anchorElement={selectedElement.element}
+          editMode={editPanelOpen}
+          copied={copied}
+          onComment={handleSelectionComment}
+          onCopy={handleSelectionCopy}
+          onToggleEdit={toggleSelectionEditMode}
+        />
+      )}
+
       {/* Design panel */}
-      <AnimatedPanel visible={!!(active && selectedElement && !settingsOpen && !toolbarDragging && mode === "edit")}>
+      <AnimatedPanel visible={!!(active && selectedElement && editPanelOpen && !settingsOpen && !toolbarDragging && mode === "edit")}>
         <div className={`retune-panel ${side}`}>
           <div className="retune-tab-bar" ref={tabBarRef}>
             <div className="retune-tab-pill" ref={tabPillRef} />
@@ -4225,7 +4310,7 @@ function RetuneInner(props: RetuneConfig) {
       )}
 
       {/* Box model visualization overlay */}
-      {active && selectedElement && hoveredBoxModel && (
+      {active && selectedElement && editPanelOpen && hoveredBoxModel && (
         <BoxModelOverlay
           element={selectedElement.element}
           hoveredProperty={hoveredBoxModel}
