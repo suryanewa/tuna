@@ -181,6 +181,7 @@ export function createPicker(
       box-sizing: border-box;
       display: none;
       outline: none;
+      transition: background 0.25s cubic-bezier(0.23, 1, 0.32, 1), border-color 0.25s cubic-bezier(0.23, 1, 0.32, 1);
     `;
     shadowRoot.appendChild(box);
     multiSelectPool.push(box);
@@ -280,6 +281,7 @@ export function createPicker(
     outline.style.cssText = `
       position:fixed;display:none;pointer-events:none;z-index:2147483643;
       border:1px solid #0D99FF;background:none;
+      transition: background 0.25s cubic-bezier(0.23, 1, 0.32, 1), border-color 0.25s cubic-bezier(0.23, 1, 0.32, 1);
     `;
     shadowRoot.appendChild(outline);
     scopeHighlightPool.push(outline);
@@ -466,6 +468,7 @@ export function createPicker(
   let resizeObserver: ResizeObserver | null = null;
   let hoverTimer: ReturnType<typeof setTimeout> | null = null;
   let lastSelRect = { top: 0, left: 0, width: 0, height: 0 };
+  let lastSelectedElement: Element | null = null;
 
   // Click-to-cycle: repeated clicks at the same spot cycle through the element stack
   let lastClickPos = { x: 0, y: 0 };
@@ -501,6 +504,7 @@ export function createPicker(
   initBoxStyles(highlight, label);
   highlight.style.transition = "top 0.15s cubic-bezier(0.23, 1, 0.32, 1), left 0.15s cubic-bezier(0.23, 1, 0.32, 1), width 0.15s cubic-bezier(0.23, 1, 0.32, 1), height 0.15s cubic-bezier(0.23, 1, 0.32, 1)";
   initBoxStyles(selection, selectionLabel);
+  selection.style.transition = "background 0.25s cubic-bezier(0.23, 1, 0.32, 1), border-color 0.25s cubic-bezier(0.23, 1, 0.32, 1)";
 
   // ── Resize handles (corners + edges) ──
   const HANDLE_SIZE = 8;
@@ -2352,8 +2356,22 @@ export function createPicker(
     borderStyle: string,
     bgAlpha: string,
     color: string,
+    forceNewTransition = false,
   ) {
     const { r, g, b } = hexToRgb(color);
+    const wasHidden = box.style.display === "none" || forceNewTransition;
+
+    if (wasHidden) {
+      box.style.top = `${rect.top}px`;
+      box.style.left = `${rect.left}px`;
+      box.style.width = `${rect.width}px`;
+      box.style.height = `${rect.height}px`;
+      box.style.border = `1px ${borderStyle} transparent`;
+      box.style.background = `rgba(${r}, ${g}, ${b}, 0)`;
+      box.style.display = "";
+      box.offsetHeight; // force reflow
+    }
+
     box.style.top = `${rect.top}px`;
     box.style.left = `${rect.left}px`;
     box.style.width = `${rect.width}px`;
@@ -2396,7 +2414,8 @@ export function createPicker(
       const rect = el.getBoundingClientRect();
       const color = selectionColorForIndex(i);
       if (el === selectedElement) {
-        positionColoredBox(selection, rect, "solid", SELECTION_FILL_ALPHA, color);
+        const isNewElement = el !== lastSelectedElement;
+        positionColoredBox(selection, rect, "solid", SELECTION_FILL_ALPHA, color, isNewElement);
       } else {
         const box = multiSelectPool[poolIndex++];
         positionColoredBox(box, rect, "solid", SELECTION_FILL_ALPHA, color);
@@ -2405,6 +2424,7 @@ export function createPicker(
     for (; poolIndex < multiSelectPool.length; poolIndex++) {
       multiSelectPool[poolIndex].style.display = "none";
     }
+    lastSelectedElement = selectedElement;
   }
 
   function applyDimensionChromeLayout(
@@ -2640,6 +2660,7 @@ export function createPicker(
     cachedPinState = null;
     repositionAxes = null;
     hideHandles();
+    lastSelectedElement = null;
   }
 
   // Debounce multiple events into a single rAF update
@@ -3273,6 +3294,7 @@ export function createPicker(
     document.removeEventListener("mousedown", blockPagePointerDown, true);
     hoveredElement = null;
     selectedElement = null;
+    lastSelectedElement = null;
     selectedElements = [];
     syncedChromeLayout = null;
     selectionLabelHidden = false;
