@@ -1703,10 +1703,18 @@ function RetuneInner(props: RetuneConfig) {
   // Load manifest eagerly on mount so it's ready before user interacts
   useEffect(() => { tryLoadManifest(); }, [tryLoadManifest]);
 
+  // Keep picker listeners in sync with overlay expanded/collapsed state
+  useEffect(() => {
+    if (active) {
+      pickerRef.current?.activate();
+      previewRef.current?.attach();
+    } else {
+      pickerRef.current?.deactivate();
+    }
+  }, [active]);
+
   const activateOverlay = useCallback(() => {
     setActive(true);
-    pickerRef.current?.activate();
-    previewRef.current?.attach();
   }, []);
 
   const deactivateOverlay = useCallback(() => {
@@ -1720,29 +1728,15 @@ function RetuneInner(props: RetuneConfig) {
     setSettingsOpen(false);
     setSettingsVisible(false);
     setSettingsExiting(false);
-    pickerRef.current?.deactivate();
   }, [clearForcedInlineStyles]);
 
   const toggleOverlay = useCallback(() => {
-    setActive((prev) => {
-      if (prev) {
-        if (forcedStateRef.current) clearForcedInlineStyles();
-        setEditPanelOpen(false);
-        setSelectedElement(null);
-        setSelectedElements([]);
-        selectedElementRef.current = null;
-        selectedElementsRef.current = [];
-        setSettingsOpen(false);
-        setSettingsVisible(false);
-        setSettingsExiting(false);
-        pickerRef.current?.deactivate();
-      } else {
-        pickerRef.current?.activate();
-        previewRef.current?.attach();
-      }
-      return !prev;
-    });
-  }, [clearForcedInlineStyles]);
+    if (active) {
+      deactivateOverlay();
+      return;
+    }
+    setActive(true);
+  }, [active, deactivateOverlay]);
 
   const syncTrackerState = useCallback(() => {
     const tracker = trackerRef.current;
@@ -4176,7 +4170,7 @@ function RetuneInner(props: RetuneConfig) {
               <IconSettingsGear2 size={20} />
             </button>
           </Tooltip>
-          <Tooltip content="Close" shortcut="Esc" side="top">
+          <Tooltip content="Close" side="top">
             <button
               className="retune-toolbar-btn"
               onClick={handleClose}

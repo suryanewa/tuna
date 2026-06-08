@@ -30,6 +30,8 @@ const SHORTCUTS: Array<{ label: string; keys: string[] }> = [
   { label: "Select Parent", keys: ["⇧", "Enter"] },
   { label: "Select Next Sibling", keys: ["Tab"] },
   { label: "Select Previous Sibling", keys: ["⇧", "Tab"] },
+  { label: "Deselect", keys: ["Esc"] },
+  { label: "Deselect all", keys: ["⇧", "Esc"] },
   { label: "Reorder", keys: ["↑", "↓", "←", "→"] },
   { label: "Delete Element", keys: [DEL] },
   { label: "Measure Spacing", keys: [ALT, "Hover"] },

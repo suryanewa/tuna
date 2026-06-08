@@ -430,6 +430,8 @@ export function createPicker(
   let selectedElements: Element[] = [];
   let selectionLabelHidden = false;
   let syncedChromeLayout: SelectionChromeLayout | null = null;
+  /** Shift was held for a shift-click selection and should not turn the next Escape into Shift+Escape. */
+  let shiftHeldForSelection = false;
   let trackingRaf: number | null = null;
   let resizeObserver: ResizeObserver | null = null;
   let hoverTimer: ReturnType<typeof setTimeout> | null = null;
@@ -2839,6 +2841,7 @@ export function createPicker(
 
     const shiftKey = e.shiftKey;
     if (shiftKey && selectedElements.length > 0) {
+      shiftHeldForSelection = true;
       const existingIndex = selectedElements.indexOf(el);
       if (existingIndex >= 0) {
         selectedElements = selectedElements.filter((_, i) => i !== existingIndex);
@@ -2869,7 +2872,7 @@ export function createPicker(
     hideHighlight();
     hoveredElement = null;
     blurPageFocus();
-    notifySelect(el, shiftKey);
+    notifySelect(selectedElement ?? el, shiftKey);
   }
 
   function handleDblClick(e: MouseEvent) {
@@ -2896,15 +2899,15 @@ export function createPicker(
       if (commentMode) return; // In comment mode, Escape exits comment mode (handled by Retune.tsx)
       e.preventDefault();
       e.stopPropagation();
-      if (selectedElements.length > 0) {
-        if (e.shiftKey) {
+      e.stopImmediatePropagation();
+      if (selectedElements.length > 0 || selectedElement) {
+        if (e.shiftKey && !shiftHeldForSelection) {
           deselect();
         } else {
           deselectMostRecent();
         }
-        return;
       }
-      callbacks.onCancel();
+      return;
     }
     // Alt/Option pressed — show spacing if hovering
     if (e.key === "Alt" && hoveredElement && selectedElement) {
@@ -2918,6 +2921,9 @@ export function createPicker(
 
   function handleKeyUp(e: KeyboardEvent) {
     if (!active) return;
+    if (e.key === "Shift") {
+      shiftHeldForSelection = false;
+    }
     // Alt/Option released — hide spacing
     if (e.key === "Alt" && hoveredElement && selectedElement) {
       applyHover(hoveredElement, false);
@@ -2945,6 +2951,7 @@ export function createPicker(
   `;
 
   function activate() {
+    if (active) return;
     active = true;
     document.documentElement.setAttribute("data-retune-active", "");
     cursorStyle.textContent = ACTIVE_PAGE_STYLES;
@@ -2963,8 +2970,10 @@ export function createPicker(
   }
 
   function deactivate() {
+    if (!active) return;
     active = false;
     propertyEditMode = false;
+    shiftHeldForSelection = false;
     document.documentElement.removeAttribute("data-retune-active");
     document.documentElement.removeAttribute("data-retune-suspended");
     cursorStyle.textContent = "";
@@ -3014,8 +3023,8 @@ export function createPicker(
 
   /** Remove the most recently shift-selected element; clear all when only one remains. */
   function deselectMostRecent() {
-    if (selectedElements.length === 0) return;
-    if (selectedElements.length === 1) {
+    if (selectedElements.length === 0 && !selectedElement) return;
+    if (selectedElements.length <= 1) {
       deselect();
       return;
     }
