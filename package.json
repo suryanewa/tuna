@@ -7,7 +7,7 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces",
-    "dev": "npm run build -w retune && npm run dev -w retune & npm run dev -w playground",
+    "dev": "concurrently -k -n overlay,playground -c blue,green \"npm run dev -w retune\" \"npm run dev -w playground\"",
     "dev:overlay": "npm run dev -w retune",
     "dev:playground": "npm run dev -w playground",
     "clean": "rm -rf packages/*/dist",
@@ -21,6 +21,7 @@
     "retune": "^0.3.0"
   },
   "devDependencies": {
+    "concurrently": "^9.2.1",
     "vitest": "^4.0.18"
   }
 }

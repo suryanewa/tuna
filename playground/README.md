@@ -8,14 +8,13 @@ From the repo root:
 
 ```bash
 npm install
-npm run build -w retune
 npm run dev
 ```
 
-Open http://localhost:3001. The overlay rebuilds in watch mode; Next.js hot-reloads the site.
+Open http://localhost:3001. One command starts overlay CSS/TypeScript watch and the Next.js dev server.
 
-To run only the playground:
+To run only the playground (start `npm run dev:overlay` in another terminal first):
 
 ```bash
-npm run dev -w playground
+npm run dev:playground
 ```

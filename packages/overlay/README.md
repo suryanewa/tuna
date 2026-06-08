@@ -224,12 +224,12 @@ This fork is a monorepo:
 
 ```bash
 npm install
-npm run build -w retune
-npm run dev              # overlay watch + playground at http://localhost:3001
-npm run dev:playground   # playground only
+npm run dev              # overlay + CSS watch + playground at http://localhost:3001
+npm run dev:overlay      # overlay package only (CSS + TypeScript watch)
+npm run dev:playground   # playground only (requires overlay watch in another terminal)
 ```
 
-The playground imports `retune` from `file:../packages/overlay`, so site changes exercise your local overlay build instead of the published package.
+`npm run dev` runs both watchers together. Overlay CSS changes rebuild automatically, and the playground watches the linked `retune` package for faster hot reload.
 
 ## License
 

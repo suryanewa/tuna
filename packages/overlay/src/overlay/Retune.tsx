@@ -14,7 +14,8 @@ import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import type { RetuneConfig, InspectedElement } from "../types";
 import { mountOverlay, unmountOverlay } from "./mount";
-import { createPicker, formatSelectionLabel } from "../selector/picker";
+import overlayStyles from "./overlay-css";
+import { createPicker, formatSelectionLabel, SELECTION_COLORS } from "../selector/picker";
 import { measureDimensionLabelWidth, type SelectionChromeLayout } from "../selector/selection-chrome-layout";
 import { PreviewBridge } from "../ui/preview-bridge";
 import { PreviewBridgeContext } from "../ui/preview-bridge-context";
@@ -47,6 +48,19 @@ import { BoxModelOverlay, type BoxModelProperty } from "../ui/box-model-overlay"
 import { SelectionActionBar } from "../ui/selection-action-bar";
 
 declare const __RETUNE_VERSION__: string;
+
+const retuneDevGlobal = globalThis as typeof globalThis & {
+  __retuneModuleInstance?: number;
+};
+
+/** Bumps on each dev HMR module re-eval so overlay effects can re-initialize. */
+function getRetuneDevModuleInstance(): number {
+  if (process.env.NODE_ENV !== "development") return 0;
+  retuneDevGlobal.__retuneModuleInstance = (retuneDevGlobal.__retuneModuleInstance ?? 0) + 1;
+  return retuneDevGlobal.__retuneModuleInstance;
+}
+
+const RETUNE_DEV_MODULE_INSTANCE = getRetuneDevModuleInstance();
 
 const DEFAULT_CONFIG: Required<RetuneConfig> = {
   port: 9223,
@@ -711,6 +725,7 @@ function CommentPopover({
   onCancel,
   onDelete,
   onTextChange,
+  elementInfo,
 }: {
   position: { x: number; y: number };
   initialText: string;
@@ -718,27 +733,23 @@ function CommentPopover({
   onCancel: () => void;
   onDelete?: () => void;
   onTextChange?: (text: string) => void;
+  elementInfo?: Comment["elementInfo"];
 }) {
   const [text, setText] = useState(initialText);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const isEdit = !!onDelete;
 
-  const autoResize = useCallback(() => {
-    const el = inputRef.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = el.scrollHeight + "px";
-  }, []);
+  const [isDictating, setIsDictating] = useState(false);
+  const recognitionRef = useRef<any>(null);
 
   const popoverElRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     setTimeout(() => {
       inputRef.current?.focus();
-      autoResize();
       // Kill entrance animation after it completes so it doesn't replay on class changes
       if (popoverElRef.current) popoverElRef.current.style.animation = "none";
     }, 200);
-  }, [autoResize]);
+  }, []);
 
   const handleSubmit = () => {
     const trimmed = text.trim();
@@ -749,7 +760,7 @@ function CommentPopover({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     e.stopPropagation();
     e.nativeEvent.stopImmediatePropagation();
-    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+    if (e.key === "Enter") {
       e.preventDefault();
       handleSubmit();
     }
@@ -759,9 +770,35 @@ function CommentPopover({
     }
   };
 
+  const startDictation = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Speech recognition is not supported in this browser.");
+      return;
+    }
+    if (isDictating) {
+      recognitionRef.current?.stop();
+      setIsDictating(false);
+      return;
+    }
+    const rec = new SpeechRecognition();
+    rec.continuous = false;
+    rec.interimResults = false;
+    rec.lang = "en-US";
+    rec.onstart = () => setIsDictating(true);
+    rec.onresult = (e: any) => {
+      const result = e.results[0][0].transcript;
+      setText((prev) => (prev ? prev + " " + result : result));
+    };
+    rec.onerror = () => setIsDictating(false);
+    rec.onend = () => setIsDictating(false);
+    recognitionRef.current = rec;
+    rec.start();
+  };
+
   // Position: offset from marker, clamped to viewport
-  const popoverWidth = 280;
-  const popoverHeight = 140; // approximate
+  const popoverWidth = 360;
+  const popoverHeight = 40;
   const vw = window.innerWidth;
   const vh = window.innerHeight;
 
@@ -789,6 +826,26 @@ function CommentPopover({
     zIndex: 2147483647,
   };
 
+  const mentions = useMemo(() => {
+    if (!elementInfo) return [];
+    if (elementInfo.selectedElements && elementInfo.selectedElements.length > 0) {
+      return elementInfo.selectedElements.map((target, idx) => {
+        const rawName = target.componentName || target.tagName.toLowerCase();
+        const name = target.componentName ? rawName : rawName.charAt(0).toUpperCase() + rawName.slice(1);
+        return {
+          name,
+          color: SELECTION_COLORS[idx % SELECTION_COLORS.length],
+        };
+      });
+    }
+    const rawName = elementInfo.componentName || elementInfo.tagName.toLowerCase();
+    const name = elementInfo.componentName ? rawName : rawName.charAt(0).toUpperCase() + rawName.slice(1);
+    return [{
+      name,
+      color: SELECTION_COLORS[0],
+    }];
+  }, [elementInfo]);
+
   return (
     <div
       ref={popoverElRef}
@@ -799,31 +856,66 @@ function CommentPopover({
       onPointerDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
-      <textarea
-        ref={inputRef}
-        className="retune-comment-textarea"
-        value={text}
-        onChange={(e) => { setText(e.target.value); onTextChange?.(e.target.value); autoResize(); }}
-        onKeyDown={handleKeyDown}
-        placeholder="Add a comment..."
-        rows={3}
-      />
-      <div className="retune-comment-actions">
+      <div
+        className="retune-comment-input-wrap"
+        onPointerDown={() => inputRef.current?.focus()}
+      >
+        {mentions.map((mention, idx) => (
+          <span
+            key={idx}
+            className="retune-comment-mention"
+            style={{ color: mention.color }}
+          >
+            @{mention.name}
+          </span>
+        ))}
+        <input
+          ref={inputRef}
+          type="text"
+          className="retune-comment-input"
+          value={text}
+          onChange={(e) => { setText(e.target.value); onTextChange?.(e.target.value); }}
+          onKeyDown={handleKeyDown}
+          placeholder="Describe the change"
+        />
+      </div>
+      <div className="retune-comment-pill-actions">
+        <button
+          className={`retune-comment-circular-btn dictate${isDictating ? " listening" : ""}`}
+          onPointerUp={startDictation}
+          title="Dictate comment"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+            <path d="M19 10v1a7 7 0 0 1-14 0v-1" />
+            <line x1="12" y1="19" x2="12" y2="22" />
+          </svg>
+        </button>
+
         {isEdit && (
-          <button className="retune-comment-delete-btn" onPointerUp={onDelete}>
-            Delete
+          <button
+            className="retune-comment-circular-btn delete"
+            onPointerUp={onDelete}
+            title="Delete comment"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 6h18" />
+              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+              <path d="M8 6V4c0-1 1-2 2-2h8c1 0 2 1 2 2v2" />
+            </svg>
           </button>
         )}
-        <div style={{ flex: 1 }} />
-        <button className="retune-comment-cancel-btn" onPointerUp={onCancel}>
-          Cancel
-        </button>
+
         <button
-          className="retune-comment-submit-btn"
+          className="retune-comment-circular-btn send"
           onPointerUp={handleSubmit}
           disabled={!text.trim()}
+          title="Send comment"
         >
-          {isEdit ? "Save" : "Comment"}
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 10 4 15 9 20" />
+            <path d="M20 4v7a4 4 0 0 1-4 4H4" />
+          </svg>
         </button>
       </div>
     </div>
@@ -1711,7 +1803,12 @@ function RetuneInner(props: RetuneConfig) {
       // must stay alive so the MCP server keeps its connection.
       unmountOverlay(mount.host);
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [RETUNE_DEV_MODULE_INSTANCE]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Hot-reload overlay.css without a full page refresh.
+  useEffect(() => {
+    mountRef.current?.sheet.replaceSync(overlayStyles);
+  }, [overlayStyles]);
 
   // Force pseudo-state: apply hover/focus/active CSS rules directly to the element
   // so getComputedStyle reflects those styles for the panel to display
@@ -4633,6 +4730,7 @@ function RetuneInner(props: RetuneConfig) {
         <CommentPopover
           position={commentDraft.position}
           initialText=""
+          elementInfo={commentDraft.elementInfo}
           onTextChange={(t) => { popoverTextRef.current = t; }}
           onSubmit={(text) => {
             const store = commentStoreRef.current;
@@ -4658,6 +4756,7 @@ function RetuneInner(props: RetuneConfig) {
           <CommentPopover
             position={c.position}
             initialText={c.text}
+            elementInfo={c.elementInfo}
             onTextChange={(t) => { popoverTextRef.current = t; }}
             onSubmit={(text) => {
               commentStoreRef.current.update(activeCommentId, text);

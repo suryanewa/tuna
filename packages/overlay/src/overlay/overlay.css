@@ -3394,10 +3394,15 @@ input, textarea, [contenteditable] {
 }
 .retune-comment-popover {
   background: var(--retune-surface);
-  border-radius: 16px;
-  padding: 12px;
-  width: 280px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  border-radius: 9999px;
+  padding: 8px 8px 8px 12px;
+  min-width: 320px;
+  max-width: 480px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12), 0 0 0 1px var(--retune-border);
   font-family: InterVariable, Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   z-index: 2147483647;
   pointer-events: auto;
@@ -3414,68 +3419,97 @@ input, textarea, [contenteditable] {
     transform: scale(1) translateY(0);
   }
 }
-.retune-comment-textarea {
-  width: 100%;
-  min-height: 48px;
-  background: var(--retune-surface-hover);
+.retune-comment-input-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  gap: 0;
+}
+.retune-comment-mention {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
+  white-space: nowrap;
+  user-select: none;
+  margin-right: 0.25em;
+}
+.retune-comment-mention + .retune-comment-mention {
+  margin-left: 0.35em;
+}
+.retune-comment-input {
+  flex: 1;
+  min-width: 4ch;
+  background: transparent;
   border: none;
-  border-radius: 8px;
   color: var(--retune-text);
   font-size: 13px;
   font-family: inherit;
-  line-height: 1.5;
-  resize: none;
   outline: none;
-  padding: 8px 12px;
+  padding: 0;
   box-sizing: border-box;
-  overflow: hidden;
 }
-.retune-comment-textarea::placeholder {
+.retune-comment-input::placeholder {
   color: var(--retune-text-tertiary);
 }
-.retune-comment-actions {
+.retune-comment-pill-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 8px;
+  gap: 4px;
+  flex-shrink: 0;
 }
-.retune-comment-submit-btn {
+.retune-comment-circular-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.15s ease, background-color 0.15s ease;
+  padding: 0;
+  flex-shrink: 0;
+}
+.retune-comment-circular-btn:hover {
+  transform: scale(1.05);
+}
+.retune-comment-circular-btn:active {
+  transform: scale(0.95);
+}
+.retune-comment-circular-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+  transform: none;
+}
+.retune-comment-circular-btn.dictate {
+  background: var(--retune-black);
+  color: var(--retune-always-white);
+}
+.retune-comment-circular-btn.dictate.listening {
+  background: var(--retune-red) !important;
+  animation: retune-pulse 1.5s infinite;
+}
+.retune-comment-circular-btn.send {
   background: var(--retune-blue);
   color: var(--retune-always-white);
-  border: none;
-  border-radius: 16px;
-  padding: 8px 12px;
-  font-size: 12px;
-  font-weight: 400;
-  cursor: pointer;
-  font-family: inherit;
 }
-.retune-comment-submit-btn:hover { opacity: 0.9; }
-.retune-comment-submit-btn:disabled { opacity: 0.4; cursor: default; }
-.retune-comment-cancel-btn {
-  background: transparent;
-  color: var(--retune-text-muted);
-  border: none;
-  border-radius: 16px;
-  padding: 8px 12px;
-  font-size: 12px;
-  font-weight: 400;
-  cursor: pointer;
-  font-family: inherit;
-}
-.retune-comment-cancel-btn:hover { background: var(--retune-surface-hover); color: var(--retune-text); }
-.retune-comment-delete-btn {
-  background: transparent;
+.retune-comment-circular-btn.delete {
+  background: color-mix(in srgb, var(--retune-red) 15%, transparent);
   color: var(--retune-red);
-  border: none;
-  border-radius: 16px;
-  padding: 8px 12px;
-  font-size: 12px;
-  font-weight: 400;
-  cursor: pointer;
-  font-family: inherit;
 }
-.retune-comment-delete-btn:hover { background: color-mix(in srgb, var(--retune-red) 10%, transparent); }
+.retune-comment-circular-btn.delete:hover {
+  background: var(--retune-red);
+  color: var(--retune-always-white);
+}
+
+@keyframes retune-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
 .retune-comment-count {
   position: absolute;
   top: 2px;
