@@ -618,6 +618,7 @@ input, textarea, [contenteditable] {
 
 .retune-tab-bar {
   display: flex;
+  align-items: center;
   position: relative;
   padding: 8px;
   flex-shrink: 0;
@@ -658,6 +659,27 @@ input, textarea, [contenteditable] {
 
 .retune-tab.active {
   color: var(--retune-text);
+}
+
+.retune-tab-close {
+  margin-left: auto;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--retune-text-tertiary);
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 0;
+  flex-shrink: 0;
+  transition: color 0.15s ease;
+}
+
+.retune-tab-close:hover {
+  color: var(--retune-text-secondary);
 }
 
 /* ── Element tree ── */
@@ -3120,6 +3142,27 @@ input, textarea, [contenteditable] {
   letter-spacing: 0.06px;
   color: var(--retune-text);
   padding: 8px;
+}
+
+.retune-settings-version {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 8px;
+  font-size: 10px;
+  line-height: 16px;
+  letter-spacing: 0.01em;
+  color: var(--retune-text-tertiary);
+  opacity: 0.4;
+}
+
+.retune-settings-version-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--retune-blue);
+  flex-shrink: 0;
 }
 
 /* Settings body (scrollable for keyboard view) */

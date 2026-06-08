@@ -277,8 +277,11 @@ export function createPicker(
       return;
     }
 
+    const excluded = new Set(selectedElements);
+    if (excludeElement) excluded.add(excludeElement);
+
     activeScopeElements = elements.filter(el => {
-      if (el === excludeElement) return false;
+      if (excluded.has(el)) return false;
       if (el.closest("[data-retune-host]")) return false;
       const cs = getComputedStyle(el);
       if (cs.display === "none" || cs.visibility === "hidden") return false;
@@ -286,6 +289,7 @@ export function createPicker(
     });
 
     refreshScopeHighlights();
+    if (propertyEditMode) updateMultiSelectBoxes();
   }
 
   function refreshScopeHighlights() {
@@ -295,11 +299,17 @@ export function createPicker(
       const r = el.getBoundingClientRect();
       if (r.width === 0 || r.height === 0) continue;
       const outline = scopeHighlightPool[poolIdx++];
-      outline.style.top = `${r.top}px`;
-      outline.style.left = `${r.left}px`;
-      outline.style.width = `${r.width}px`;
-      outline.style.height = `${r.height}px`;
-      outline.style.display = "block";
+      if (propertyEditMode) {
+        positionColoredBox(outline, r, "solid", SELECTION_FILL_ALPHA, PICKER_OUTLINE_COLOR);
+      } else {
+        outline.style.top = `${r.top}px`;
+        outline.style.left = `${r.left}px`;
+        outline.style.width = `${r.width}px`;
+        outline.style.height = `${r.height}px`;
+        outline.style.border = `1px solid ${PICKER_OUTLINE_COLOR}`;
+        outline.style.background = "none";
+        outline.style.display = "block";
+      }
     }
     for (let i = poolIdx; i < scopeHighlightPool.length; i++) {
       scopeHighlightPool[i].style.display = "none";

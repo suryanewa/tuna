@@ -14,6 +14,8 @@ interface SettingsPanelProps {
   fidelity: "minimal" | "standard" | "full";
   onFidelityChange: (fidelity: "minimal" | "standard" | "full") => void;
   onHide: () => void;
+  version?: string;
+  updateAvailable?: boolean;
   exiting?: boolean;
 }
 
@@ -64,6 +66,8 @@ export function SettingsPanel({
   fidelity,
   onFidelityChange,
   onHide,
+  version,
+  updateAvailable,
   exiting,
 }: SettingsPanelProps) {
   const [view, setView] = useState<"main" | "shortcuts">("main");
@@ -124,6 +128,12 @@ export function SettingsPanel({
       >
         <div className="retune-settings-header">
           <span className="retune-settings-title">Settings</span>
+          {version && (
+            <span className="retune-settings-version">
+              {updateAvailable && <span className="retune-settings-version-dot" aria-hidden />}
+              v{version}
+            </span>
+          )}
         </div>
         <div className="retune-settings-body">
           <div className="retune-settings-row">

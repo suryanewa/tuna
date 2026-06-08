@@ -1,6 +1,5 @@
 "use client";
 
-declare const __RETUNE_VERSION__: string;
 
 /**
  * Retune — the main React component users add to their app.
@@ -46,6 +45,8 @@ import { Tooltip } from "../ui/tooltip";
 import { TooltipPortalContext } from "../ui/tooltip-portal-context";
 import { BoxModelOverlay, type BoxModelProperty } from "../ui/box-model-overlay";
 import { SelectionActionBar } from "../ui/selection-action-bar";
+
+declare const __RETUNE_VERSION__: string;
 
 const DEFAULT_CONFIG: Required<RetuneConfig> = {
   port: 9223,
@@ -1888,6 +1889,12 @@ function RetuneInner(props: RetuneConfig) {
     };
   }, [getQuickSelector, getQuickComponentName]);
 
+  const closeEditPanel = useCallback(() => {
+    setEditPanelOpen(false);
+    pickerRef.current?.setPropertyEditMode(false);
+    pickerRef.current?.hideScopeHighlights();
+  }, []);
+
   const toggleSelectionEditMode = useCallback(() => {
     setEditPanelOpen((prev) => {
       const next = !prev;
@@ -1926,8 +1933,9 @@ function RetuneInner(props: RetuneConfig) {
     const level = scopeLevelsRef.current[activeLevelIndexRef.current];
     if (level?.selector) {
       pickerRef.current?.showScopeHighlights(level.selector, selectedElement.element);
+      pickerRef.current?.refreshSelection();
     }
-  }, [editPanelOpen, selectedElement]);
+  }, [editPanelOpen, selectedElement, selectedElements]);
 
   const shakePopover = useCallback(() => {
     const el = mountRef.current?.root.querySelector(".retune-comment-popover") as HTMLElement | null;
@@ -4259,13 +4267,14 @@ function RetuneInner(props: RetuneConfig) {
             <div className="retune-tab-pill" ref={tabPillRef} />
             <button className={`retune-tab${panelTab === "elements" ? " active" : ""}`} onClick={() => setPanelTab("elements")}>Elements</button>
             <button className={`retune-tab${panelTab === "design" ? " active" : ""}`} onClick={() => setPanelTab("design")}>Design</button>
-            <span
-              onClick={() => { if (updateInfo && updateDismissed) { setUpdateDismissed(false); } }}
-              style={{ marginLeft: "auto", fontSize: "11px", lineHeight: "16px", color: "var(--retune-text-tertiary)", letterSpacing: "-0.005em", paddingRight: "8px", display: "flex", alignItems: "center", gap: "4px", cursor: updateInfo ? "pointer" : "default" }}
+            <button
+              type="button"
+              className="retune-tab-close"
+              aria-label="Close panel"
+              onClick={closeEditPanel}
             >
-              {updateInfo && <span style={{ width: 4, height: 4, borderRadius: "50%", background: "var(--retune-blue)", flexShrink: 0 }} />}
-              v{updateInfo?.current || (typeof __RETUNE_VERSION__ === "string" ? __RETUNE_VERSION__ : "")}
-            </span>
+              <IconCrossMedium size={14} />
+            </button>
           </div>
           <div className="retune-panel-body">
             <PanelBanner
@@ -4440,6 +4449,8 @@ function RetuneInner(props: RetuneConfig) {
           fidelity={fidelity}
           onFidelityChange={setFidelity}
           onHide={() => { setSettingsOpen(false); setSettingsVisible(false); setSettingsExiting(false); deactivateOverlay(); setSessionHidden(true); }}
+          version={updateInfo?.current || (typeof __RETUNE_VERSION__ === "string" ? __RETUNE_VERSION__ : "")}
+          updateAvailable={!!updateInfo}
           exiting={settingsExiting}
         />
       )}
