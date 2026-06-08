@@ -139,6 +139,41 @@ describe("CommentStore", () => {
     });
   });
 
+  describe("selectedElements for element comments", () => {
+    it("stores all selected element targets", () => {
+      const comment = store.add("align these", { x: 10, y: 20 }, "element", {
+        selector: ".btn",
+        elementInfo: {
+          tagName: "button",
+          componentName: "Button",
+          componentPath: ["Hero", "Button"],
+          classes: ["btn"],
+          textContent: "Get Started",
+          selectedElements: [
+            {
+              tagName: "button",
+              selector: ".btn",
+              componentName: "Button",
+              componentPath: ["Hero", "Button"],
+              classes: ["btn"],
+              textContent: "Get Started",
+              source: "Hero.tsx:12",
+            },
+            {
+              tagName: "span",
+              selector: ".label",
+              componentName: "Label",
+              classes: ["label"],
+              textContent: "Beta",
+            },
+          ],
+        },
+      });
+      expect(comment.elementInfo?.selectedElements).toHaveLength(2);
+      expect(comment.elementInfo?.selectedElements?.[1].selector).toBe(".label");
+    });
+  });
+
   describe("containedElements for area comments", () => {
     it("stores contained elements info", () => {
       const comment = store.add("multi select", { x: 0, y: 0 }, "area", {

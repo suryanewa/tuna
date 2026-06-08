@@ -8,6 +8,17 @@
 
 // ── Types ──
 
+export interface CommentElementTarget {
+  tagName: string;
+  selector: string;
+  componentName: string | null;
+  componentPath?: string[];
+  classes: string[];
+  textContent: string | null;
+  source?: string;
+  domPath?: string;
+}
+
 export interface Comment {
   id: number;
   text: string;
@@ -29,6 +40,10 @@ export interface Comment {
     componentPath: string[];
     classes: string[];
     textContent: string | null;
+    source?: string;
+    domPath?: string;
+    /** For element comments from a multi-select: all targeted elements */
+    selectedElements?: CommentElementTarget[];
     /** For area comments: elements found within the selected region */
     containedElements?: Array<{
       tagName: string;

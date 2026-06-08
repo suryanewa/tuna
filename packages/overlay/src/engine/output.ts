@@ -14,7 +14,7 @@ import { type TokenMap, scanDesignTokens, summarizeTokenSystem } from "../inspec
 import { camelToKebab, truncate } from "../utils";
 import { getVariableRegistry } from "../variables/registry";
 import { enrichPropertyChanges } from "./candidates";
-import type { Comment } from "./comment-store";
+import type { Comment, CommentElementTarget } from "./comment-store";
 
 export type Fidelity = "minimal" | "standard" | "full";
 
@@ -182,6 +182,16 @@ export function formatElementInfo(
   return lines.join("\n");
 }
 
+function formatCommentElementTarget(target: CommentElementTarget): string {
+  const text = target.textContent ? ` "${truncate(target.textContent, 30)}"` : "";
+  const comp = target.componentName ? ` (${target.componentName})` : "";
+  const classes = target.classes.length > 0 ? ` \`${target.classes.join(" ")}\`` : "";
+  let line = `\`<${target.tagName}>\`${classes}${text}${comp} — \`${target.selector}\``;
+  if (target.source) line += ` — Source: \`${target.source}\``;
+  if (target.domPath) line += ` — DOM: \`${target.domPath}\``;
+  return line;
+}
+
 export function formatChanges(changes: ElementChange[], fidelity: Fidelity, comments?: Comment[], manifest?: Record<string, any> | null): string {
   if (changes.length === 0 && (!comments || comments.length === 0)) return "No changes recorded.";
 
@@ -268,17 +278,38 @@ export function formatChanges(changes: ElementChange[], fidelity: Fidelity, comm
     comments.forEach((comment, idx) => {
       if (comment.type === "element" && comment.elementInfo) {
         const info = comment.elementInfo;
+        const selected = info.selectedElements;
         const textHint = info.textContent ? ` "${truncate(info.textContent, 60)}"` : "";
-        lines.push(`## Comment #${idx + 1} on \`<${info.tagName}>\`${textHint}`);
+        if (selected && selected.length > 1) {
+          lines.push(`## Comment #${idx + 1} on ${selected.length} selected elements`);
+        } else {
+          lines.push(`## Comment #${idx + 1} on \`<${info.tagName}>\`${textHint}`);
+        }
         lines.push("");
-        if (info.componentName) {
-          lines.push(`**Component:** ${info.componentName}`);
-        }
-        if (comment.selector) {
-          lines.push(`**Selector:** \`${comment.selector}\``);
-        }
-        if (info.classes.length > 0) {
-          lines.push(`**Classes:** \`${info.classes.join(" ")}\``);
+        if (selected && selected.length > 1) {
+          lines.push("**Selected elements:**");
+          for (const target of selected) {
+            lines.push(`- ${formatCommentElementTarget(target)}`);
+          }
+          lines.push("");
+        } else {
+          if (info.componentPath && info.componentPath.length > 0) {
+            lines.push(`**Component:** ${info.componentPath.join(" → ")}`);
+          } else if (info.componentName) {
+            lines.push(`**Component:** ${info.componentName}`);
+          }
+          if (comment.selector) {
+            lines.push(`**Selector:** \`${comment.selector}\``);
+          }
+          if (info.classes.length > 0) {
+            lines.push(`**Classes:** \`${info.classes.join(" ")}\``);
+          }
+          if (info.source) {
+            lines.push(`**Source:** \`${info.source}\``);
+          }
+          if (info.domPath) {
+            lines.push(`**DOM Path:** \`${info.domPath}\``);
+          }
         }
         lines.push(`**Marker position:** (${Math.round(comment.position.x)}, ${Math.round(comment.position.y)}) on viewport`);
       } else if (comment.type === "area" && comment.area) {

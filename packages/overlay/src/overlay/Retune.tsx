@@ -20,7 +20,7 @@ import { PreviewBridge } from "../ui/preview-bridge";
 import { PreviewBridgeContext } from "../ui/preview-bridge-context";
 import { LivePreviewEngine } from "../engine/live-preview";
 import { ChangeTracker } from "../engine/change-tracker";
-import { CommentStore, type Comment } from "../engine/comment-store";
+import { CommentStore, type Comment, type CommentElementTarget } from "../engine/comment-store";
 import { formatChanges, formatElementInfo, collapseShorthands, type Fidelity } from "../engine/output";
 import { BridgeClient } from "../bridge/ws-client";
 import { formatToggleHotkeyShortcut, inspectElement, matchesToggleHotkey } from "../ui/helpers";
@@ -1863,6 +1863,26 @@ function RetuneInner(props: RetuneConfig) {
   const popoverTextRef = useRef("");
   const popoverInitialTextRef = useRef("");
 
+  const buildCommentTargetFromInspected = useCallback((inspected: InspectedElement): CommentElementTarget => {
+    const source = inspected.sourceFile
+      ? `${inspected.sourceFile.fileName}:${inspected.sourceFile.lineNumber}${
+        inspected.sourceFile.columnNumber ? `:${inspected.sourceFile.columnNumber}` : ""
+      }`
+      : undefined;
+    return {
+      tagName: inspected.tagName.toLowerCase(),
+      selector: inspected.selector,
+      componentName: inspected.reactComponents.length > 0
+        ? inspected.reactComponents[inspected.reactComponents.length - 1]
+        : null,
+      componentPath: inspected.reactComponents,
+      classes: inspected.classes,
+      textContent: inspected.textContent,
+      source,
+      domPath: inspected.domPath || undefined,
+    };
+  }, []);
+
   const buildElementCommentDraft = useCallback((element: Element, cursor: { x: number; y: number }) => {
     const selector = getQuickSelector(element);
     const componentName = getQuickComponentName(element);
@@ -1888,6 +1908,38 @@ function RetuneInner(props: RetuneConfig) {
     };
   }, [getQuickSelector, getQuickComponentName]);
 
+  const buildSelectionCommentDraft = useCallback((
+    targets: InspectedElement[],
+    primary: InspectedElement,
+    cursor: { x: number; y: number },
+  ) => {
+    const selectedTargets = targets.map(buildCommentTargetFromInspected);
+    const primaryTarget = buildCommentTargetFromInspected(primary);
+    const selectorPath: string[] = [getQuickSelector(primary.element)];
+    let ancestor = primary.element.parentElement;
+    for (let i = 0; i < 3 && ancestor && ancestor !== document.body; i++) {
+      selectorPath.unshift(getQuickSelector(ancestor));
+      ancestor = ancestor.parentElement;
+    }
+    const rect = primary.element.getBoundingClientRect();
+    return {
+      position: { x: cursor.x, y: cursor.y },
+      type: "element" as const,
+      selector: selectorPath.join(" > "),
+      anchorOffset: { x: cursor.x - rect.left, y: cursor.y - rect.top },
+      elementInfo: {
+        tagName: primaryTarget.tagName,
+        componentName: primaryTarget.componentName,
+        componentPath: primaryTarget.componentPath ?? [],
+        classes: primaryTarget.classes,
+        textContent: primaryTarget.textContent,
+        source: primaryTarget.source,
+        domPath: primaryTarget.domPath,
+        selectedElements: selectedTargets,
+      },
+    };
+  }, [buildCommentTargetFromInspected, getQuickSelector]);
+
   const closeEditPanel = useCallback(() => {
     setEditPanelOpen(false);
     pickerRef.current?.setPropertyEditMode(false);
@@ -1910,15 +1962,16 @@ function RetuneInner(props: RetuneConfig) {
   const handleSelectionComment = useCallback(() => {
     const inspected = selectedElementRef.current;
     if (!inspected) return;
-    const elements = selectedElementsRef.current.length > 0
-      ? selectedElementsRef.current.map((el) => el.element)
-      : [inspected.element];
+    const targets = selectedElementsRef.current.length > 0
+      ? selectedElementsRef.current
+      : [inspected];
+    const outlineElements = targets.map((el) => el.element);
     const rect = inspected.element.getBoundingClientRect();
     const cursor = {
       x: rect.left + rect.width / 2,
       y: rect.top + rect.height / 2,
     };
-    const draft = buildElementCommentDraft(inspected.element, cursor);
+    const draft = buildSelectionCommentDraft(targets, inspected, cursor);
     popoverOpenRef.current = true;
     popoverTextRef.current = "";
     popoverInitialTextRef.current = "";
@@ -1926,8 +1979,8 @@ function RetuneInner(props: RetuneConfig) {
     setEditPanelOpen(false);
     pickerRef.current?.setPropertyEditMode(false);
     pickerRef.current?.setChromeLayout(null);
-    pickerRef.current?.showSelectionOutline(elements, inspected.element);
-  }, [buildElementCommentDraft]);
+    pickerRef.current?.showSelectionOutline(outlineElements, inspected.element);
+  }, [buildSelectionCommentDraft]);
 
   const dismissCommentDraft = useCallback(() => {
     popoverOpenRef.current = false;
