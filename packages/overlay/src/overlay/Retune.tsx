@@ -841,46 +841,48 @@ function findSucceedingMention(range: Range): { mention: HTMLElement; leadingTex
   return null;
 }
 
+function placeCaretAfterRemovedMention(editor: HTMLElement, precedingSibling: Node | null, succeedingSibling: Node | null) {
+  normalizeCommentEditor(editor);
+
+  if (editor.childNodes.length === 0) {
+    placeCaretAtEditorEnd(editor);
+    return;
+  }
+
+  if (succeedingSibling && succeedingSibling.parentNode === editor) {
+    const range = document.createRange();
+    range.setStart(succeedingSibling, 0);
+    range.collapse(true);
+    const sel = window.getSelection();
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+    return;
+  }
+
+  if (precedingSibling && precedingSibling.parentNode === editor) {
+    const range = document.createRange();
+    if (precedingSibling.nodeType === Node.TEXT_NODE) {
+      range.setStart(precedingSibling, (precedingSibling.textContent ?? "").length);
+    } else {
+      range.setStartAfter(precedingSibling);
+    }
+    range.collapse(true);
+    const sel = window.getSelection();
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+    return;
+  }
+
+  placeCaretAtEditorEnd(editor);
+}
+
 function deletePrecedingMention(
   editor: HTMLElement,
   found: { mention: HTMLElement; trailingTextNode?: Text; offsetInTrailing?: number }
 ) {
   const mention = found.mention;
-  const prevSibling = mention.previousSibling;
-  const nextSibling = mention.nextSibling;
-
-  let caretNode: Node;
-  let caretOffset: number;
-
-  if (prevSibling && prevSibling.parentNode) {
-    if (prevSibling.nodeType === Node.TEXT_NODE) {
-      const prevText = prevSibling as Text;
-      const originalText = prevText.textContent ?? "";
-      prevText.textContent = originalText.replace(/[\s\u200b\u00a0]+$/g, "");
-      caretNode = prevSibling;
-      caretOffset = prevText.textContent.length;
-    } else {
-      const textNode = document.createTextNode("");
-      editor.insertBefore(textNode, mention);
-      caretNode = textNode;
-      caretOffset = 0;
-    }
-  } else if (nextSibling && nextSibling.parentNode) {
-    if (nextSibling.nodeType === Node.TEXT_NODE) {
-      caretNode = nextSibling;
-      caretOffset = 0;
-    } else {
-      const textNode = document.createTextNode("");
-      editor.insertBefore(textNode, nextSibling);
-      caretNode = textNode;
-      caretOffset = 0;
-    }
-  } else {
-    const textNode = document.createTextNode("");
-    editor.appendChild(textNode);
-    caretNode = textNode;
-    caretOffset = 0;
-  }
+  const precedingSibling = mention.previousSibling;
+  const succeedingSibling = mention.nextSibling;
 
   mention.remove();
 
@@ -889,22 +891,15 @@ function deletePrecedingMention(
     const offset = found.offsetInTrailing ?? 0;
     const originalText = textNode.textContent ?? "";
     textNode.textContent = originalText.slice(offset).replace(/^[\s\u200b\u00a0]+/g, "");
-    if (textNode.textContent === "" && textNode !== caretNode) {
-      textNode.remove();
-    }
   }
 
-  normalizeCommentEditor(editor);
-
-  const range = document.createRange();
-  if (caretNode.parentNode) {
-    const finalOffset = Math.min(caretOffset, (caretNode.textContent ?? "").length);
-    range.setStart(caretNode, finalOffset);
-    range.collapse(true);
-    const sel = window.getSelection();
-    sel?.removeAllRanges();
-    sel?.addRange(range);
+  if (precedingSibling && precedingSibling.nodeType === Node.TEXT_NODE) {
+    const prevText = precedingSibling as Text;
+    const originalText = prevText.textContent ?? "";
+    prevText.textContent = originalText.replace(/[\s\u200b\u00a0]+$/g, "");
   }
+
+  placeCaretAfterRemovedMention(editor, precedingSibling, succeedingSibling);
 }
 
 function deleteSucceedingMention(
@@ -912,41 +907,8 @@ function deleteSucceedingMention(
   found: { mention: HTMLElement; leadingTextNode?: Text; offsetInLeading?: number }
 ) {
   const mention = found.mention;
-  const prevSibling = mention.previousSibling;
-  const nextSibling = mention.nextSibling;
-
-  let caretNode: Node;
-  let caretOffset: number;
-
-  if (prevSibling && prevSibling.parentNode) {
-    if (prevSibling.nodeType === Node.TEXT_NODE) {
-      caretNode = prevSibling;
-      caretOffset = (prevSibling.textContent ?? "").length;
-    } else {
-      const textNode = document.createTextNode("");
-      editor.insertBefore(textNode, mention);
-      caretNode = textNode;
-      caretOffset = 0;
-    }
-  } else if (nextSibling && nextSibling.parentNode) {
-    if (nextSibling.nodeType === Node.TEXT_NODE) {
-      const nextText = nextSibling as Text;
-      const originalText = nextText.textContent ?? "";
-      nextText.textContent = originalText.replace(/^[\s\u200b\u00a0]+/g, "");
-      caretNode = nextSibling;
-      caretOffset = 0;
-    } else {
-      const textNode = document.createTextNode("");
-      editor.insertBefore(textNode, nextSibling);
-      caretNode = textNode;
-      caretOffset = 0;
-    }
-  } else {
-    const textNode = document.createTextNode("");
-    editor.appendChild(textNode);
-    caretNode = textNode;
-    caretOffset = 0;
-  }
+  const precedingSibling = mention.previousSibling;
+  const succeedingSibling = mention.nextSibling;
 
   mention.remove();
 
@@ -955,22 +917,15 @@ function deleteSucceedingMention(
     const offset = found.offsetInLeading ?? 0;
     const originalText = textNode.textContent ?? "";
     textNode.textContent = originalText.slice(0, offset).replace(/[\s\u200b\u00a0]+$/g, "");
-    if (textNode.textContent === "" && textNode !== caretNode) {
-      textNode.remove();
-    }
   }
 
-  normalizeCommentEditor(editor);
-
-  const range = document.createRange();
-  if (caretNode.parentNode) {
-    const finalOffset = Math.min(caretOffset, (caretNode.textContent ?? "").length);
-    range.setStart(caretNode, finalOffset);
-    range.collapse(true);
-    const sel = window.getSelection();
-    sel?.removeAllRanges();
-    sel?.addRange(range);
+  if (succeedingSibling && succeedingSibling.nodeType === Node.TEXT_NODE) {
+    const nextText = succeedingSibling as Text;
+    const originalText = nextText.textContent ?? "";
+    nextText.textContent = originalText.replace(/^[\s\u200b\u00a0]+/g, "");
   }
+
+  placeCaretAfterRemovedMention(editor, precedingSibling, succeedingSibling);
 }
 
 const CARET_ANCHOR = "\u200b";
