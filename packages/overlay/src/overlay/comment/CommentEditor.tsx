@@ -24,6 +24,8 @@ import {
   type LexicalEditor,
   type LexicalNode,
 } from "lexical";
+import type { CommentElementTarget } from "../../engine/comment-store";
+import { parseCommentTextIntoParts, type CommentContentPart } from "./comment-draft";
 import { $createMentionNode, $isMentionNode, MentionNode } from "./mention-node";
 
 export type CommentMention = {
@@ -45,6 +47,8 @@ export type CommentEditorApi = {
   getUserText: () => string;
   getMentions: () => string[];
   setText: (text: string) => void;
+  /** Restore full editor content including inline mention positions. */
+  restoreContent: (text: string, targets: CommentElementTarget[]) => void;
   focus: () => void;
   clear: () => void;
 };
@@ -52,6 +56,8 @@ export type CommentEditorApi = {
 type CommentEditorProps = {
   initialText: string;
   mentions: CommentMention[];
+  /** Parsed stored comment text with inline mention positions (edit mode). */
+  contentParts?: CommentContentPart[];
   placeholder?: string;
   onChange?: (snapshot: CommentEditorSnapshot) => void;
   onSubmit?: () => void;
@@ -92,12 +98,42 @@ function createContentNodes(mentions: CommentMention[], text: string): LexicalNo
   return nodes;
 }
 
+function createContentNodesFromParts(parts: CommentContentPart[]): LexicalNode[] {
+  const nodes: LexicalNode[] = [];
+  for (const part of parts) {
+    if (part.type === "mention") {
+      nodes.push($createMentionNode(part.mention.name, part.mention.color, part.mention.selector));
+    } else if (part.text) {
+      nodes.push($createTextNode(part.text));
+    }
+  }
+  // A trailing mention token (contentEditable=false) leaves the caret with no
+  // editable anchor, which misplaces focus and crashes selection on click.
+  // Mirror the draft seed path and always end in an editable text node.
+  const lastNode = nodes[nodes.length - 1];
+  if (!lastNode || $isMentionNode(lastNode)) {
+    nodes.push($createTextNode(" "));
+  }
+  return nodes;
+}
+
 function resetEditorContent(editor: LexicalEditor, mentions: CommentMention[], text: string) {
   editor.update(() => {
     const root = $getRoot();
     root.clear();
     const paragraph = $createParagraphNode();
     paragraph.append(...createContentNodes(mentions, text));
+    root.append(paragraph);
+    paragraph.selectEnd();
+  });
+}
+
+function resetEditorContentFromParts(editor: LexicalEditor, parts: CommentContentPart[]) {
+  editor.update(() => {
+    const root = $getRoot();
+    root.clear();
+    const paragraph = $createParagraphNode();
+    paragraph.append(...createContentNodesFromParts(parts));
     root.append(paragraph);
     paragraph.selectEnd();
   });
@@ -129,6 +165,7 @@ function insertMentionsAtSelection(editor: LexicalEditor, mentions: CommentMenti
 function CommentEditorPlugins({
   initialText,
   mentions,
+  contentParts,
   onChange,
   editorRef,
   onSubmit,
@@ -141,15 +178,21 @@ function CommentEditorPlugins({
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   editorRef.current = editor;
+  const restoreFromParts = !!contentParts;
 
   useEffect(() => {
-    resetEditorContent(editor, mentions, initialText);
+    if (contentParts) {
+      resetEditorContentFromParts(editor, contentParts);
+    } else {
+      resetEditorContent(editor, mentions, initialText);
+    }
     requestAnimationFrame(() => editor.focus());
     // Initial content must only be seeded once. Later mention changes are reconciled below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor]);
 
   useEffect(() => {
+    if (restoreFromParts) return;
     const previousSelectors = mentionSelectorsRef.current;
     const nextSelectors = mentions.map((mention) => mention.selector);
     const previousSet = new Set(previousSelectors);
@@ -171,7 +214,7 @@ function CommentEditorPlugins({
     if (added.length > 0) {
       insertMentionsAtSelection(editor, added);
     }
-  }, [editor, mentions]);
+  }, [editor, mentions, restoreFromParts]);
 
   return (
     <>
@@ -209,7 +252,7 @@ function KeyPlugin({ onSubmit, onCancel }: { onSubmit?: () => void; onCancel?: (
 }
 
 export const CommentEditor = forwardRef<CommentEditorApi, CommentEditorProps>(function CommentEditor(
-  { initialText, mentions, placeholder = "Describe the change", onChange, onSubmit, onCancel },
+  { initialText, mentions, contentParts, placeholder = "Describe the change", onChange, onSubmit, onCancel },
   ref,
 ) {
   const editorRef = useRef<LexicalEditor | null>(null);
@@ -274,6 +317,12 @@ export const CommentEditor = forwardRef<CommentEditorApi, CommentEditorProps>(fu
       if (!editor) return;
       resetEditorContent(editor, latestMentionsRef.current, text);
     },
+    restoreContent(text: string, targets: CommentElementTarget[]) {
+      const editor = editorRef.current;
+      if (!editor) return;
+      const orderedTargets = targets;
+      resetEditorContentFromParts(editor, parseCommentTextIntoParts(text, orderedTargets));
+    },
     focus() {
       editorRef.current?.focus();
     },
@@ -299,6 +348,7 @@ export const CommentEditor = forwardRef<CommentEditorApi, CommentEditorProps>(fu
       <CommentEditorPlugins
         initialText={initialText}
         mentions={mentions}
+        contentParts={contentParts}
         onChange={onChange}
         editorRef={editorRef}
         onSubmit={onSubmit}

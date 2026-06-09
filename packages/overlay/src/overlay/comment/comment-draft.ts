@@ -1,6 +1,21 @@
 import type { Comment, CommentElementTarget } from "../../engine/comment-store";
 import type { InspectedElement } from "../../types";
 
+export const SELECTION_COLORS = [
+  "#0D99FF",
+  "#FF6B6B",
+  "#51CF66",
+  "#FAB005",
+  "#845EF7",
+  "#FF922B",
+  "#20C997",
+  "#F06595",
+] as const;
+
+export type CommentContentPart =
+  | { type: "mention"; mention: { name: string; color: string; selector: string } }
+  | { type: "text"; text: string };
+
 export type CommentDraft = {
   position: { x: number; y: number };
   type: "element" | "area";
@@ -141,6 +156,111 @@ export function buildSelectionCommentDraft(
       selectedElements: selectedTargets,
     },
   };
+}
+
+export function orderTargetsBySelectors(
+  targets: CommentElementTarget[],
+  selectors: string[],
+): CommentElementTarget[] {
+  return selectors
+    .map((selector) => targets.find((target) => target.selector === selector))
+    .filter((target): target is CommentElementTarget => !!target);
+}
+
+export function getCommentElementTargets(
+  elementInfo: Comment["elementInfo"],
+  primarySelector?: string,
+): CommentElementTarget[] {
+  if (!elementInfo) return [];
+  if (elementInfo.selectedElements?.length) return elementInfo.selectedElements;
+  return [{
+    tagName: elementInfo.tagName,
+    selector: primarySelector ?? "",
+    componentName: elementInfo.componentName,
+    componentPath: elementInfo.componentPath,
+    classes: elementInfo.classes,
+    textContent: elementInfo.textContent,
+    source: elementInfo.source,
+    domPath: elementInfo.domPath,
+  }];
+}
+
+function findNextMentionStart(
+  text: string,
+  from: number,
+  names: string[],
+  pools: Map<string, CommentElementTarget[]>,
+): number {
+  for (let index = from; index < text.length; index++) {
+    if (text[index] !== "@") continue;
+    for (const name of names) {
+      if (!text.startsWith(`@${name}`, index)) continue;
+      const pool = pools.get(name);
+      if (pool && pool.length > 0) return index;
+    }
+  }
+  return text.length;
+}
+
+/** Reconstruct editor content from persisted comment text and element targets. */
+export function parseCommentTextIntoParts(
+  text: string,
+  targets: CommentElementTarget[],
+): CommentContentPart[] {
+  if (!text) return [];
+  if (targets.length === 0) return [{ type: "text", text }];
+
+  const pools = new Map<string, CommentElementTarget[]>();
+  const targetIndexBySelector = new Map<string, number>();
+  for (const [index, target] of targets.entries()) {
+    targetIndexBySelector.set(target.selector, index);
+    const name = getMentionName(target.tagName, target.componentName);
+    const list = pools.get(name) ?? [];
+    list.push(target);
+    pools.set(name, list);
+  }
+
+  const names = [...pools.keys()].sort((a, b) => b.length - a.length);
+  const parts: CommentContentPart[] = [];
+  let cursor = 0;
+
+  while (cursor < text.length) {
+    const mentionAt = findNextMentionStart(text, cursor, names, pools);
+    if (mentionAt > cursor) {
+      parts.push({ type: "text", text: text.slice(cursor, mentionAt) });
+      cursor = mentionAt;
+      continue;
+    }
+    if (mentionAt >= text.length) break;
+
+    let matched: { name: string; target: CommentElementTarget } | null = null;
+    for (const name of names) {
+      if (!text.startsWith(`@${name}`, cursor)) continue;
+      const pool = pools.get(name);
+      if (!pool || pool.length === 0) continue;
+      matched = { name, target: pool.shift()! };
+      break;
+    }
+
+    if (!matched) {
+      parts.push({ type: "text", text: text[cursor] });
+      cursor += 1;
+      continue;
+    }
+
+    const colorIndex = targetIndexBySelector.get(matched.target.selector) ?? 0;
+    parts.push({
+      type: "mention",
+      mention: {
+        name: matched.name,
+        color: SELECTION_COLORS[colorIndex % SELECTION_COLORS.length],
+        selector: matched.target.selector,
+      },
+    });
+    cursor += matched.name.length + 1;
+  }
+
+  return parts;
 }
 
 export function getDraftElementTargets(draft: CommentDraft): CommentElementTarget[] {

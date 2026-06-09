@@ -7,18 +7,18 @@ import {
   type CommentEditorApi,
   type CommentMention,
 } from "./CommentEditor";
-import { getMentionName } from "./comment-draft";
+import {
+  getCommentElementTargets,
+  getMentionName,
+  orderTargetsBySelectors,
+  parseCommentTextIntoParts,
+  SELECTION_COLORS,
+} from "./comment-draft";
 
-const SELECTION_COLORS = [
-  "#0D99FF",
-  "#FF6B6B",
-  "#51CF66",
-  "#FAB005",
-  "#845EF7",
-  "#FF922B",
-  "#20C997",
-  "#F06595",
-] as const;
+type DictationSnapshot = {
+  text: string;
+  mentionSelectors: string[];
+};
 
 export function CommentPopover({
   position,
@@ -49,10 +49,17 @@ export function CommentPopover({
   const [hasUserText, setHasUserText] = useState(!!initialText.trim());
   const [dictationSeconds, setDictationSeconds] = useState(0);
   const editorRef = useRef<CommentEditorApi>(null);
-  const dictationSnapshotRef = useRef("");
+  const dictationSnapshotRef = useRef<DictationSnapshot>({ text: "", mentionSelectors: [] });
   const isEdit = !!onDelete;
 
+  const contentParts = useMemo(() => {
+    if (!isEdit || !elementInfo) return undefined;
+    const targets = getCommentElementTargets(elementInfo, primarySelector);
+    return parseCommentTextIntoParts(initialText, targets);
+  }, [elementInfo, initialText, isEdit, primarySelector]);
+
   const mentions = useMemo<CommentMention[]>(() => {
+    if (contentParts) return [];
     if (!elementInfo) return [];
     const spanCount = spanMentionCount ?? 1;
     if (elementInfo.selectedElements) {
@@ -67,7 +74,7 @@ export function CommentPopover({
       color: SELECTION_COLORS[0],
       selector: primarySelector ?? "",
     }];
-  }, [elementInfo, primarySelector, spanMentionCount]);
+  }, [contentParts, elementInfo, primarySelector, spanMentionCount]);
 
   const handleEditorChange = useCallback((snapshot: { text: string; userText: string; mentionSelectors: string[] }) => {
     setText(snapshot.text);
@@ -92,15 +99,31 @@ export function CommentPopover({
   } = useCommentDictation(handleDictationDelta);
 
   const handleStartDictation = useCallback(() => {
-    dictationSnapshotRef.current = editorRef.current?.getUserText() ?? "";
+    dictationSnapshotRef.current = {
+      text: editorRef.current?.getText() ?? "",
+      mentionSelectors: editorRef.current?.getMentions() ?? [],
+    };
     toggleDictation();
   }, [toggleDictation]);
 
   const handleCancelDictation = useCallback(() => {
+    const snapshot = dictationSnapshotRef.current;
     cancelDictation();
-    editorRef.current?.setText(dictationSnapshotRef.current);
+    const targets = getCommentElementTargets(elementInfo, primarySelector);
+    const orderedTargets = orderTargetsBySelectors(targets, snapshot.mentionSelectors);
+    const restoredParts = parseCommentTextIntoParts(snapshot.text, orderedTargets);
+    editorRef.current?.restoreContent(snapshot.text, orderedTargets);
+    onMentionsChange?.(snapshot.mentionSelectors);
+    onTextChange?.(snapshot.text);
+    const restoredUserText = restoredParts
+      .filter((part) => part.type === "text")
+      .map((part) => part.text)
+      .join("")
+      .trim();
+    setText(snapshot.text);
+    setHasUserText(restoredUserText.length > 0);
     editorRef.current?.focus();
-  }, [cancelDictation]);
+  }, [cancelDictation, elementInfo, onMentionsChange, onTextChange, primarySelector]);
 
   const handleSubmit = useCallback(() => {
     const trimmed = text.trim();
@@ -184,6 +207,7 @@ export function CommentPopover({
             ref={editorRef}
             initialText={initialText}
             mentions={mentions}
+            contentParts={contentParts}
             onChange={handleEditorChange}
             onSubmit={handleSubmit}
             onCancel={handleCancel}

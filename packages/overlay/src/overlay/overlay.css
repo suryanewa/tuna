@@ -3343,6 +3343,10 @@ input, textarea, [contenteditable] {
   pointer-events: none;
   will-change: opacity;
 }
+.retune-comment-marker-preview .retune-comment-mention {
+  font-size: 12px;
+  font-weight: 500;
+}
 .retune-comment-marker.interactive {
   pointer-events: auto;
   cursor: pointer;

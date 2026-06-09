@@ -51,6 +51,7 @@ import { TooltipPortalContext } from "../ui/tooltip-portal-context";
 import { BoxModelOverlay, type BoxModelProperty } from "../ui/box-model-overlay";
 import { SelectionActionBar } from "../ui/selection-action-bar";
 import { scanContainedElements } from "./comment/comment-draft";
+import { CommentTextPreview, getCommentTextParts, renderCommentTextParts } from "./comment/CommentTextPreview";
 import { CommentPopover as NewCommentPopover } from "./comment/CommentPopover";
 import { useCommentMode } from "./comment/use-comment-mode";
 
@@ -399,6 +400,7 @@ function CommentMarker({ comment: c, index, isPopoverOpen, isAreaResize, onAreaR
   const popoverOpenRef2 = useRef(isPopoverOpen);
   popoverOpenRef2.current = isPopoverOpen;
   const pos = useCommentPosition(c);
+  const previewParts = useMemo(() => getCommentTextParts(c), [c]);
 
   useEffect(() => {
     const marker = markerRef.current;
@@ -411,7 +413,7 @@ function CommentMarker({ comment: c, index, isPopoverOpen, isAreaResize, onAreaR
 
       const measurer = document.createElement("span");
       measurer.style.cssText = `position:absolute;visibility:hidden;font-size:12px;line-height:1.4;font-family:inherit;white-space:nowrap;`;
-      measurer.textContent = c.text;
+      renderCommentTextParts(measurer, previewParts);
       marker.appendChild(measurer);
       const textW = measurer.offsetWidth;
       measurer.remove();
@@ -442,7 +444,7 @@ function CommentMarker({ comment: c, index, isPopoverOpen, isAreaResize, onAreaR
       marker.removeEventListener("mouseenter", onEnter);
       marker.removeEventListener("mouseleave", onLeave);
     };
-  }, [c.text]);
+  }, [previewParts]);
 
   // Collapse marker when popover opens
   useEffect(() => {
@@ -509,7 +511,9 @@ function CommentMarker({ comment: c, index, isPopoverOpen, isAreaResize, onAreaR
       onPointerUp={isAreaResize ? undefined : (e) => { e.stopPropagation(); onOpen(); }}
     >
       <span className="retune-comment-marker-num">{index + 1}</span>
-      <span ref={previewRef} className="retune-comment-marker-preview">{c.text}</span>
+      <span ref={previewRef} className="retune-comment-marker-preview">
+        <CommentTextPreview comment={c} />
+      </span>
     </div>
   );
 }
@@ -4287,6 +4291,7 @@ function RetuneInner(props: RetuneConfig) {
             position={c.position}
             initialText={c.text}
             elementInfo={c.elementInfo}
+            primarySelector={c.selector}
             onTextChange={setPopoverText}
             onSubmit={(text) => {
               commentStoreRef.current.update(activeCommentId, text);
