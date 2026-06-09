@@ -26,6 +26,13 @@ const DEL = isMac ? "⌫" : "Del";
 
 const SHORTCUTS: Array<{ label: string; keys: string[] }> = [
   { label: "Toggle Retune", keys: [ALT, "D"] },
+  { label: "Toggle Retune", keys: [MOD, "⇧", "D"] },
+  { label: "Select", keys: ["V"] },
+  { label: "Draw", keys: ["D"] },
+  { label: "Edit", keys: ["E"] },
+  { label: "Comment", keys: ["C"] },
+  { label: "Copy", keys: [MOD, "C"] },
+  { label: "Reset", keys: [MOD, "R"] },
   { label: "Undo", keys: [MOD, "Z"] },
   { label: "Redo", keys: [MOD, "⇧", "Z"] },
   { label: "Select Child", keys: ["Enter"] },
@@ -192,8 +199,8 @@ export function SettingsPanel({
           <span className="retune-settings-title" style={{ padding: "8px 0" }}>Keyboard shortcuts</span>
         </div>
         <div className="retune-settings-body">
-          {SHORTCUTS.map((s) => (
-            <div className="retune-settings-row" key={s.label}>
+          {SHORTCUTS.map((s, i) => (
+            <div className="retune-settings-row" key={`${s.label}-${i}`}>
               <span className="retune-settings-label">{s.label}</span>
               <div className="retune-key-group">
                 {s.keys.map((k, i) => (

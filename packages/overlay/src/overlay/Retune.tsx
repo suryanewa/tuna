@@ -40,10 +40,12 @@ import { IconCursorClick } from "@central-icons-react/round-outlined-radius-2-st
 import { IconSquareBehindSquare6 } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconSquareBehindSquare6";
 import { IconStepBack } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconStepBack";
 import { IconCrossMedium } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconCrossMedium";
+import { IconArrowRotateClockwise } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconArrowRotateClockwise";
 import { IconBroom } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconBroom";
 import { IconCheckCircle2 } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconCheckCircle2";
 import { IconSettingsGear2 } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconSettingsGear2";
 import { IconCursor1 } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconCursor1";
+import { IconPencil } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconPencil";
 import { Tooltip } from "../ui/tooltip";
 import { TooltipPortalContext } from "../ui/tooltip-portal-context";
 import { BoxModelOverlay, type BoxModelProperty } from "../ui/box-model-overlay";
@@ -1969,7 +1971,7 @@ function RetuneInner(props: RetuneConfig) {
   const [editPanelOpen, setEditPanelOpen] = useState(false);
   const editPanelOpenRef = useRef(false);
   editPanelOpenRef.current = editPanelOpen;
-  const [mode, setMode] = useState<"edit" | "comment">("edit");
+  const [mode, setMode] = useState<"select" | "draw" | "edit" | "comment">("select");
   const [selectedElement, setSelectedElement] = useState<InspectedElement | null>(null);
   const [selectedElements, setSelectedElements] = useState<InspectedElement[]>([]);
   const [changeCount, setChangeCount] = useState(0);
@@ -2490,6 +2492,8 @@ function RetuneInner(props: RetuneConfig) {
           }
         }
 
+        if (modeRef.current === "draw") return;
+
         // In comment mode, create a comment instead of selecting for editing
         if (modeRef.current === "comment") {
           if (areaDragJustEndedRef.current) return;
@@ -2553,11 +2557,16 @@ function RetuneInner(props: RetuneConfig) {
         const newActiveSelector = levels[defaultIndex]?.selector ?? null;
         activeSelectorRef.current = newActiveSelector;
 
-        const keepEditPanelOpen = editPanelOpenRef.current && !!meta?.shiftKey;
-        if (!keepEditPanelOpen) {
-          setEditPanelOpen(false);
-          pickerRef.current?.setPropertyEditMode(false);
-          pickerRef.current?.setChromeLayout(null);
+        if (modeRef.current === "edit") {
+          setEditPanelOpen(true);
+          pickerRef.current?.setPropertyEditMode(true);
+        } else {
+          const keepEditPanelOpen = editPanelOpenRef.current && !!meta?.shiftKey;
+          if (!keepEditPanelOpen) {
+            setEditPanelOpen(false);
+            pickerRef.current?.setPropertyEditMode(false);
+            pickerRef.current?.setChromeLayout(null);
+          }
         }
 
         // Apply scoped styles if a class selector is the default (skip for parent-scoped selectors)
@@ -3305,8 +3314,10 @@ function RetuneInner(props: RetuneConfig) {
       const next = !prev;
       pickerRef.current?.setPropertyEditMode(next);
       if (next) {
+        setMode("edit");
         pickerRef.current?.setChromeLayout(null);
       } else {
+        setMode("select");
         pickerRef.current?.hideScopeHighlights();
       }
       return next;
@@ -3401,7 +3412,7 @@ function RetuneInner(props: RetuneConfig) {
   const shouldBlockForPopoverRef = useRef(shouldBlockForPopover);
   shouldBlockForPopoverRef.current = shouldBlockForPopover;
 
-  // Mode shortcuts: V for edit, C for comment (when toolbar is active)
+  // Mode shortcuts: V for select, D for draw, E for edit, C for comment (when toolbar is active)
   useEffect(() => {
     if (!active) return;
     const handleModeKey = (e: KeyboardEvent) => {
@@ -3413,10 +3424,28 @@ function RetuneInner(props: RetuneConfig) {
       if (shouldBlockForPopoverRef.current()) return;
       if (e.key === "v" || e.key === "V") {
         e.preventDefault();
+        setMode("select");
+        dismissCommentDraft();
+        setActiveCommentId(null);
+        pickerRef.current?.setCommentMode(false);
+        closeEditPanel();
+      } else if (e.key === "d" || e.key === "D") {
+        e.preventDefault();
+        setMode("draw");
+        dismissCommentDraft();
+        setActiveCommentId(null);
+        pickerRef.current?.setCommentMode(false);
+        closeEditPanel();
+      } else if (e.key === "e" || e.key === "E") {
+        e.preventDefault();
         setMode("edit");
         dismissCommentDraft();
         setActiveCommentId(null);
         pickerRef.current?.setCommentMode(false);
+        if (selectedElementRef.current) {
+          setEditPanelOpen(true);
+          pickerRef.current?.setPropertyEditMode(true);
+        }
       } else if (e.key === "c" || e.key === "C") {
         e.preventDefault();
         setMode("comment");
@@ -3424,11 +3453,12 @@ function RetuneInner(props: RetuneConfig) {
         setSelectedElements([]);
         selectedElementsRef.current = [];
         pickerRef.current?.setCommentMode(true);
+        closeEditPanel();
       }
     };
     document.addEventListener("keydown", handleModeKey, true);
     return () => document.removeEventListener("keydown", handleModeKey, true);
-  }, [active, dismissCommentDraft]);
+  }, [active, dismissCommentDraft, closeEditPanel]);
 
   // Comment mode: area drag selection (element clicks are handled by picker's onSelect)
   useEffect(() => {
@@ -3532,7 +3562,7 @@ function RetuneInner(props: RetuneConfig) {
         dismissCommentDraft();
         setActiveCommentId(null);
       } else {
-        setMode("edit");
+        setMode("select");
       }
     };
 
@@ -5331,6 +5361,22 @@ function RetuneInner(props: RetuneConfig) {
     });
   }, [syncTrackerState, refreshSelectedElement, clearForcedInlineStyles]);
 
+  // Reset shortcut: ⌘R
+  useEffect(() => {
+    if (!active) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (!(e.metaKey || e.ctrlKey) || (e.key !== "r" && e.key !== "R")) return;
+      const actualTarget = e.composedPath()[0] as HTMLElement | undefined;
+      const tag = actualTarget?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || actualTarget?.isContentEditable) return;
+      if (changeCount === 0 && commentCount === 0) return;
+      e.preventDefault();
+      handleReset();
+    }
+    document.addEventListener("keydown", handleKeyDown, true);
+    return () => document.removeEventListener("keydown", handleKeyDown, true);
+  }, [active, changeCount, commentCount, handleReset]);
+
   /** Migrate preview + tracker changes between selectors, including pseudo-state variants. */
   const migrateSelector = useCallback((fromSelector: string, toSelector: string) => {
     const preview = previewRef.current;
@@ -5457,6 +5503,22 @@ function RetuneInner(props: RetuneConfig) {
     if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
     copiedTimerRef.current = setTimeout(() => setCopied(false), 3000);
   }, [fidelity]);
+
+  // Copy shortcut: ⌘C
+  useEffect(() => {
+    if (!active) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (!(e.metaKey || e.ctrlKey) || (e.key !== "c" && e.key !== "C")) return;
+      const actualTarget = e.composedPath()[0] as HTMLElement | undefined;
+      const tag = actualTarget?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || actualTarget?.isContentEditable) return;
+      if (changeCount === 0 && commentCount === 0) return;
+      e.preventDefault();
+      handleCopy();
+    }
+    document.addEventListener("keydown", handleKeyDown, true);
+    return () => document.removeEventListener("keydown", handleKeyDown, true);
+  }, [active, changeCount, commentCount, handleCopy]);
 
   const handleSelectionCopy = useCallback(() => {
     const primary = selectedElementRef.current;
@@ -5600,18 +5662,61 @@ function RetuneInner(props: RetuneConfig) {
           {(changeCount > 0 || commentCount > 0) && (
             <div className="retune-toolbar-divider" />
           )}
-          <Tooltip content="Edit" shortcut="V" side="top">
+          <Tooltip content="Select" shortcut="V" side="top">
             <button
-              className={`retune-toolbar-btn${mode === "edit" ? " active" : ""}`}
-              onClick={() => { setMode("edit"); dismissCommentDraft(); setActiveCommentId(null); pickerRef.current?.setCommentMode(false); }}
+              className={`retune-toolbar-btn${mode === "select" ? " active" : ""}`}
+              onClick={() => {
+                setMode("select");
+                dismissCommentDraft();
+                setActiveCommentId(null);
+                pickerRef.current?.setCommentMode(false);
+                closeEditPanel();
+              }}
             >
               <IconCursor1 size={20} />
+            </button>
+          </Tooltip>
+          <Tooltip content="Draw" shortcut="D" side="top">
+            <button
+              className={`retune-toolbar-btn${mode === "draw" ? " active" : ""}`}
+              onClick={() => {
+                setMode("draw");
+                dismissCommentDraft();
+                setActiveCommentId(null);
+                pickerRef.current?.setCommentMode(false);
+                closeEditPanel();
+              }}
+            >
+              <IconPencil size={20} />
+            </button>
+          </Tooltip>
+          <Tooltip content="Edit" shortcut="E" side="top">
+            <button
+              className={`retune-toolbar-btn${mode === "edit" ? " active" : ""}`}
+              onClick={() => {
+                setMode("edit");
+                dismissCommentDraft();
+                setActiveCommentId(null);
+                pickerRef.current?.setCommentMode(false);
+                if (selectedElementRef.current) {
+                  setEditPanelOpen(true);
+                  pickerRef.current?.setPropertyEditMode(true);
+                }
+              }}
+            >
+              <IconBroom size={20} />
             </button>
           </Tooltip>
           <Tooltip content="Comment" shortcut="C" side="top">
             <button
               className={`retune-toolbar-btn${mode === "comment" ? " active" : ""}`}
-              onClick={() => { setMode("comment"); setSelectedElement(null); setSelectedElements([]); selectedElementsRef.current = []; }}
+              onClick={() => {
+                setMode("comment");
+                setSelectedElement(null);
+                setSelectedElements([]);
+                selectedElementsRef.current = [];
+                closeEditPanel();
+              }}
             >
               <IconComment size={20} />
             </button>
@@ -5632,13 +5737,13 @@ function RetuneInner(props: RetuneConfig) {
               </span>
             </button>
           </Tooltip>
-          <Tooltip content="Reset all" side="top">
+          <Tooltip content="Reset" shortcut="⌘R" side="top">
             <button
               className={`retune-toolbar-btn${changeCount === 0 && commentCount === 0 ? " disabled" : ""}`}
               onClick={handleReset}
               disabled={changeCount === 0 && commentCount === 0}
             >
-              <IconBroom size={20} />
+              <IconArrowRotateClockwise size={20} />
             </button>
           </Tooltip>
           <Tooltip content="Settings" side="top">
@@ -5674,7 +5779,7 @@ function RetuneInner(props: RetuneConfig) {
         </div>
       </div>
 
-      {active && selectedElement && mode === "edit" && !editPanelOpen && !commentDraft && !settingsOpen && !toolbarDragging && (
+      {active && selectedElement && (mode === "select" || mode === "edit") && !editPanelOpen && !commentDraft && !settingsOpen && !toolbarDragging && (
         <SelectionActionBar
           anchorElements={selectionActionBarAnchors}
           dimensionLabelWidth={selectionChromeLabelWidth}
@@ -5689,7 +5794,7 @@ function RetuneInner(props: RetuneConfig) {
       )}
 
       {/* Design panel */}
-      <AnimatedPanel visible={!!(active && selectedElement && editPanelOpen && !settingsOpen && !toolbarDragging && mode === "edit")}>
+      <AnimatedPanel visible={!!(active && selectedElement && editPanelOpen && !settingsOpen && !toolbarDragging && (mode === "select" || mode === "edit"))}>
         <div className={`retune-panel ${side}`}>
           <div className="retune-tab-bar" ref={tabBarRef}>
             <div className="retune-tab-pill" ref={tabPillRef} />

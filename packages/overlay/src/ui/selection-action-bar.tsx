@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { IconSquareBehindSquare6 } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconSquareBehindSquare6";
 import { IconCheckCircle2 } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconCheckCircle2";
-import { IconPencil } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconPencil";
+import { IconBroom } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconBroom";
 import { IconCrossMedium } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconCrossMedium";
 import { Tooltip } from "./tooltip";
 import { computeSelectionChromeLayout, type SelectionChromeLayout } from "../selector/selection-chrome-layout";
@@ -133,7 +133,7 @@ export function SelectionActionBar({
           className={`retune-selection-action-btn${editMode ? " active" : ""}`}
           onClick={onToggleEdit}
         >
-          <IconPencil size={18} />
+          <IconBroom size={18} />
         </button>
       </Tooltip>
       <div className="retune-selection-action-divider" aria-hidden />
