@@ -3526,6 +3526,11 @@ input, textarea, [contenteditable] {
   background: var(--retune-red) !important;
   animation: retune-pulse 1.5s infinite;
 }
+.retune-comment-circular-btn.dictate.transcribing {
+  background: var(--retune-blue) !important;
+  animation: retune-pulse 1.5s infinite;
+  cursor: wait;
+}
 .retune-comment-circular-btn.send {
   background: var(--retune-blue);
   color: var(--retune-always-white);

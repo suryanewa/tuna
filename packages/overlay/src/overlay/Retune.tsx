@@ -48,6 +48,7 @@ import { Tooltip } from "../ui/tooltip";
 import { TooltipPortalContext } from "../ui/tooltip-portal-context";
 import { BoxModelOverlay, type BoxModelProperty } from "../ui/box-model-overlay";
 import { SelectionActionBar } from "../ui/selection-action-bar";
+import { useCommentDictation } from "./use-comment-dictation";
 
 declare const __RETUNE_VERSION__: string;
 
@@ -1003,7 +1004,7 @@ function insertTextAtSelection(editor: HTMLElement, text: string) {
   const range = document.createRange();
   range.setStartAfter(node);
   range.collapse(true);
-  const sel = window.getSelection();
+  const sel = getEditorSelection(editor);
   sel?.removeAllRanges();
   sel?.addRange(range);
 }
@@ -1210,9 +1211,6 @@ function CommentPopover({
   const processedInsertTokenRef = useRef(0);
   const isEdit = !!onDelete;
 
-  const [isDictating, setIsDictating] = useState(false);
-  const recognitionRef = useRef<any>(null);
-
   const popoverElRef = useRef<HTMLDivElement>(null);
 
   const mentions = useMemo(() => {
@@ -1258,6 +1256,21 @@ function CommentPopover({
     if (!editor) return;
     placeCaretInDraft(editor);
   }, []);
+
+  const handleDictationDelta = useCallback((spokenText: string) => {
+    const editor = editorRef.current;
+    if (!editor || !spokenText) return;
+    insertTextAtSelection(editor, spokenText);
+    syncFromEditor();
+  }, [syncFromEditor]);
+
+  const {
+    isDictating,
+    isTranscribing,
+    usesWhisperFallback,
+    dictationError,
+    toggleDictation,
+  } = useCommentDictation(handleDictationDelta);
 
   useEffect(() => {
     const editor = editorRef.current;
@@ -1369,34 +1382,12 @@ function CommentPopover({
     }
   };
 
-  const startDictation = () => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert("Speech recognition is not supported in this browser.");
-      return;
-    }
-    if (isDictating) {
-      recognitionRef.current?.stop();
-      setIsDictating(false);
-      return;
-    }
-    const rec = new SpeechRecognition();
-    rec.continuous = false;
-    rec.interimResults = false;
-    rec.lang = "en-US";
-    rec.onstart = () => setIsDictating(true);
-    rec.onresult = (e: any) => {
-      const result = e.results[0][0].transcript;
-      const editor = editorRef.current;
-      if (!editor) return;
-      insertTextAtSelection(editor, result);
-      syncFromEditor();
-    };
-    rec.onerror = () => setIsDictating(false);
-    rec.onend = () => setIsDictating(false);
-    recognitionRef.current = rec;
-    rec.start();
-  };
+  const dictationTitle = dictationError
+    ?? (isTranscribing
+      ? "Transcribing..."
+      : usesWhisperFallback
+        ? (isDictating ? "Stop recording" : "Record comment (Whisper)")
+        : (isDictating ? "Stop dictation" : "Dictate comment"));
 
   // Position: offset from marker, clamped to viewport
   const popoverWidth = 360;
@@ -1460,9 +1451,16 @@ function CommentPopover({
       </div>
       <div className="retune-comment-pill-actions">
         <button
-          className={`retune-comment-circular-btn dictate${isDictating ? " listening" : ""}`}
-          onPointerUp={startDictation}
-          title="Dictate comment"
+          type="button"
+          className={`retune-comment-circular-btn dictate${isTranscribing ? " transcribing" : isDictating ? " listening" : ""}`}
+          onPointerUp={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleDictation();
+          }}
+          title={dictationTitle}
+          aria-pressed={isDictating}
+          aria-label={dictationTitle}
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />

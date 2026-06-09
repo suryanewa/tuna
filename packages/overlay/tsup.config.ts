@@ -16,7 +16,7 @@ export default defineConfig([
     sourcemap: true,
     clean: false,
     splitting: false,
-    external: ["react", "react-dom"],
+    external: ["react", "react-dom", "@xenova/transformers"],
     treeshake: true,
     define: {
       __RETUNE_VERSION__: JSON.stringify(pkg.version),
