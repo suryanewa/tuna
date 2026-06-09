@@ -1876,6 +1876,7 @@ function RetuneInner(props: RetuneConfig) {
           const fullSelector = selectorPath.join(" > ");
           const rect = element.getBoundingClientRect();
           const inspected = inspectElement(element);
+          const target = buildCommentTargetFromInspected(inspected);
           const draft = {
             position: { x: cursor.x, y: cursor.y },
             type: "element" as const,
@@ -1888,6 +1889,7 @@ function RetuneInner(props: RetuneConfig) {
               componentPath: [],
               classes: Array.from(element.classList),
               textContent: (element.textContent || "").slice(0, 80).trim() || null,
+              selectedElements: [target],
             },
           };
           popoverOpenRef.current = true; popoverTextRef.current = ""; popoverInitialTextRef.current = "";
@@ -2431,6 +2433,7 @@ function RetuneInner(props: RetuneConfig) {
       ancestor = ancestor.parentElement;
     }
     const rect = element.getBoundingClientRect();
+    const inspected = inspectElement(element);
     return {
       position: { x: cursor.x, y: cursor.y },
       type: "element" as const,
@@ -2443,6 +2446,7 @@ function RetuneInner(props: RetuneConfig) {
         componentPath: [],
         classes: Array.from(element.classList),
         textContent: (element.textContent || "").slice(0, 80).trim() || null,
+        selectedElements: [buildCommentTargetFromInspected(inspected)],
       },
     };
   }, [getQuickSelector, getQuickComponentName]);
