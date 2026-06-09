@@ -3548,9 +3548,15 @@ export function createPicker(
 
   /** Show selection fills/outlines without handles, badges, or edit chrome. */
   function showSelectionOutline(elements: Element[], primary?: Element) {
-    if (elements.length === 0) return;
     commentDraftActive = true;
     hideScopeHighlights();
+    if (elements.length === 0) {
+      selectedElements = [];
+      selectedElement = null;
+      selectionLabelHidden = true;
+      hideCommentDraftOutlines();
+      return;
+    }
     const seen = new Set<Element>();
     selectedElements = elements.filter((el) => {
       if (seen.has(el)) return false;

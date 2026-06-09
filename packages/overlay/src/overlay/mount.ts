@@ -5,7 +5,7 @@
  * the host page's styles, and whose styles cannot leak out.
  */
 
-import overlayStyles from './overlay-css';
+import overlayStyles from "./overlay-css";
 
 export interface MountResult {
   host: HTMLElement;

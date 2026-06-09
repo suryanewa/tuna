@@ -3394,13 +3394,13 @@ input, textarea, [contenteditable] {
 }
 .retune-comment-popover {
   background: var(--retune-surface);
-  border-radius: 9999px;
+  border-radius: 20px;
   padding: 8px 8px 8px 12px;
   min-width: 320px;
   max-width: 480px;
   box-sizing: border-box;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12), 0 0 0 1px var(--retune-border);
   font-family: InterVariable, Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
@@ -3423,7 +3423,7 @@ input, textarea, [contenteditable] {
   flex: 1;
   position: relative;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   min-width: 0;
   overflow: hidden;
 }
@@ -3443,6 +3443,7 @@ input, textarea, [contenteditable] {
 }
 .retune-comment-editor {
   flex: 1;
+  width: 100%;
   min-width: 4ch;
   background: transparent;
   border: none;
@@ -3451,10 +3452,12 @@ input, textarea, [contenteditable] {
   font-family: inherit;
   line-height: 1.4;
   outline: none;
-  padding: 0;
+  padding: 3px 0;
   box-sizing: border-box;
-  white-space: nowrap;
-  overflow-x: auto;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  overflow-x: hidden;
   overflow-y: hidden;
 }
 .retune-comment-editor:empty {
@@ -3467,8 +3470,10 @@ input, textarea, [contenteditable] {
   line-height: 1.4;
   white-space: nowrap;
 }
-.retune-comment-inline-placeholder,
-.retune-comment-user-text {
+.retune-comment-mention + .retune-comment-mention,
+.retune-comment-mention + .retune-comment-inline-placeholder,
+.retune-comment-mention + .retune-comment-user-text,
+.retune-comment-user-text + .retune-comment-mention {
   margin-left: 0.25em;
 }
 .retune-comment-inline-placeholder {
@@ -3485,7 +3490,9 @@ input, textarea, [contenteditable] {
   font-size: 13px;
   font-weight: 400;
   line-height: 1.4;
-  white-space: nowrap;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 .retune-comment-pill-actions {
   display: flex;

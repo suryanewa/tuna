@@ -4,7 +4,6 @@ const fs = require("fs");
 
 const overlayPkg = path.join(__dirname, "..", "packages", "overlay");
 const overlayDist = path.join(overlayPkg, "dist");
-const overlaySrc = path.join(overlayPkg, "src");
 
 function readRetuneVersion() {
   const candidates = [
@@ -36,7 +35,6 @@ const nextConfig = {
         ignored: [
           "**/node_modules/**",
           `!${overlayDist}/**`,
-          `!${overlaySrc}/**`,
         ],
       };
       config.snapshot = {

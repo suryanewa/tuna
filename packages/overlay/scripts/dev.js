@@ -6,8 +6,8 @@ import { dirname, join } from "path";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const pkgRoot = join(__dirname, "..");
 
-// Full clean build before watch so dist/ is complete before Next.js reads it.
-execSync("npm run build", { cwd: pkgRoot, stdio: "inherit" });
+// Bootstrap dist/ once before watch (skip rm -rf — avoids Next reading a missing bundle mid-dev).
+execSync("npm run build:css && npx tsup", { cwd: pkgRoot, stdio: "inherit" });
 
 function run(command, args, name) {
   const child = spawn(command, args, {

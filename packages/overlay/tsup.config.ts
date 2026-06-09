@@ -4,13 +4,15 @@ import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
 const pkg = require("./package.json");
+const isWatch = process.argv.includes("--watch");
+const USE_CLIENT_PREFIX = '"use client";\n';
 
 export default defineConfig([
   // React component bundle — single file (no chunk splits) for stable linked-package HMR
   {
     entry: ["src/index.ts"],
     format: ["esm"],
-    dts: true,
+    dts: !isWatch,
     sourcemap: true,
     clean: false,
     splitting: false,
@@ -19,10 +21,17 @@ export default defineConfig([
     define: {
       __RETUNE_VERSION__: JSON.stringify(pkg.version),
     },
+    ignoreWatch: isWatch ? ["**/overlay-css.ts"] : undefined,
     onSuccess: async () => {
       const file = "dist/index.js";
-      const content = readFileSync(file, "utf-8");
-      writeFileSync(file, `"use client";\n${content}`);
+      const raw = readFileSync(file, "utf-8");
+      const body = raw.startsWith(USE_CLIENT_PREFIX)
+        ? raw.slice(USE_CLIENT_PREFIX.length)
+        : raw.startsWith('"use client";')
+          ? raw.slice('"use client";'.length).replace(/^\n/, "")
+          : raw;
+      const next = `${USE_CLIENT_PREFIX}${body}`;
+      if (next !== raw) writeFileSync(file, next);
     },
   },
   // MCP server CLI binary
