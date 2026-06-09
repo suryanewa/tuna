@@ -1563,36 +1563,43 @@ function CommentPopover({
     cancelDictation,
   } = useCommentDictation(handleDictationDelta);
 
-  const snapshotDictationText = useCallback(() => {
-    const editor = editorRef.current;
-    if (!editor) return;
-    dictationSnapshotRef.current = getEditorUserTypedText(editor);
-  }, []);
-
-  const restoreDictationSnapshot = useCallback(() => {
-    const editor = editorRef.current;
-    if (!editor) return;
-    setEditorUserTypedText(editor, dictationSnapshotRef.current);
-    syncFromEditor();
-  }, [syncFromEditor]);
-
   const handleStartDictation = useCallback(() => {
-    snapshotDictationText();
+    const editor = editorRef.current;
+    dictationSnapshotRef.current = editor ? getEditorUserTypedText(editor) : "";
     toggleDictation();
-  }, [snapshotDictationText, toggleDictation]);
+  }, [toggleDictation]);
 
+  // Exit dictation mode and discard anything dictated this session,
+  // reverting the editor to its pre-dictation text.
   const handleCancelDictation = useCallback(() => {
+    const editor = editorRef.current;
     cancelDictation();
-    restoreDictationSnapshot();
-  }, [cancelDictation, restoreDictationSnapshot]);
+    if (editor) {
+      setEditorUserTypedText(editor, dictationSnapshotRef.current);
+      syncFromEditor();
+      // Re-anchor the caret to the end of the restored text. Without this the
+      // collapsed selection still points into the now-removed dictated text, so the
+      // browser leaves the caret at a stale position (renders far right).
+      editor.focus();
+      placeCaretInDraft(editor);
+    }
+  }, [cancelDictation, syncFromEditor]);
 
   const handleConfirmDictation = useCallback(() => {
     confirmDictation();
   }, [confirmDictation]);
 
-  useEffect(() => () => {
-    cancelDictation();
-  }, [cancelDictation]);
+  // Cancel dictation only when the popover truly unmounts. Calling the latest
+  // `cancelDictation` through a ref keeps this effect's deps empty, so a change
+  // in `cancelDictation` identity can't re-fire the cleanup (which would abort +
+  // restart recognition in a flickering loop).
+  const cancelDictationRef = useRef(cancelDictation);
+  cancelDictationRef.current = cancelDictation;
+  useEffect(() => {
+    return () => {
+      cancelDictationRef.current();
+    };
+  }, []);
 
   useEffect(() => {
     if (!isDictating) {

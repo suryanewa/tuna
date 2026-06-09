@@ -106,17 +106,20 @@ export function useCommentDictation(onTranscriptDelta: (text: string) => void): 
     sessionRef.current += 1;
     transcriptionGenerationRef.current += 1;
     insertedLengthRef.current = 0;
-    resetTranscript();
     setDictationError(null);
     setIsTranscribing(false);
 
-    if (listening) {
-      void SpeechRecognition.stopListening();
-    }
+    // Order matters: abort BEFORE resetTranscript. abortListening() only arms the
+    // anti-restart flag (pauseAfterDisconnect) while the manager still believes it
+    // is listening. resetTranscript() issues a RESET disconnect that flips the
+    // manager's listening flag to false AND clears pauseAfterDisconnect — doing it
+    // first would make abort a no-op and let continuous-mode auto-restart on `onend`.
+    void SpeechRecognition.abortListening();
+    resetTranscript();
     if (recordingStopRef.current) {
       void abortWhisperRecording();
     }
-  }, [abortWhisperRecording, listening, resetTranscript]);
+  }, [abortWhisperRecording, resetTranscript]);
 
   const startDictation = useCallback(async () => {
     const session = sessionRef.current + 1;
