@@ -1146,6 +1146,19 @@ function CommentPopover({
         removed = true;
       }
     }
+
+    const mentionColorMap = new Map(mentions.map((m) => [m.selector, m.color]));
+    for (const node of [...editor.querySelectorAll('[data-mention="true"]')]) {
+      const el = node as HTMLElement;
+      const selector = el.dataset.mentionSelector;
+      if (selector) {
+        const correctColor = mentionColorMap.get(selector);
+        if (correctColor && el.style.color !== correctColor) {
+          el.style.color = correctColor;
+        }
+      }
+    }
+
     if (!removed) return;
 
     normalizeCommentEditor(editor);
