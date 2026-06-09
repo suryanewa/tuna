@@ -751,6 +751,8 @@ function createInlinePlaceholderSpan(): HTMLSpanElement {
   return span;
 }
 
+const INVISIBLE_CHARS_REGEX = /[\s\u200b-\u200f\uFEFF\u00a0]/g;
+
 function findPrecedingMention(range: Range): { mention: HTMLElement; trailingTextNode?: Text; offsetInTrailing?: number } | null {
   let node: Node | null = range.startContainer;
   let offset = range.startOffset;
@@ -759,38 +761,40 @@ function findPrecedingMention(range: Range): { mention: HTMLElement; trailingTex
     const textNode = node as Text;
     const textContent = textNode.textContent ?? "";
     const textBeforeCaret = textContent.slice(0, offset);
-    if (/[^\s\u200b\u00a0]/.test(textBeforeCaret)) {
+    if (textBeforeCaret.replace(INVISIBLE_CHARS_REGEX, "") !== "") {
       return null;
     }
-    const prev = textNode.previousSibling;
-    if (prev instanceof HTMLElement && prev.dataset.mention === "true") {
-      return { mention: prev, trailingTextNode: textNode, offsetInTrailing: offset };
-    }
-    if (textContent.replace(/[\s\u200b\u00a0]/g, "") === "") {
-      let sib = textNode.previousSibling;
-      while (sib && sib.nodeType === Node.TEXT_NODE && (sib.textContent ?? "").replace(/[\s\u200b\u00a0]/g, "") === "") {
-        sib = sib.previousSibling;
+    let prev: Node | null = textNode.previousSibling;
+    while (prev) {
+      if (prev instanceof HTMLElement && prev.dataset.mention === "true") {
+        return { mention: prev, trailingTextNode: textNode, offsetInTrailing: offset };
       }
-      if (sib instanceof HTMLElement && sib.dataset.mention === "true") {
-        return { mention: sib, trailingTextNode: textNode, offsetInTrailing: offset };
+      if (prev.nodeType === Node.TEXT_NODE && (prev.textContent ?? "").replace(INVISIBLE_CHARS_REGEX, "") === "") {
+        prev = prev.previousSibling;
+        continue;
       }
+      if (prev.nodeName === "BR" || prev.nodeName === "WBR") {
+        prev = prev.previousSibling;
+        continue;
+      }
+      return null;
     }
   } else if (node.nodeType === Node.ELEMENT_NODE) {
     const parent = node as HTMLElement;
-    if (offset > 0) {
-      const prev = parent.childNodes[offset - 1];
+    let prev: Node | null = offset > 0 ? parent.childNodes[offset - 1] : null;
+    while (prev) {
       if (prev instanceof HTMLElement && prev.dataset.mention === "true") {
         return { mention: prev };
       }
-      if (prev.nodeType === Node.TEXT_NODE && (prev.textContent ?? "").replace(/[\s\u200b\u00a0]/g, "") === "") {
-        let prevSib: Node | null = prev.previousSibling;
-        while (prevSib && prevSib.nodeType === Node.TEXT_NODE && (prevSib.textContent ?? "").replace(/[\s\u200b\u00a0]/g, "") === "") {
-          prevSib = prevSib.previousSibling;
-        }
-        if (prevSib instanceof HTMLElement && prevSib.dataset.mention === "true") {
-          return { mention: prevSib };
-        }
+      if (prev.nodeType === Node.TEXT_NODE && (prev.textContent ?? "").replace(INVISIBLE_CHARS_REGEX, "") === "") {
+        prev = prev.previousSibling;
+        continue;
       }
+      if (prev.nodeName === "BR" || prev.nodeName === "WBR") {
+        prev = prev.previousSibling;
+        continue;
+      }
+      return null;
     }
   }
   return null;
@@ -804,38 +808,40 @@ function findSucceedingMention(range: Range): { mention: HTMLElement; leadingTex
     const textNode = node as Text;
     const textContent = textNode.textContent ?? "";
     const textAfterCaret = textContent.slice(offset);
-    if (/[^\s\u200b\u00a0]/.test(textAfterCaret)) {
+    if (textAfterCaret.replace(INVISIBLE_CHARS_REGEX, "") !== "") {
       return null;
     }
-    const next = textNode.nextSibling;
-    if (next instanceof HTMLElement && next.dataset.mention === "true") {
-      return { mention: next, leadingTextNode: textNode, offsetInLeading: offset };
-    }
-    if (textContent.replace(/[\s\u200b\u00a0]/g, "") === "") {
-      let sib = textNode.nextSibling;
-      while (sib && sib.nodeType === Node.TEXT_NODE && (sib.textContent ?? "").replace(/[\s\u200b\u00a0]/g, "") === "") {
-        sib = sib.nextSibling;
+    let next: Node | null = textNode.nextSibling;
+    while (next) {
+      if (next instanceof HTMLElement && next.dataset.mention === "true") {
+        return { mention: next, leadingTextNode: textNode, offsetInLeading: offset };
       }
-      if (sib instanceof HTMLElement && sib.dataset.mention === "true") {
-        return { mention: sib, leadingTextNode: textNode, offsetInLeading: offset };
+      if (next.nodeType === Node.TEXT_NODE && (next.textContent ?? "").replace(INVISIBLE_CHARS_REGEX, "") === "") {
+        next = next.nextSibling;
+        continue;
       }
+      if (next.nodeName === "BR" || next.nodeName === "WBR") {
+        next = next.nextSibling;
+        continue;
+      }
+      return null;
     }
   } else if (node.nodeType === Node.ELEMENT_NODE) {
     const parent = node as HTMLElement;
-    if (offset < parent.childNodes.length) {
-      const next = parent.childNodes[offset];
+    let next: Node | null = offset < parent.childNodes.length ? parent.childNodes[offset] : null;
+    while (next) {
       if (next instanceof HTMLElement && next.dataset.mention === "true") {
         return { mention: next };
       }
-      if (next.nodeType === Node.TEXT_NODE && (next.textContent ?? "").replace(/[\s\u200b\u00a0]/g, "") === "") {
-        let nextSib: Node | null = next.nextSibling;
-        while (nextSib && nextSib.nodeType === Node.TEXT_NODE && (nextSib.textContent ?? "").replace(/[\s\u200b\u00a0]/g, "") === "") {
-          nextSib = nextSib.nextSibling;
-        }
-        if (nextSib instanceof HTMLElement && nextSib.dataset.mention === "true") {
-          return { mention: nextSib };
-        }
+      if (next.nodeType === Node.TEXT_NODE && (next.textContent ?? "").replace(INVISIBLE_CHARS_REGEX, "") === "") {
+        next = next.nextSibling;
+        continue;
       }
+      if (next.nodeName === "BR" || next.nodeName === "WBR") {
+        next = next.nextSibling;
+        continue;
+      }
+      return null;
     }
   }
   return null;
@@ -986,26 +992,38 @@ function unwrapUserTextSpans(editor: HTMLElement) {
 /** Keep contenteditable output as inline mention spans plus text nodes. */
 function normalizeCommentEditor(editor: HTMLElement) {
   unwrapUserTextSpans(editor);
+
+  // Unwrap any elements that are not mentions or placeholders
+  const walker = document.createTreeWalker(editor, NodeFilter.SHOW_ELEMENT);
+  const toUnwrap: HTMLElement[] = [];
+  let curr = walker.nextNode();
+  while (curr) {
+    const el = curr as HTMLElement;
+    if (el.dataset.mention !== "true" && el.dataset.placeholder !== "true") {
+      toUnwrap.push(el);
+    }
+    curr = walker.nextNode();
+  }
+  for (let i = toUnwrap.length - 1; i >= 0; i--) {
+    const el = toUnwrap[i];
+    const parent = el.parentNode;
+    if (parent) {
+      if (el.nodeName === "BR" || el.nodeName === "WBR") {
+        el.remove();
+      } else {
+        while (el.firstChild) {
+          parent.insertBefore(el.firstChild, el);
+        }
+        el.remove();
+      }
+    }
+  }
+
   for (const node of [...editor.childNodes]) {
     if (node.nodeType === Node.TEXT_NODE) {
       const normalized = normalizeEditorText(node.textContent ?? "");
       if (node.textContent !== normalized) {
         node.textContent = normalized;
-      }
-      continue;
-    }
-    if (node.nodeName === "BR") {
-      node.remove();
-      continue;
-    }
-    if (node.nodeType === Node.ELEMENT_NODE) {
-      const el = node as HTMLElement;
-      const isRetuneInline =
-        el.dataset.mention === "true"
-        || el.dataset.placeholder === "true"
-        || el.classList.contains("retune-comment-user-text");
-      if (!isRetuneInline && !hasVisibleText(el.textContent)) {
-        el.remove();
       }
     }
   }
