@@ -751,189 +751,6 @@ function createInlinePlaceholderSpan(): HTMLSpanElement {
   return span;
 }
 
-const INVISIBLE_CHARS_REGEX = /[\s\u200b-\u200f\uFEFF\u00a0]/g;
-
-function findPrecedingMention(range: Range): { mention: HTMLElement; trailingTextNode?: Text; offsetInTrailing?: number } | null {
-  let node: Node | null = range.startContainer;
-  let offset = range.startOffset;
-
-  if (node.nodeType === Node.TEXT_NODE) {
-    const textNode = node as Text;
-    const textContent = textNode.textContent ?? "";
-    const textBeforeCaret = textContent.slice(0, offset);
-    if (textBeforeCaret.replace(INVISIBLE_CHARS_REGEX, "") !== "") {
-      return null;
-    }
-    let prev: Node | null = textNode.previousSibling;
-    while (prev) {
-      if (prev instanceof HTMLElement && prev.dataset.mention === "true") {
-        return { mention: prev, trailingTextNode: textNode, offsetInTrailing: offset };
-      }
-      if (prev.nodeType === Node.TEXT_NODE && (prev.textContent ?? "").replace(INVISIBLE_CHARS_REGEX, "") === "") {
-        prev = prev.previousSibling;
-        continue;
-      }
-      if (prev.nodeName === "BR" || prev.nodeName === "WBR") {
-        prev = prev.previousSibling;
-        continue;
-      }
-      return null;
-    }
-  } else if (node.nodeType === Node.ELEMENT_NODE) {
-    const parent = node as HTMLElement;
-    let prev: Node | null = offset > 0 ? parent.childNodes[offset - 1] : null;
-    while (prev) {
-      if (prev instanceof HTMLElement && prev.dataset.mention === "true") {
-        return { mention: prev };
-      }
-      if (prev.nodeType === Node.TEXT_NODE && (prev.textContent ?? "").replace(INVISIBLE_CHARS_REGEX, "") === "") {
-        prev = prev.previousSibling;
-        continue;
-      }
-      if (prev.nodeName === "BR" || prev.nodeName === "WBR") {
-        prev = prev.previousSibling;
-        continue;
-      }
-      return null;
-    }
-  }
-  return null;
-}
-
-function findSucceedingMention(range: Range): { mention: HTMLElement; leadingTextNode?: Text; offsetInLeading?: number } | null {
-  let node: Node | null = range.startContainer;
-  let offset = range.startOffset;
-
-  if (node.nodeType === Node.TEXT_NODE) {
-    const textNode = node as Text;
-    const textContent = textNode.textContent ?? "";
-    const textAfterCaret = textContent.slice(offset);
-    if (textAfterCaret.replace(INVISIBLE_CHARS_REGEX, "") !== "") {
-      return null;
-    }
-    let next: Node | null = textNode.nextSibling;
-    while (next) {
-      if (next instanceof HTMLElement && next.dataset.mention === "true") {
-        return { mention: next, leadingTextNode: textNode, offsetInLeading: offset };
-      }
-      if (next.nodeType === Node.TEXT_NODE && (next.textContent ?? "").replace(INVISIBLE_CHARS_REGEX, "") === "") {
-        next = next.nextSibling;
-        continue;
-      }
-      if (next.nodeName === "BR" || next.nodeName === "WBR") {
-        next = next.nextSibling;
-        continue;
-      }
-      return null;
-    }
-  } else if (node.nodeType === Node.ELEMENT_NODE) {
-    const parent = node as HTMLElement;
-    let next: Node | null = offset < parent.childNodes.length ? parent.childNodes[offset] : null;
-    while (next) {
-      if (next instanceof HTMLElement && next.dataset.mention === "true") {
-        return { mention: next };
-      }
-      if (next.nodeType === Node.TEXT_NODE && (next.textContent ?? "").replace(INVISIBLE_CHARS_REGEX, "") === "") {
-        next = next.nextSibling;
-        continue;
-      }
-      if (next.nodeName === "BR" || next.nodeName === "WBR") {
-        next = next.nextSibling;
-        continue;
-      }
-      return null;
-    }
-  }
-  return null;
-}
-
-function placeCaretAfterRemovedMention(editor: HTMLElement, precedingSibling: Node | null, succeedingSibling: Node | null) {
-  normalizeCommentEditor(editor);
-
-  if (editor.childNodes.length === 0) {
-    placeCaretAtEditorEnd(editor);
-    return;
-  }
-
-  if (succeedingSibling && succeedingSibling.parentNode === editor) {
-    const range = document.createRange();
-    range.setStart(succeedingSibling, 0);
-    range.collapse(true);
-    const sel = window.getSelection();
-    sel?.removeAllRanges();
-    sel?.addRange(range);
-    return;
-  }
-
-  if (precedingSibling && precedingSibling.parentNode === editor) {
-    const range = document.createRange();
-    if (precedingSibling.nodeType === Node.TEXT_NODE) {
-      range.setStart(precedingSibling, (precedingSibling.textContent ?? "").length);
-    } else {
-      range.setStartAfter(precedingSibling);
-    }
-    range.collapse(true);
-    const sel = window.getSelection();
-    sel?.removeAllRanges();
-    sel?.addRange(range);
-    return;
-  }
-
-  placeCaretAtEditorEnd(editor);
-}
-
-function deletePrecedingMention(
-  editor: HTMLElement,
-  found: { mention: HTMLElement; trailingTextNode?: Text; offsetInTrailing?: number }
-) {
-  const mention = found.mention;
-  const precedingSibling = mention.previousSibling;
-  const succeedingSibling = mention.nextSibling;
-
-  mention.remove();
-
-  if (found.trailingTextNode && found.trailingTextNode.parentNode) {
-    const textNode = found.trailingTextNode;
-    const offset = found.offsetInTrailing ?? 0;
-    const originalText = textNode.textContent ?? "";
-    textNode.textContent = originalText.slice(offset).replace(/^[\s\u200b\u00a0]+/g, "");
-  }
-
-  if (precedingSibling && precedingSibling.nodeType === Node.TEXT_NODE) {
-    const prevText = precedingSibling as Text;
-    const originalText = prevText.textContent ?? "";
-    prevText.textContent = originalText.replace(/[\s\u200b\u00a0]+$/g, "");
-  }
-
-  placeCaretAfterRemovedMention(editor, precedingSibling, succeedingSibling);
-}
-
-function deleteSucceedingMention(
-  editor: HTMLElement,
-  found: { mention: HTMLElement; leadingTextNode?: Text; offsetInLeading?: number }
-) {
-  const mention = found.mention;
-  const precedingSibling = mention.previousSibling;
-  const succeedingSibling = mention.nextSibling;
-
-  mention.remove();
-
-  if (found.leadingTextNode && found.leadingTextNode.parentNode) {
-    const textNode = found.leadingTextNode;
-    const offset = found.offsetInLeading ?? 0;
-    const originalText = textNode.textContent ?? "";
-    textNode.textContent = originalText.slice(0, offset).replace(/[\s\u200b\u00a0]+$/g, "");
-  }
-
-  if (succeedingSibling && succeedingSibling.nodeType === Node.TEXT_NODE) {
-    const nextText = succeedingSibling as Text;
-    const originalText = nextText.textContent ?? "";
-    nextText.textContent = originalText.replace(/^[\s\u200b\u00a0]+/g, "");
-  }
-
-  placeCaretAfterRemovedMention(editor, precedingSibling, succeedingSibling);
-}
-
 const CARET_ANCHOR = "\u200b";
 const INSERTION_SPACE = " \u200b";
 
@@ -992,38 +809,26 @@ function unwrapUserTextSpans(editor: HTMLElement) {
 /** Keep contenteditable output as inline mention spans plus text nodes. */
 function normalizeCommentEditor(editor: HTMLElement) {
   unwrapUserTextSpans(editor);
-
-  // Unwrap any elements that are not mentions or placeholders
-  const walker = document.createTreeWalker(editor, NodeFilter.SHOW_ELEMENT);
-  const toUnwrap: HTMLElement[] = [];
-  let curr = walker.nextNode();
-  while (curr) {
-    const el = curr as HTMLElement;
-    if (el.dataset.mention !== "true" && el.dataset.placeholder !== "true") {
-      toUnwrap.push(el);
-    }
-    curr = walker.nextNode();
-  }
-  for (let i = toUnwrap.length - 1; i >= 0; i--) {
-    const el = toUnwrap[i];
-    const parent = el.parentNode;
-    if (parent) {
-      if (el.nodeName === "BR" || el.nodeName === "WBR") {
-        el.remove();
-      } else {
-        while (el.firstChild) {
-          parent.insertBefore(el.firstChild, el);
-        }
-        el.remove();
-      }
-    }
-  }
-
   for (const node of [...editor.childNodes]) {
     if (node.nodeType === Node.TEXT_NODE) {
       const normalized = normalizeEditorText(node.textContent ?? "");
       if (node.textContent !== normalized) {
         node.textContent = normalized;
+      }
+      continue;
+    }
+    if (node.nodeName === "BR") {
+      node.remove();
+      continue;
+    }
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const el = node as HTMLElement;
+      const isRetuneInline =
+        el.dataset.mention === "true"
+        || el.dataset.placeholder === "true"
+        || el.classList.contains("retune-comment-user-text");
+      if (!isRetuneInline && !hasVisibleText(el.textContent)) {
+        el.remove();
       }
     }
   }
@@ -1221,6 +1026,155 @@ function editorHasUserText(editor: HTMLElement): boolean {
   return false;
 }
 
+function isMentionNode(node: ChildNode | null | undefined): node is HTMLElement {
+  return node instanceof HTMLElement && node.dataset.mention === "true";
+}
+
+function isWhitespaceNode(node: ChildNode | null | undefined): boolean {
+  return node?.nodeType === Node.TEXT_NODE && !hasVisibleText(node.textContent);
+}
+
+/** Walk siblings in one direction, skipping whitespace-only text nodes, to find an adjacent mention. */
+function mentionThroughWhitespace(start: ChildNode | null, direction: "back" | "forward"): HTMLElement | null {
+  let node = start;
+  while (node) {
+    if (isMentionNode(node)) return node;
+    if (isWhitespaceNode(node)) {
+      node = direction === "back" ? node.previousSibling : node.nextSibling;
+      continue;
+    }
+    return null;
+  }
+  return null;
+}
+
+/**
+ * Resolve the live Selection for an editor. `window.getSelection()` is clamped to the
+ * shadow host (anchorNode becomes <html>) after native typing/clicking inside a shadow
+ * root, so prefer the shadow root's own selection when available.
+ */
+function getEditorSelection(editor: HTMLElement): Selection | null {
+  const root = editor.getRootNode();
+  const shadowGetSelection =
+    root instanceof ShadowRoot
+      ? (root as unknown as { getSelection?: () => Selection | null }).getSelection
+      : undefined;
+  if (typeof shadowGetSelection === "function") {
+    return shadowGetSelection.call(root);
+  }
+  return window.getSelection();
+}
+
+/** Collapsed caret Range that actually lives inside the editor, piercing shadow boundaries. */
+function getEditorCaretRange(editor: HTMLElement): Range | null {
+  const root = editor.getRootNode();
+
+  // Chromium: ShadowRoot.getSelection() exposes the internal (shadow-scoped) selection.
+  if (root instanceof ShadowRoot) {
+    const shadowGetSelection = (root as unknown as { getSelection?: () => Selection | null }).getSelection;
+    if (typeof shadowGetSelection === "function") {
+      const sel = shadowGetSelection.call(root);
+      if (sel?.rangeCount) {
+        const r = sel.getRangeAt(0);
+        if (editor.contains(r.startContainer)) return r;
+      }
+    }
+  }
+
+  const winSel = window.getSelection();
+
+  // Standard: Selection.getComposedRanges() pierces shadow boundaries.
+  if (
+    winSel &&
+    root instanceof ShadowRoot &&
+    typeof (winSel as unknown as { getComposedRanges?: unknown }).getComposedRanges === "function"
+  ) {
+    try {
+      const getComposedRanges = (winSel as unknown as {
+        getComposedRanges: (opts: { shadowRoots: ShadowRoot[] }) => Array<{
+          startContainer: Node;
+          startOffset: number;
+          endContainer: Node;
+          endOffset: number;
+        }>;
+      }).getComposedRanges;
+      const cr = getComposedRanges.call(winSel, { shadowRoots: [root] })?.[0];
+      if (cr && editor.contains(cr.startContainer)) {
+        const r = document.createRange();
+        r.setStart(cr.startContainer, cr.startOffset);
+        r.setEnd(cr.endContainer, cr.endOffset);
+        return r;
+      }
+    } catch {
+      /* getComposedRanges option support varies across engines; fall through */
+    }
+  }
+
+  if (winSel?.rangeCount) {
+    const r = winSel.getRangeAt(0);
+    if (editor.contains(r.startContainer)) return r;
+  }
+  return null;
+}
+
+function getAdjacentMention(editor: HTMLElement, direction: "back" | "forward"): HTMLElement | null {
+  const range = getEditorCaretRange(editor);
+  if (!range || !range.collapsed) return null;
+
+  const { startContainer, startOffset } = range;
+  let from: ChildNode | null;
+  if (startContainer.nodeType === Node.TEXT_NODE) {
+    const text = startContainer.textContent ?? "";
+    const slice = direction === "back" ? text.slice(0, startOffset) : text.slice(startOffset);
+    if (hasVisibleText(slice)) return null;
+    from = direction === "back" ? startContainer.previousSibling : startContainer.nextSibling;
+  } else if (startContainer instanceof HTMLElement) {
+    from = direction === "back"
+      ? startContainer.childNodes[startOffset - 1] ?? null
+      : startContainer.childNodes[startOffset] ?? null;
+  } else {
+    return null;
+  }
+
+  return mentionThroughWhitespace(from, direction);
+}
+
+function removeMentionBlock(editor: HTMLElement, mention: HTMLElement) {
+  // Drop every whitespace-only separator hugging the mention on both sides.
+  while (isWhitespaceNode(mention.previousSibling)) mention.previousSibling!.remove();
+  while (isWhitespaceNode(mention.nextSibling)) mention.nextSibling!.remove();
+
+  const previous = mention.previousSibling;
+  const next = mention.nextSibling;
+  mention.remove();
+
+  // Place the caret where the mention used to be, trimming the now-adjacent edges.
+  let caretText: Text | null = null;
+  if (previous?.nodeType === Node.TEXT_NODE) {
+    previous.textContent = (previous.textContent ?? "").replace(/[\s\u200b]+$/g, "");
+    if (previous.textContent) caretText = previous as Text;
+  }
+  let nextText: Text | null = null;
+  if (next?.nodeType === Node.TEXT_NODE) {
+    next.textContent = (next.textContent ?? "").replace(/^[\s\u200b]+/g, "");
+    if (next.textContent && !caretText) nextText = next as Text;
+  }
+
+  const range = document.createRange();
+  if (caretText) {
+    range.setStart(caretText, caretText.textContent?.length ?? 0);
+  } else if (nextText) {
+    range.setStart(nextText, 0);
+  } else {
+    range.selectNodeContents(editor);
+    range.collapse(false);
+  }
+  range.collapse(true);
+  const sel = getEditorSelection(editor);
+  sel?.removeAllRanges();
+  sel?.addRange(range);
+}
+
 function CommentPopover({
   position,
   initialText,
@@ -1396,31 +1350,15 @@ function CommentPopover({
       removeInlinePlaceholder(editor);
       placeCaretAtEditorEnd(editor);
     }
-
-    if (editor && (e.key === "Backspace" || e.key === "Delete")) {
-      const sel = window.getSelection();
-      if (sel && sel.isCollapsed && sel.rangeCount > 0) {
-        const range = sel.getRangeAt(0);
-        if (e.key === "Backspace") {
-          const found = findPrecedingMention(range);
-          if (found) {
-            e.preventDefault();
-            deletePrecedingMention(editor, found);
-            syncFromEditor();
-            return;
-          }
-        } else {
-          const found = findSucceedingMention(range);
-          if (found) {
-            e.preventDefault();
-            deleteSucceedingMention(editor, found);
-            syncFromEditor();
-            return;
-          }
-        }
+    if (editor && !e.metaKey && !e.ctrlKey && (e.key === "Backspace" || e.key === "Delete")) {
+      const mention = getAdjacentMention(editor, e.key === "Backspace" ? "back" : "forward");
+      if (mention) {
+        e.preventDefault();
+        removeMentionBlock(editor, mention);
+        syncFromEditor();
+        return;
       }
     }
-
     if (e.key === "Enter") {
       e.preventDefault();
       handleSubmit();
