@@ -3683,12 +3683,26 @@ input, textarea, [contenteditable] {
   color: var(--retune-always-white);
 }
 .retune-comment-circular-btn.delete {
-  background: color-mix(in srgb, var(--retune-red) 15%, transparent);
+  width: 20px;
+  height: 20px;
+  border-radius: 0;
+  background: transparent;
   color: var(--retune-red);
+  transition: opacity 0.15s ease, color 0.15s ease;
 }
 .retune-comment-circular-btn.delete:hover {
-  background: var(--retune-red);
-  color: var(--retune-always-white);
+  background: transparent;
+  color: var(--retune-red);
+  opacity: 0.75;
+  transform: none !important;
+}
+.retune-comment-circular-btn.delete:active {
+  opacity: 0.55;
+  transform: none !important;
+}
+.retune-comment-circular-btn.delete svg {
+  width: 12px;
+  height: 12px;
 }
 
 @keyframes retune-pulse {
