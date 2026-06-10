@@ -25,108 +25,49 @@ import {
 } from "./path-utils";
 import { SELECTION_COLORS } from "../ui/selection-colors";
 import { resolveSelectionClick, type SelectionClickResult } from "./selection-click";
-
-const PICKER_OUTLINE_COLOR = "#0D99FF";
-/** Light fill on the selected element — same hue as the outline, much lower opacity. */
-const SELECTION_FILL_ALPHA = "0.08";
+import {
+  DRAW_COLOR_ATTR,
+  DRAW_DRAG_THRESHOLD,
+  DRAW_FILL_ALPHA,
+  DRAW_MIN_POINTS,
+  HOVER_TITLE_OFFSET_X,
+  HOVER_TITLE_OFFSET_Y,
+  MARQUEE_DRAG_THRESHOLD,
+  MARQUEE_MIN_SIZE,
+  MARQUEE_SAMPLE_STEP,
+  MULTI_SELECT_POOL_SIZE,
+  PICKER_OUTLINE_COLOR,
+  SELECTION_CLICK_PAD,
+  SELECTION_FILL_ALPHA,
+} from "./picker-constants";
+import {
+  computeCanvasDropIndex,
+  formatSelectionLabel,
+  isEffectiveNoOp,
+  isPointInsideSelectionBounds,
+} from "./picker-geometry";
+import {
+  snapResize,
+  SNAP_THRESHOLD,
+  type SnapCache,
+  type SnapGuide,
+} from "./picker-snap";
+import {
+  formatSpacingDistance,
+  SPACING_LABEL_STYLE,
+  SPACING_LINE_STYLE,
+} from "./picker-spacing";
+import type { PickerCallbacks, ResizeResult, SelectEventMeta } from "./picker-types";
 
 export { SELECTION_COLORS };
-
-const MULTI_SELECT_POOL_SIZE = 20;
-
-/** Padding around selected element bounds for click-outside deselect. */
-export const SELECTION_CLICK_PAD = 8;
-
-const MARQUEE_DRAG_THRESHOLD = 5;
-const MARQUEE_MIN_SIZE = 10;
-const MARQUEE_SAMPLE_STEP = 16;
-const DRAW_DRAG_THRESHOLD = 3;
-const DRAW_MIN_POINTS = 3;
-const DRAW_FILL_ALPHA = "0.08";
-const DRAW_COLOR_ATTR = "data-retune-draw-color";
-const HOVER_TITLE_OFFSET_X = 12;
-const HOVER_TITLE_OFFSET_Y = 16;
-
-/** True when (x, y) lies inside any selected element's bounds (plus pad). */
-export function isPointInsideSelectionBounds(
-  x: number,
-  y: number,
-  elements: Element[],
-  pad = SELECTION_CLICK_PAD,
-): boolean {
-  for (const el of elements) {
-    const r = el.getBoundingClientRect();
-    if (x >= r.left - pad && x <= r.right + pad && y >= r.top - pad && y <= r.bottom + pad) {
-      return true;
-    }
-  }
-  return false;
-}
-
-export interface SelectEventMeta {
-  shiftKey: boolean;
-  altKey?: boolean;
-  selectedElements: Element[];
-}
-
-export interface PickerCallbacks {
-  onHover: (element: Element, rect: DOMRect) => void;
-  onSelect: (element: Element, meta?: SelectEventMeta) => void;
-  /** Called when selection is cleared without deactivating the overlay. */
-  onDeselect?: () => void;
-  onCancel: () => void;
-  /** If provided, called before processing a click. Return true to block the click entirely. */
-  shouldBlockClick?: () => boolean;
-  onDoubleClick?: (element: Element) => void;
-  onResize?: (element: Element, property: "width" | "height", value: string) => void;
-  /** Called during resize drag for live preview (updates stylesheet without recording changes) */
-  onResizePreview?: (element: Element, property: "width" | "height", value: string) => void;
-  /** Called when an absolute/fixed element is repositioned via drag */
-  onReposition?: (element: Element, property: "top" | "left" | "right" | "bottom", value: string) => void;
-  /** Called during reposition drag for live preview */
-  onRepositionPreview?: (element: Element, property: "top" | "left" | "right" | "bottom", value: string) => void;
-  /** Called when a flow element is reordered by drag among its siblings */
-  onCanvasReorder?: (element: Element, fromIndex: number, toIndex: number) => void;
-  /** Called when a flow element is reparented by dragging to a different container */
-  onCanvasReparent?: (element: Element, newParent: Element, insertIndex: number) => void;
-  /** Called when draw-mode paths are created, cleared, or replaced. */
-  onDrawPathsChange?: (paths: SVGPathElement[]) => void;
-  /** Called when select-mode drawing selection changes. */
-  onDrawSelectionChange?: (paths: SVGPathElement[]) => void;
-}
-
-/** Compute drop index using filtered rects (dragged element excluded).
- *  Returns index in the FULL siblings array. */
-export function computeCanvasDropIndex(
-  cursorX: number, cursorY: number,
-  otherRects: DOMRect[], otherIndices: number[],
-  horizontal: boolean, dragIndex: number
-): number {
-  const cursor = horizontal ? cursorX : cursorY;
-  let insertBefore = otherRects.length;
-
-  for (let i = 0; i < otherRects.length; i++) {
-    const mid = horizontal
-      ? otherRects[i].left + otherRects[i].width / 2
-      : otherRects[i].top + otherRects[i].height / 2;
-    if (cursor < mid) { insertBefore = i; break; }
-  }
-
-  if (insertBefore >= otherIndices.length) {
-    return otherIndices.length > 0 ? otherIndices[otherIndices.length - 1] + 1 : dragIndex;
-  }
-  return otherIndices[insertBefore];
-}
-
-/** Check if drop index is effectively the same position. */
-export function isEffectiveNoOp(dragIndex: number, dropIndex: number): boolean {
-  return dragIndex === dropIndex;
-}
-
-/** Format selection label as dimensions only. */
-export function formatSelectionLabel(width: number, height: number): string {
-  return `${Math.round(width)} × ${Math.round(height)}`;
-}
+export { SELECTION_CLICK_PAD } from "./picker-constants";
+export {
+  computeCanvasDropIndex,
+  formatSelectionLabel,
+  isEffectiveNoOp,
+  isPointInsideSelectionBounds,
+} from "./picker-geometry";
+export type { PickerCallbacks, SelectEventMeta } from "./picker-types";
 
 export function createPicker(
   shadowRoot: ShadowRoot,
@@ -237,11 +178,11 @@ export function createPicker(
     siblingOutlinePool.push(outline);
   }
 
-  function showSiblingOutlines(parent: Element, selected: Element) {
-    const children = Array.from(parent.children).filter(c => {
-      if (c === selected) return false;
-      if (c.hasAttribute("data-retune-host")) return false;
-      const cs = getComputedStyle(c);
+  function showOutlinePool(parent: Element, includeChild: (child: Element) => boolean) {
+    const children = Array.from(parent.children).filter((child) => {
+      if (!includeChild(child)) return false;
+      if (child.hasAttribute("data-retune-host")) return false;
+      const cs = getComputedStyle(child);
       if (cs.display === "none" || cs.visibility === "hidden") return false;
       return true;
     });
@@ -258,35 +199,17 @@ export function createPicker(
       outline.style.height = `${r.height}px`;
       outline.style.display = "block";
     }
-    // Hide unused
     for (let i = poolIdx; i < siblingOutlinePool.length; i++) {
       siblingOutlinePool[i].style.display = "none";
     }
   }
 
-  function showChildOutlines(parent: Element) {
-    const children = Array.from(parent.children).filter(c => {
-      if (c.hasAttribute("data-retune-host")) return false;
-      const cs = getComputedStyle(c);
-      if (cs.display === "none" || cs.visibility === "hidden") return false;
-      return true;
-    });
+  function showSiblingOutlines(parent: Element, selected: Element) {
+    showOutlinePool(parent, (child) => child !== selected);
+  }
 
-    let poolIdx = 0;
-    for (const child of children) {
-      if (poolIdx >= siblingOutlinePool.length) break;
-      const r = child.getBoundingClientRect();
-      if (r.width === 0 || r.height === 0) continue;
-      const outline = siblingOutlinePool[poolIdx++];
-      outline.style.top = `${r.top}px`;
-      outline.style.left = `${r.left}px`;
-      outline.style.width = `${r.width}px`;
-      outline.style.height = `${r.height}px`;
-      outline.style.display = "block";
-    }
-    for (let i = poolIdx; i < siblingOutlinePool.length; i++) {
-      siblingOutlinePool[i].style.display = "none";
-    }
+  function showChildOutlines(parent: Element) {
+    showOutlinePool(parent, () => true);
   }
 
   function hideSiblingOutlines() {
@@ -601,7 +524,6 @@ export function createPicker(
   }
 
   // ── Snap guides ──
-  const SNAP_THRESHOLD = 5;
   const snapGuidePool: Array<{ line: HTMLDivElement; label: HTMLDivElement }> = [];
   for (let i = 0; i < 16; i++) {
     const line = document.createElement("div");
@@ -613,17 +535,7 @@ export function createPicker(
     snapGuidePool.push({ line, label });
   }
 
-  let snapCache: {
-    siblingWidths: number[];
-    siblingHeights: number[];
-    siblingRects: DOMRect[];
-    parentRect: DOMRect | null;
-    parentWidth: number;
-    parentHeight: number;
-    parentPadding: { top: number; right: number; bottom: number; left: number };
-    canFillWidth: boolean;
-    canFillHeight: boolean;
-  } | null = null;
+  let snapCache: SnapCache | null = null;
 
   function buildSnapCache(el: Element) {
     const parent = el.parentElement;
@@ -658,66 +570,6 @@ export function createPicker(
     const canFillHeight = canFill("height", sizingCtx);
 
     snapCache = { siblingWidths, siblingHeights, siblingRects, parentRect, parentWidth: Math.round(parentWidth), parentHeight: Math.round(parentHeight), parentPadding, canFillWidth, canFillHeight };
-  }
-
-  function findSnap(value: number, candidates: number[]): number | null {
-    // Binary search for nearest candidate within threshold
-    let lo = 0, hi = candidates.length - 1;
-    let best: number | null = null;
-    let bestDist = SNAP_THRESHOLD + 1;
-    while (lo <= hi) {
-      const mid = (lo + hi) >> 1;
-      const dist = Math.abs(candidates[mid] - value);
-      if (dist < bestDist) { bestDist = dist; best = candidates[mid]; }
-      if (candidates[mid] < value) lo = mid + 1;
-      else hi = mid - 1;
-    }
-    return bestDist <= SNAP_THRESHOLD ? best : null;
-  }
-
-  type SnapGuide = { axis: "x" | "y"; value: number; ref: number; refRect?: DOMRect; fill?: boolean };
-
-  function snapResize(w: number, h: number, axes: { dx: number; dy: number }): { width: number; height: number; guides: SnapGuide[]; fillWidth: boolean; fillHeight: boolean } {
-    if (!snapCache) return { width: w, height: h, guides: [], fillWidth: false, fillHeight: false };
-    const guides: SnapGuide[] = [];
-    let fillWidth = false;
-    let fillHeight = false;
-
-    if (axes.dx !== 0) {
-      // Check parent content width first (fill takes priority, only if context supports it)
-      const parentSnapW = snapCache.canFillWidth && Math.abs(w - snapCache.parentWidth) <= SNAP_THRESHOLD ? snapCache.parentWidth : null;
-      if (parentSnapW !== null) {
-        w = parentSnapW;
-        fillWidth = true;
-        guides.push({ axis: "x", value: parentSnapW, ref: parentSnapW, fill: true });
-      } else {
-        // Check sibling widths
-        const snapW = findSnap(w, snapCache.siblingWidths);
-        if (snapW !== null) {
-          w = snapW;
-          const matchRect = snapCache.siblingRects.find(r => Math.round(r.width) === snapW);
-          guides.push({ axis: "x", value: snapW, ref: snapW, refRect: matchRect });
-        }
-      }
-    }
-
-    if (axes.dy !== 0) {
-      const parentSnapH = snapCache.canFillHeight && Math.abs(h - snapCache.parentHeight) <= SNAP_THRESHOLD ? snapCache.parentHeight : null;
-      if (parentSnapH !== null) {
-        h = parentSnapH;
-        fillHeight = true;
-        guides.push({ axis: "y", value: parentSnapH, ref: parentSnapH, fill: true });
-      } else {
-        const snapH = findSnap(h, snapCache.siblingHeights);
-        if (snapH !== null) {
-          h = snapH;
-          const matchRect = snapCache.siblingRects.find(r => Math.round(r.height) === snapH);
-          guides.push({ axis: "y", value: snapH, ref: snapH, refRect: matchRect });
-        }
-      }
-    }
-
-    return { width: w, height: h, guides, fillWidth, fillHeight };
   }
 
   const XMARK_SIZE = 4; // half-size of the X mark (8px total)
@@ -1088,8 +940,6 @@ export function createPicker(
   }
 
   // ── Resize drag state ──
-  let resizeFillWidth = false;
-  let resizeFillHeight = false;
   let resizeDrag: {
     handle: HandlePos;
     startX: number;
@@ -1123,8 +973,8 @@ export function createPicker(
     document.addEventListener("pointerup", handleResizePointerUp, true);
   }
 
-  function computeResize(e: PointerEvent): { width: number; height: number } {
-    if (!resizeDrag) return { width: 0, height: 0 };
+  function computeResize(e: PointerEvent): ResizeResult {
+    if (!resizeDrag) return { width: 0, height: 0, locked: false };
     const axes = HANDLE_AXES[resizeDrag.handle];
     const dx = e.clientX - resizeDrag.startX;
     const dy = e.clientY - resizeDrag.startY;
@@ -1169,9 +1019,7 @@ export function createPicker(
 
     // Show/hide aspect ratio lock indicator
     aspectLine.style.display = raw.locked ? "block" : "none";
-    const { width, height, guides, fillWidth, fillHeight } = snapResize(raw.width, raw.height, axes);
-    resizeFillWidth = fillWidth;
-    resizeFillHeight = fillHeight;
+    const { width, height, guides, fillWidth, fillHeight } = snapResize(snapCache, raw.width, raw.height, axes);
     const el = selectedElement as HTMLElement;
 
     // Update LivePreviewEngine stylesheet for all matching instances
@@ -1213,7 +1061,7 @@ export function createPicker(
 
     const raw = computeResize(e);
     const axes = HANDLE_AXES[resizeDrag.handle];
-    const { width, height, fillWidth, fillHeight } = snapResize(raw.width, raw.height, axes);
+    const { width, height, fillWidth, fillHeight } = snapResize(snapCache, raw.width, raw.height, axes);
     const el = selectedElement as HTMLElement;
 
     hideSnapGuides();
@@ -1234,8 +1082,6 @@ export function createPicker(
     }
 
     resizeDrag = null;
-    resizeFillWidth = false;
-    resizeFillHeight = false;
     document.removeEventListener("pointermove", handleResizePointerMove, true);
     document.removeEventListener("pointerup", handleResizePointerUp, true);
 
@@ -1570,16 +1416,6 @@ export function createPicker(
 
     return { parent, siblings, horizontal, index };
   }
-
-
-
-  /** Check if cursor is inside the parent's bounding rect (with buffer to prevent flickering at edges) */
-  function isCursorInParent(x: number, y: number, parent: Element): boolean {
-    const r = parent.getBoundingClientRect();
-    const BUFFER = 10; // px outside parent before switching to reparent mode
-    return x >= r.left - BUFFER && x <= r.right + BUFFER && y >= r.top - BUFFER && y <= r.bottom + BUFFER;
-  }
-
   /** Find a valid reparent container at cursor position (walks up from elementFromPoint) */
   function findReparentTarget(x: number, y: number, draggedEl: Element, originalParent: Element): {
     target: Element; insertIndex: number; horizontal: boolean;
@@ -1750,68 +1586,6 @@ export function createPicker(
     }
   }
 
-  function createReorderGhost(el: Element): HTMLDivElement {
-    const rect = el.getBoundingClientRect();
-    const ghost = document.createElement("div");
-    ghost.style.cssText = `
-      position:fixed;pointer-events:none;z-index:2147483647;
-      width:${rect.width}px;height:${rect.height}px;
-      left:${rect.left}px;top:${rect.top}px;
-      opacity:0.7;border:2px solid #0D99FF;border-radius:4px;
-      background:rgba(13,153,255,0.06);transition:none;
-    `;
-    shadowRoot.appendChild(ghost);
-    return ghost;
-  }
-
-  // positionReorderIndicator removed — sibling shifting provides visual feedback
-  function _unused_positionReorderIndicator(
-    indicator: HTMLDivElement, dropIndex: number,
-    siblingRects: DOMRect[], horizontal: boolean, dragIndex: number
-  ) {
-    if (siblingRects.length === 0) return;
-
-    // Adjust for the visual position (dragged element still takes space)
-    const visualDrop = dropIndex > dragIndex ? dropIndex + 1 : dropIndex;
-
-    if (horizontal) {
-      // Vertical line between horizontal siblings
-      let x: number;
-      if (visualDrop <= 0) {
-        x = siblingRects[0].left - 1;
-      } else if (visualDrop >= siblingRects.length) {
-        x = siblingRects[siblingRects.length - 1].right;
-      } else {
-        x = (siblingRects[visualDrop - 1].right + siblingRects[visualDrop].left) / 2;
-      }
-      // Height spans the tallest sibling
-      const top = Math.min(...siblingRects.map(r => r.top));
-      const bottom = Math.max(...siblingRects.map(r => r.bottom));
-      indicator.style.left = `${x - 1}px`;
-      indicator.style.top = `${top}px`;
-      indicator.style.width = "2px";
-      indicator.style.height = `${bottom - top}px`;
-    } else {
-      // Horizontal line between vertical siblings
-      let y: number;
-      if (visualDrop <= 0) {
-        y = siblingRects[0].top - 1;
-      } else if (visualDrop >= siblingRects.length) {
-        y = siblingRects[siblingRects.length - 1].bottom;
-      } else {
-        y = (siblingRects[visualDrop - 1].bottom + siblingRects[visualDrop].top) / 2;
-      }
-      // Width spans the widest sibling
-      const left = Math.min(...siblingRects.map(r => r.left));
-      const right = Math.max(...siblingRects.map(r => r.right));
-      indicator.style.left = `${left}px`;
-      indicator.style.top = `${y - 1}px`;
-      indicator.style.width = `${right - left}px`;
-      indicator.style.height = "2px";
-    }
-    indicator.style.display = "block";
-  }
-
   function handleReorderPointerMove(e: PointerEvent) {
     if (!reorderDrag || !selectedElement) return;
     e.preventDefault();
@@ -1829,7 +1603,7 @@ export function createPicker(
       if (selectedElement !== reorderDrag.element) {
         selectedElement = reorderDrag.element;
         selectedElements = [reorderDrag.element];
-        notifySelect(reorderDrag.element, false);
+        notifySelect(reorderDrag.element, { shiftKey: false });
       }
 
       // Hide selection chrome
@@ -2052,7 +1826,7 @@ export function createPicker(
           showSelection();
           hideHighlight();
           hoveredElement = null;
-          notifySelect(hit, false);
+          notifySelect(hit, { shiftKey: false });
         } else {
           selection.style.display = "";
           showSelection();
@@ -2096,9 +1870,11 @@ export function createPicker(
     modifiers: { shiftKey: boolean; altKey: boolean },
     fallbackElement?: Element,
   ) {
-    if (!active || commentMode || drawMode || suspended || commentDraftActive) return;
-
     const { shiftKey, altKey } = modifiers;
+    const modifiedDraftClick = commentDraftActive && (shiftKey || altKey);
+    if (!active || drawMode || suspended || (commentDraftActive && !commentMode && !modifiedDraftClick)) {
+      return;
+    }
 
     if (!commentMode) {
       const drawHit = hitTestDrawPath(x, y);
@@ -2142,6 +1918,19 @@ export function createPicker(
     }
 
     if (commentDraftActive) {
+      if (commentMode || modifiedDraftClick) {
+        applySelectionClickResult(
+          resolveSelectionClick(
+            el,
+            selectedElements,
+            selectedElement,
+            { shiftKey, altKey },
+            MULTI_SELECT_POOL_SIZE + 1,
+          ),
+          el,
+        );
+        return;
+      }
       if (!shiftKey && !altKey && !commentMode) {
         showSelection();
         return;
@@ -2149,15 +1938,26 @@ export function createPicker(
       hideHighlight();
       hoveredElement = null;
       blurPageFocus();
-      callbacks.onSelect(el, { shiftKey, altKey, selectedElements: [el] });
+      callbacks.onSelect(el, {
+        shiftKey,
+        altKey,
+        selectedElements: [el],
+        selectionColors: [selectionColorForElement(el)],
+      });
       return;
     }
 
     if (commentMode) {
-      hideHighlight();
-      hoveredElement = null;
-      blurPageFocus();
-      callbacks.onSelect(el, { shiftKey, altKey, selectedElements: [el] });
+      applySelectionClickResult(
+        resolveSelectionClick(
+          el,
+          selectedElements,
+          selectedElement,
+          { shiftKey, altKey },
+          MULTI_SELECT_POOL_SIZE + 1,
+        ),
+        el,
+      );
       return;
     }
 
@@ -2213,6 +2013,7 @@ export function createPicker(
       element: selectedElement,
       parent: context.parent,
       siblings: context.siblings,
+      allRects: [],
       otherRects: [],
       otherIndices: [],
       dragIndex: context.index,
@@ -2267,22 +2068,13 @@ export function createPicker(
   spacingContainer.style.cssText = "position:fixed;top:0;left:0;width:0;height:0;pointer-events:none;z-index:2147483646;";
   shadowRoot.appendChild(spacingContainer);
 
-  const SPACING_LINE = "position:fixed;pointer-events:none;display:none;";
-  const SPACING_LABEL = `
-    position:fixed;pointer-events:none;display:none;
-    font-size:10px;font-weight:500;
-    font-family:InterVariable,Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
-    color:#fff;white-space:nowrap;
-    background:var(--retune-red);padding:1px 4px;border-radius:2px;
-  `;
-
   function createMeasure() {
     const line = document.createElement("div");
-    line.style.cssText = SPACING_LINE;
+    line.style.cssText = SPACING_LINE_STYLE;
     const connector = document.createElement("div");
-    connector.style.cssText = SPACING_LINE;
+    connector.style.cssText = SPACING_LINE_STYLE;
     const lbl = document.createElement("div");
-    lbl.style.cssText = SPACING_LABEL;
+    lbl.style.cssText = SPACING_LABEL_STYLE;
     spacingContainer.appendChild(line);
     spacingContainer.appendChild(connector);
     spacingContainer.appendChild(lbl);
@@ -2323,9 +2115,9 @@ export function createPicker(
   }
 
   function positionLabel(el: HTMLElement, value: number, x: number, y: number, size: number, horizontal: boolean) {
-    el.style.cssText = SPACING_LABEL;
+    el.style.cssText = SPACING_LABEL_STYLE;
     el.style.display = "block";
-    el.textContent = `${value}`;
+    el.textContent = formatSpacingDistance(value);
     if (horizontal) {
       el.style.top = `${y - 4}px`;
       el.style.left = `${x + size / 2}px`;
@@ -2501,6 +2293,10 @@ export function createPicker(
     return color;
   }
 
+  function getSelectionColors(): string[] {
+    return selectedElements.map((el) => selectionColorForElement(el));
+  }
+
   function nextDrawingColor(): string {
     return nextSelectionColor();
   }
@@ -2617,10 +2413,13 @@ export function createPicker(
     }
   }
 
-  function notifySelect(element: Element, shiftKey: boolean) {
+  function notifySelect(element: Element, modifiers: { shiftKey: boolean; altKey?: boolean }) {
+    const selectionColors = selectedElements.map((el) => selectionColorForElement(el));
     callbacks.onSelect(element, {
-      shiftKey,
+      shiftKey: modifiers.shiftKey,
+      altKey: modifiers.altKey,
       selectedElements: [...selectedElements],
+      selectionColors,
     });
   }
 
@@ -3597,7 +3396,7 @@ export function createPicker(
       hideHighlight();
       hoveredElement = null;
       blurPageFocus();
-      notifySelect(selectedElement!, false);
+      notifySelect(selectedElement!, { shiftKey: false });
       return;
     }
 
@@ -3647,7 +3446,7 @@ export function createPicker(
     hideHighlight();
     hoveredElement = null;
     blurPageFocus();
-    notifySelect(selectedElement!, mode === "add");
+    notifySelect(selectedElement!, { shiftKey: mode === "add" });
   }
 
   function endMarqueeDrag(e: PointerEvent) {
@@ -3735,7 +3534,8 @@ export function createPicker(
     }
 
     // Block page element clicks if popover has unsaved changes (after overlay checks)
-    if (callbacks.shouldBlockClick?.()) {
+    const blockedByPopover = callbacks.shouldBlockClick?.() ?? false;
+    if (blockedByPopover) {
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
@@ -3795,11 +3595,14 @@ export function createPicker(
     hoveredElement = null;
     blurPageFocus();
 
-    const notifyShiftKey = result.kind === "add"
-      || (result.kind === "toggle-off" && result.shiftKey);
+    const notifyModifiers = {
+      shiftKey: result.kind === "add"
+        || (result.kind === "toggle-off" && result.shiftKey),
+      altKey: result.kind === "toggle-off" && result.altKey,
+    };
 
     if (selectedElement) {
-      notifySelect(selectedElement, notifyShiftKey);
+      notifySelect(selectedElement, notifyModifiers);
     }
   }
 
@@ -4042,7 +3845,7 @@ export function createPicker(
     observeSelectedElements();
     showSelection();
     blurPageFocus();
-    notifySelect(selectedElement!, false);
+    notifySelect(selectedElement!, { shiftKey: false });
   }
 
   function destroy() {
@@ -4073,7 +3876,7 @@ export function createPicker(
     showSelection();
     hideHighlight();
     hoveredElement = null;
-    notifySelect(el, false);
+    notifySelect(el, { shiftKey: false });
   }
 
   /** Programmatically show hover highlight on an element */
@@ -4263,6 +4066,7 @@ export function createPicker(
     deselect,
     selectElement,
     selectDrawPaths,
+    getSelectionColors,
     highlightElement,
     refreshSelection: showSelection,
     updatePinLines,

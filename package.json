@@ -21,7 +21,7 @@
     "retune": "^0.3.0"
   },
   "devDependencies": {
-    "concurrently": "^9.2.1",
+    "concurrently": "^10.0.3",
     "vitest": "^4.0.18"
   }
 }

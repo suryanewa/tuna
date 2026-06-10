@@ -18,6 +18,7 @@ interface AppliedRule {
   selector: string;
   property: string;
   value: string;
+  index: number;
 }
 
 interface ForcedStyles {

@@ -123,7 +123,7 @@ export function ColorPicker({
     : null;
   const hasVariables = allVariables.length > 0;
 
-  const [activeTab, setActiveTab] = useState(initialTab || "custom");
+  const [activeTab, setActiveTab] = useState<"custom" | "tokens">(initialTab || "custom");
   const [tokenSearch, setTokenSearch] = useState("");
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const tokenListRef = useRef<HTMLDivElement>(null);
@@ -643,7 +643,9 @@ export function ColorPicker({
           { value: "tokens", label: categoryLabel },
         ]}
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={(tab) => {
+          if (tab === "custom" || tab === "tokens") setActiveTab(tab);
+        }}
         onClose={onClose}
         anchorRect={anchorRect}
         search={activeTab === "tokens" ? { value: tokenSearch, onChange: setTokenSearch, placeholder: "Search", onKeyDown: handleTokenSearchKeyDown } : undefined}

@@ -27,7 +27,7 @@ import { formatChanges, formatElementInfo, collapseShorthands, type Fidelity } f
 import { scanDesignTokens } from "../inspector/tokens";
 import { BridgeClient } from "../bridge/ws-client";
 import { formatToggleHotkeyShortcut, inspectElement, matchesToggleHotkey } from "../ui/helpers";
-import { getSelector, getSelectorCandidates, getAncestorScopes, getSharedSelector, scoreNamePattern, isHashedClass, setReactProp, type SelectorCandidate, type AncestorScope } from "../selector/identifier";
+import { getSelector, getSelectorCandidates, getAncestorScopes, getSharedSelector, isHashedClass, setReactProp, type SelectorCandidate } from "../selector/identifier";
 import { detectChildrenType } from "../drag/detect";
 import { getPseudoStateStyles, getStyleSources, getScopedStyles, type ForcedState, type StyleSource } from "../inspector/styles";
 import { setManifestTokens } from "../variables";
@@ -60,9 +60,12 @@ import {
   syncElementTargetsInDraft,
   type CommentDraft,
 } from "./comment/comment-draft";
-import { CommentTextPreview, getCommentTextParts, renderCommentTextParts } from "./comment/CommentTextPreview";
 import { CommentPopover as NewCommentPopover } from "./comment/CommentPopover";
 import { useCommentMode } from "./comment/use-comment-mode";
+import { AnimatedPanel } from "./AnimatedPanel";
+import { RetuneLogo } from "./RetuneLogo";
+import { AreaOutline, CommentMarker, IconComment } from "./comment/CommentMarkers";
+import { buildScopeLevels, type ScopeLevel } from "./scope-levels";
 
 declare const __RETUNE_VERSION__: string;
 
@@ -103,232 +106,40 @@ function getOrCreateBridge(port: number): BridgeClient {
   return bridge;
 }
 
-const PANEL_ANIMATION_MS = 150;
+function isEditableKeyboardTarget(e: KeyboardEvent): boolean {
+  const actualTarget = e.composedPath()[0] as HTMLElement | undefined;
+  const tag = actualTarget?.tagName;
+  return tag === "INPUT" || tag === "TEXTAREA" || actualTarget?.isContentEditable === true;
+}
 
-function AnimatedPanel({ visible, children }: { visible: boolean; children: React.ReactNode }) {
-  const [state, setState] = useState<"hidden" | "entering" | "visible" | "exiting">("hidden");
-  const prevVisibleRef = useRef(false);
-  const childrenRef = useRef<React.ReactNode>(children);
-
-  // Keep a snapshot of children while visible so exit animation shows content
-  if (visible) childrenRef.current = children;
-
-  if (visible && !prevVisibleRef.current) {
-    prevVisibleRef.current = true;
-    setState("entering");
-  } else if (!visible && prevVisibleRef.current) {
-    prevVisibleRef.current = false;
-    setState("exiting");
-  }
-
-  useEffect(() => {
-    if (state === "entering") {
-      const timer = setTimeout(() => setState("visible"), PANEL_ANIMATION_MS);
-      return () => clearTimeout(timer);
-    }
-    if (state === "exiting") {
-      const timer = setTimeout(() => setState("hidden"), PANEL_ANIMATION_MS);
-      return () => clearTimeout(timer);
-    }
-  }, [state]);
-
-  if (state === "hidden") return null;
-
-  const animClass = state === "entering" ? "entering" : state === "exiting" ? "exiting" : "";
-  return <div className={`retune-panel-anim ${animClass}`}>{childrenRef.current}</div>;
+function trackInspectedElement(
+  tracker: ChangeTracker,
+  element: InspectedElement,
+  selector = element.selector,
+  reactProps: Record<string, unknown> | null = element.reactProps ?? null,
+) {
+  tracker.track(
+    selector,
+    element.tagName,
+    element.textContent,
+    element.classes,
+    element.reactComponents,
+    element.computedStyles,
+    element.sourceFile,
+    element.stylingApproach,
+    element.inlineStyles,
+    element.elementId,
+    element.accessibleName,
+    element.parentContext,
+    element.childSummary,
+    element.domPath,
+    element.nearbySiblings,
+    element.position,
+    reactProps,
+  );
 }
 
 const MIN_VIEWPORT_WIDTH = 768;
-
-/** A pre-computed scope level in the target rail. */
-interface ScopeLevel {
-  label: string;           // Display name: class name or "This instance"
-  selector: string | null; // Compound CSS selector, null = element-specific path
-  count: number;           // querySelectorAll match count
-  kind?: "class" | "ancestor" | "element"; // default "class" for backward compat
-}
-
-
-/** Abbreviation lookup for common CSS class name stems */
-const CLASS_ABBREVIATIONS: Record<string, string> = {
-  btn: "Button", nav: "Navigation", col: "Column", img: "Image",
-  sm: "Small", md: "Medium", lg: "Large", xs: "Extra Small", xl: "Extra Large",
-  hdr: "Header", ftr: "Footer", cta: "Call to Action", desc: "Description",
-  msg: "Message", info: "Information", bg: "Background", txt: "Text",
-  pg: "Page", sec: "Section", el: "Element", opt: "Option",
-  val: "Value", err: "Error", warn: "Warning", num: "Number",
-  prev: "Previous", curr: "Current", temp: "Temporary",
-};
-
-/** Humanize a single class name segment: split on hyphens, title-case, expand abbreviations */
-function humanizeSegment(segment: string): string {
-  return segment
-    .split("-")
-    .map(word => CLASS_ABBREVIATIONS[word] || (word.charAt(0).toUpperCase() + word.slice(1)))
-    .join(" ");
-}
-
-/** Humanize a scope level label.
- *  BEM modifiers (--): strip block prefix, show modifier only.
- *  BEM elements (__): strip block prefix, show element only.
- *  Contextual: strip previous level's class prefix if it matches.
- *  Default: humanize full class name. */
-function humanizeScopeLabel(className: string, previousClassName?: string): string {
-  // BEM modifier: "message-row--unread" → "Unread"
-  if (className.includes("--")) {
-    const modifier = className.split("--").pop()!;
-    return humanizeSegment(modifier);
-  }
-  // BEM element: "sidebar__item" → "Sidebar Item"
-  if (className.includes("__")) {
-    const element = className.split("__").pop()!;
-    return humanizeSegment(element);
-  }
-  // Contextual prefix stripping: "btn-primary" after "btn" → "Primary"
-  if (previousClassName && className.startsWith(previousClassName + "-")) {
-    const suffix = className.slice(previousClassName.length + 1);
-    return humanizeSegment(suffix);
-  }
-  // Default: humanize full name
-  return humanizeSegment(className);
-}
-
-/** Strategy 1: Build a compound selector from ALL non-hashed classes on the element.
- *  If it matches > 1, these are "all instances" of this element type. */
-function buildCompoundFingerprint(element: Element): ScopeLevel | null {
-  const el = element as HTMLElement;
-  if (!el.classList || el.classList.length === 0) return null;
-
-  const classes: string[] = [];
-  for (const cls of el.classList) {
-    if (!isHashedClass(cls)) classes.push(cls);
-  }
-  if (classes.length === 0) return null;
-
-  const selector = classes.sort().map(c => `.${CSS.escape(c)}`).join('');
-  let count: number;
-  try { count = document.querySelectorAll(selector).length; } catch { count = 0; }
-  if (count <= 1) return null; // same as "This instance", skip
-
-  return { label: `All instances`, selector, count };
-}
-
-/** Strategy 2: Walk up the DOM tree for a semantic ancestor and build
- *  a parent-scoped selector like ".parent tag" for classless elements. */
-function buildParentScopeLevel(element: Element): ScopeLevel | null {
-  const tag = element.tagName.toLowerCase();
-  let current = element.parentElement;
-
-  while (current && current !== document.body) {
-    for (const cls of current.classList) {
-      if (isHashedClass(cls)) continue;
-      const { score } = scoreNamePattern(cls);
-      if (score >= 0.65) continue; // skip utility classes
-
-      const selector = `.${CSS.escape(cls)} ${tag}`;
-      let count: number;
-      try { count = document.querySelectorAll(selector).length; } catch { count = 0; }
-      if (count > 1 && count <= 20) {
-        return { label: "All instances", selector, count };
-      }
-    }
-    current = current.parentElement;
-  }
-
-  return null;
-}
-
-/** Build scope levels from candidates (sorted broadest-first).
- *  Each level accumulates classes into a compound selector.
- *  Falls back to parent-scoped selectors when no semantic classes exist.
- *  Ancestor scopes are inserted between class scopes and "This instance". */
-/** Extract class→{propName, value} from all manifest class_maps */
-function getManifestClassInfo(manifest: Record<string, any> | null): Map<string, { propName: string; value: string; componentName: string }> {
-  const map = new Map<string, { propName: string; value: string; componentName: string }>();
-  if (!manifest?.components) return map;
-  for (const [compName, comp] of Object.entries<any>(manifest.components)) {
-    if (!comp?.props) continue;
-    for (const [propName, propDef] of Object.entries<any>(comp.props)) {
-      if (!propDef?.class_map) continue;
-      for (const [value, className] of Object.entries<string>(propDef.class_map)) {
-        map.set(className, { propName, value, componentName: compName });
-      }
-    }
-  }
-  return map;
-}
-
-function buildScopeLevels(candidates: SelectorCandidate[], element: Element, ancestorScopes: AncestorScope[] = [], manifest?: Record<string, any> | null): ScopeLevel[] {
-  // Boost manifest class_map classes to semantic
-  const manifestClasses = getManifestClassInfo(manifest ?? null);
-  const meaningful = candidates.filter(c => c.verdict === "semantic" || manifestClasses.has(c.selector.replace(/^\./, '')));
-  if (meaningful.length === 0) {
-    // Strategy 1: compound class fingerprint (utility-class elements)
-    const fingerprint = buildCompoundFingerprint(element);
-    if (fingerprint) {
-      const levels: ScopeLevel[] = [fingerprint];
-      appendAncestorLevels(levels, ancestorScopes);
-      levels.push({ label: "This instance", selector: null, count: 1, kind: "element" });
-      return levels;
-    }
-    // Strategy 2: parent-scoped tag selector (classless elements)
-    const parentLevel = buildParentScopeLevel(element);
-    if (parentLevel) {
-      const levels: ScopeLevel[] = [parentLevel];
-      appendAncestorLevels(levels, ancestorScopes);
-      levels.push({ label: "This instance", selector: null, count: 1, kind: "element" });
-      return levels;
-    }
-    if (ancestorScopes.length > 0) {
-      const levels: ScopeLevel[] = [];
-      appendAncestorLevels(levels, ancestorScopes);
-      levels.push({ label: "This instance", selector: null, count: 1, kind: "element" });
-      return levels;
-    }
-    return [{ label: "This instance", selector: null, count: 1, kind: "element" }];
-  }
-  const levels: ScopeLevel[] = [];
-  const parts: string[] = [];
-  for (const candidate of meaningful) {
-    const className = candidate.selector.replace(/^\./, '');
-    const prevClassName = parts.length > 0 ? parts[parts.length - 1] : undefined;
-    parts.push(className);
-    const compound = parts.slice().sort().map(c => `.${CSS.escape(c)}`).join('');
-    let count: number;
-    try { count = document.querySelectorAll(compound).length; } catch { count = 0; }
-    // Use manifest prop value for label when available (e.g., "tag-blue" → "Blue" from color prop)
-    const manifestInfo = manifestClasses.get(className);
-    const label = manifestInfo
-      ? humanizeSegment(manifestInfo.value)
-      : humanizeScopeLabel(className, prevClassName);
-    levels.push({ label, selector: compound, count, kind: "class" });
-  }
-  appendAncestorLevels(levels, ancestorScopes);
-  levels.push({ label: "This instance", selector: null, count: 1, kind: "element" });
-  return levels;
-}
-
-/** Append ancestor scope levels, filtering out those that are redundant with existing levels */
-function appendAncestorLevels(levels: ScopeLevel[], ancestorScopes: AncestorScope[]): void {
-  // Get the narrowest class-level count for filtering
-  const narrowestClassCount = levels.length > 0 ? levels[levels.length - 1].count : Infinity;
-
-  for (const scope of ancestorScopes) {
-    // Skip if same count as narrowest class scope (redundant)
-    if (scope.count >= narrowestClassCount) continue;
-    // Skip if count is 1 (same as "This instance")
-    if (scope.count <= 1) continue;
-    // Skip if a level with same count already exists
-    if (levels.some(l => l.count === scope.count && l.selector === scope.fullSelector)) continue;
-
-    levels.push({
-      label: scope.label,
-      selector: scope.fullSelector,
-      count: scope.count,
-      kind: "ancestor",
-    });
-  }
-}
 
 export function Retune(props: RetuneConfig = {}) {
   // Detect dev mode: Node process.env (Next.js, CRA) or import.meta.env (Vite, Astro)
@@ -351,389 +162,6 @@ export function Retune(props: RetuneConfig = {}) {
   if (!wide) return null;
 
   return <RetuneInner {...props} />;
-}
-
-// ── Comment Icon (custom) ──
-
-function IconComment({ size = 20 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 20 20" fill="none">
-      <path d="M3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10C17 13.866 13.866 17 10 17H4C3.44772 17 3 16.5523 3 16V10Z" stroke="currentColor" strokeWidth="1.25" />
-    </svg>
-  );
-}
-
-// ── Comment Marker (JS-driven hover expansion) ──
-
-function useCommentPosition(c: Comment): { x: number; y: number } {
-  // Position stored as viewport coords at click time.
-  // On scroll, re-query element and use its current rect + anchorOffset.
-  const [pos, setPos] = useState(c.position);
-
-  useEffect(() => {
-    function onScroll() {
-      if (c.type === "element" && c.selector && c.anchorOffset) {
-        try {
-          const el = document.querySelector(c.selector);
-          if (el) {
-            const rect = el.getBoundingClientRect();
-            setPos({ x: rect.left + c.anchorOffset.x, y: rect.top + c.anchorOffset.y });
-            return;
-          }
-        } catch {}
-      }
-    }
-    // Capture phase catches scroll on any element (nested containers)
-    document.addEventListener("scroll", onScroll, true);
-    window.addEventListener("resize", onScroll);
-    return () => {
-      document.removeEventListener("scroll", onScroll, true);
-      window.removeEventListener("resize", onScroll);
-    };
-  }, [c.selector, c.anchorOffset, c.type]);
-
-  return pos;
-}
-
-function CommentMarker({ comment: c, index, isPopoverOpen, isAreaResize, onAreaResize, onAreaResizeLive, onOpen }: {
-  comment: Comment;
-  index: number;
-  isPopoverOpen: boolean;
-  isAreaResize?: boolean;
-  onAreaResize?: (newPos: { x: number; y: number }) => void;
-  onAreaResizeLive?: (newPos: { x: number; y: number }) => void;
-  onOpen: () => void;
-}) {
-  const markerRef = useRef<HTMLDivElement>(null);
-  const previewRef = useRef<HTMLSpanElement>(null);
-  const popoverOpenRef2 = useRef(isPopoverOpen);
-  popoverOpenRef2.current = isPopoverOpen;
-  const pos = useCommentPosition(c);
-  const previewParts = useMemo(() => getCommentTextParts(c), [c]);
-
-  useEffect(() => {
-    const marker = markerRef.current;
-    if (!marker) return;
-
-    const onEnter = () => {
-      if (popoverOpenRef2.current) return;
-      const preview = previewRef.current;
-      if (!preview) return;
-
-      const measurer = document.createElement("span");
-      measurer.style.cssText = `position:absolute;visibility:hidden;font-size:12px;line-height:1.4;font-family:inherit;white-space:nowrap;`;
-      renderCommentTextParts(measurer, previewParts);
-      marker.appendChild(measurer);
-      const textW = measurer.offsetWidth;
-      measurer.remove();
-      const targetW = Math.min(textW + 24, 200);
-      const targetH = preview.offsetHeight + 10;
-
-      const markerLeft = parseFloat(marker.style.left) || 0;
-      const maxLeft = window.innerWidth - targetW - 12;
-      const clampedLeft = Math.min(markerLeft, maxLeft);
-      const offsetX = markerLeft - clampedLeft + 4;
-
-      marker.style.width = targetW + "px";
-      marker.style.height = targetH + "px";
-      marker.style.transform = `translate(-${offsetX}px, -${targetH}px)`;
-      marker.classList.add("expanded");
-    };
-
-    const onLeave = () => {
-      marker.style.width = "";
-      marker.style.height = "";
-      marker.style.transform = "";
-      marker.classList.remove("expanded");
-    };
-
-    marker.addEventListener("mouseenter", onEnter);
-    marker.addEventListener("mouseleave", onLeave);
-    return () => {
-      marker.removeEventListener("mouseenter", onEnter);
-      marker.removeEventListener("mouseleave", onLeave);
-    };
-  }, [previewParts]);
-
-  // Collapse marker when popover opens
-  useEffect(() => {
-    const marker = markerRef.current;
-    if (!marker) return;
-    if (isPopoverOpen) {
-      marker.style.width = "";
-      marker.style.height = "";
-      marker.style.transform = "";
-      marker.classList.remove("expanded");
-    }
-  }, [isPopoverOpen]);
-
-  // Area resize drag on the marker itself
-  const dragRef = useRef<{ startX: number; startY: number; dragging: boolean } | null>(null);
-
-  useEffect(() => {
-    if (!isAreaResize || !onAreaResize) return;
-    const marker = markerRef.current;
-    if (!marker) return;
-
-    const onDown = (e: PointerEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      dragRef.current = { startX: e.clientX, startY: e.clientY, dragging: false };
-    };
-    const onMove = (e: PointerEvent) => {
-      if (!dragRef.current) return;
-      const dx = Math.abs(e.clientX - dragRef.current.startX);
-      const dy = Math.abs(e.clientY - dragRef.current.startY);
-      if (dx > 3 || dy > 3) dragRef.current.dragging = true;
-      if (dragRef.current.dragging) {
-        marker.style.left = e.clientX + "px";
-        marker.style.top = e.clientY + "px";
-        onAreaResizeLive?.({ x: e.clientX, y: e.clientY });
-      }
-    };
-    const onUp = (e: PointerEvent) => {
-      if (!dragRef.current) return;
-      const wasDragging = dragRef.current.dragging;
-      dragRef.current = null;
-      if (wasDragging) {
-        onAreaResize({ x: e.clientX, y: e.clientY });
-      } else {
-        onOpen();
-      }
-    };
-
-    marker.addEventListener("pointerdown", onDown);
-    document.addEventListener("pointermove", onMove, true);
-    document.addEventListener("pointerup", onUp, true);
-    return () => {
-      marker.removeEventListener("pointerdown", onDown);
-      document.removeEventListener("pointermove", onMove, true);
-      document.removeEventListener("pointerup", onUp, true);
-    };
-  }, [isAreaResize, onAreaResize, onOpen]);
-
-  return (
-    <div
-      ref={markerRef}
-      className={`retune-comment-marker interactive${isPopoverOpen ? " popover-open" : ""}${isAreaResize ? " area-resize" : ""}`}
-      style={{ left: pos.x, top: pos.y, cursor: isAreaResize ? "nwse-resize" : undefined }}
-      onPointerUp={isAreaResize ? undefined : (e) => { e.stopPropagation(); onOpen(); }}
-    >
-      <span className="retune-comment-marker-num">{index + 1}</span>
-      <span ref={previewRef} className="retune-comment-marker-preview">
-        <CommentTextPreview comment={c} />
-      </span>
-    </div>
-  );
-}
-
-// ── Area Outline with resize handles ──
-
-function AreaOutline({ comment: c, interactive, liveBR, onResize }: {
-  comment: Comment;
-  interactive: boolean;
-  liveBR?: { x: number; y: number };
-  onResize: (newArea: { x: number; y: number; width: number; height: number }) => void;
-}) {
-  const area = c.area!;
-  const [dragging, setDragging] = useState<{
-    handle: "tl" | "br";
-    startX: number; startY: number;
-    origArea: typeof area;
-  } | null>(null);
-  const [liveArea, setLiveArea] = useState(area);
-
-  useEffect(() => { setLiveArea(area); }, [area.x, area.y, area.width, area.height]);
-
-  useEffect(() => {
-    if (!dragging) return;
-
-    const onMove = (e: PointerEvent) => {
-      const dx = e.clientX - dragging.startX;
-      const dy = e.clientY - dragging.startY;
-      const orig = dragging.origArea;
-
-      if (dragging.handle === "tl") {
-        const newX = orig.x + dx;
-        const newY = orig.y + dy;
-        setLiveArea({
-          x: newX,
-          y: newY,
-          width: Math.max(20, orig.width - dx),
-          height: Math.max(20, orig.height - dy),
-        });
-      } else {
-        setLiveArea({
-          x: orig.x,
-          y: orig.y,
-          width: Math.max(20, orig.width + dx),
-          height: Math.max(20, orig.height + dy),
-        });
-      }
-    };
-
-    const onUp = () => {
-      setDragging(null);
-      onResize(liveArea);
-    };
-
-    document.addEventListener("pointermove", onMove, true);
-    document.addEventListener("pointerup", onUp, true);
-    return () => {
-      document.removeEventListener("pointermove", onMove, true);
-      document.removeEventListener("pointerup", onUp, true);
-    };
-  }, [dragging, liveArea, onResize]);
-
-  const handleSize = 12;
-  const half = handleSize / 2;
-
-  return (
-    <>
-      <div
-        className="retune-comment-area-outline"
-        style={liveBR ? {
-          left: liveArea.x,
-          top: liveArea.y,
-          width: Math.max(20, liveBR.x - liveArea.x),
-          height: Math.max(20, liveBR.y - liveArea.y),
-        } : {
-          left: liveArea.x, top: liveArea.y, width: liveArea.width, height: liveArea.height,
-        }}
-      />
-      {interactive && (
-        <>
-          <div
-            className="retune-area-handle"
-            style={{ left: liveArea.x - half, top: liveArea.y - half }}
-            onPointerDown={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setDragging({ handle: "tl", startX: e.clientX, startY: e.clientY, origArea: { ...liveArea } });
-            }}
-          />
-        </>
-      )}
-    </>
-  );
-}
-
-// ── Retune Logo (with bloom hover animation from retune-site) ──
-
-function RetuneLogo({ size = 20 }: { size?: number }) {
-  const gRef = useRef<SVGGElement>(null);
-
-  useEffect(() => {
-    const g = gRef.current;
-    const btn = g?.closest(".retune-toolbar-collapse-btn");
-    if (!g || !btn) return;
-
-    const seq: string[][] = [
-      ["sq1"], ["sq2"], ["sq3"], ["sq4"], ["sq5"], ["sq6"],
-      ["sq7"], ["sq8"], ["sq9"], ["sq10"], ["sq11"], ["sq12"],
-      ["sq13L", "sq13R"], ["sq14L", "sq14R"],
-    ];
-
-    const stagger = 45;
-    const flash = 300;
-    const pause = 200;
-    const cycleTime = seq.length * stagger + flash + pause;
-    let hovering = false;
-    let timers: ReturnType<typeof setTimeout>[] = [];
-
-    const isP3 = window.matchMedia("(color-gamut: p3)").matches;
-
-    function randomColor() {
-      const h = Math.random() * 360;
-      const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      const l = isDark ? 0.7 + Math.random() * 0.15 : 0.6 + Math.random() * 0.1;
-      const c = isP3 ? 0.3 + Math.random() * 0.1 : 0.2 + Math.random() * 0.08;
-      return isP3 ? `oklch(${l} ${c} ${h})` : `hsl(${h}, 100%, ${isDark ? 50 + Math.random() * 25 : 50 + Math.random() * 15}%)`;
-    }
-
-    function clearAll() { timers.forEach(clearTimeout); timers = []; }
-
-    function resetRects() {
-      g!.querySelectorAll("rect").forEach((el) => {
-        el.style.transition = "none";
-        el.style.fill = "";
-        el.removeAttribute("filter");
-      });
-    }
-
-    function runCycle() {
-      if (!hovering) return;
-      const color = randomColor();
-      seq.forEach((ids, i) => {
-        timers.push(setTimeout(() => {
-          if (!hovering) return;
-          ids.forEach((id) => {
-            const el = g!.querySelector(`#${id}`) as SVGRectElement | null;
-            if (!el) return;
-            el.style.transition = "none";
-            el.style.fill = color;
-            el.setAttribute("filter", "url(#retune-bloom)");
-            el.getBoundingClientRect();
-            el.style.transition = `fill ${flash}ms ease-out`;
-            el.style.fill = "";
-            timers.push(setTimeout(() => el.removeAttribute("filter"), 80));
-          });
-        }, i * stagger));
-      });
-      timers.push(setTimeout(runCycle, cycleTime));
-    }
-
-    function onEnter() { hovering = true; runCycle(); }
-    function onLeave() { hovering = false; clearAll(); resetRects(); }
-
-    btn.addEventListener("mouseenter", onEnter);
-    btn.addEventListener("mouseleave", onLeave);
-    return () => {
-      btn.removeEventListener("mouseenter", onEnter);
-      btn.removeEventListener("mouseleave", onLeave);
-      clearAll();
-    };
-  }, []);
-
-  return (
-    <svg width={size} height={size} viewBox="0 0 20 20" fill="none">
-      <defs>
-        <filter id="retune-bloom" x="-100%" y="-100%" width="300%" height="300%" colorInterpolationFilters="sRGB">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="wideBlur"/>
-          <feColorMatrix in="wideBlur" type="matrix" result="wideGlow"
-            values="1.8 0 0 0 0  0 1.8 0 0 0  0 0 1.8 0 0  0 0 0 0.6 0"/>
-          <feGaussianBlur in="SourceGraphic" stdDeviation="0.8" result="tightBlur"/>
-          <feColorMatrix in="tightBlur" type="matrix" result="tightGlow"
-            values="2 0 0 0 0.1  0 2 0 0 0.1  0 0 2 0 0.1  0 0 0 0.9 0"/>
-          <feColorMatrix in="SourceGraphic" type="matrix" result="hotCore"
-            values="1 0 0 0 0.4  0 1 0 0 0.4  0 0 1 0 0.4  0 0 0 1 0"/>
-          <feMerge>
-            <feMergeNode in="wideGlow"/>
-            <feMergeNode in="tightGlow"/>
-            <feMergeNode in="hotCore"/>
-          </feMerge>
-        </filter>
-      </defs>
-      <g ref={gRef}>
-        <rect id="sq1" x="3" y="15" width="2" height="2" fill="currentColor"/>
-        <rect id="sq2" x="3" y="13" width="2" height="2" fill="currentColor"/>
-        <rect id="sq3" x="3" y="11" width="2" height="2" fill="currentColor"/>
-        <rect id="sq4" x="3" y="9" width="2" height="2" fill="currentColor"/>
-        <rect id="sq5" x="3" y="7" width="2" height="2" fill="currentColor"/>
-        <rect id="sq6" x="3" y="5" width="2" height="2" fill="currentColor"/>
-        <rect id="sq7" x="5" y="3" width="2" height="2" fill="currentColor"/>
-        <rect id="sq8" x="7" y="3" width="2" height="2" fill="currentColor"/>
-        <rect id="sq9" x="9" y="3" width="2" height="2" fill="currentColor"/>
-        <rect id="sq10" x="11" y="5" width="2" height="2" fill="currentColor"/>
-        <rect id="sq11" x="11" y="7" width="2" height="2" fill="currentColor"/>
-        <rect id="sq12" x="11" y="15" width="2" height="2" fill="currentColor"/>
-        <rect id="sq13L" x="9" y="13" width="2" height="2" fill="currentColor"/>
-        <rect id="sq13R" x="13" y="13" width="2" height="2" fill="currentColor"/>
-        <rect id="sq14L" x="7" y="11" width="2" height="2" fill="currentColor"/>
-        <rect id="sq14R" x="15" y="11" width="2" height="2" fill="currentColor"/>
-      </g>
-    </svg>
-  );
 }
 
 function RetuneInner(props: RetuneConfig) {
@@ -807,6 +235,11 @@ function RetuneInner(props: RetuneConfig) {
   }, []);
   const [updateDismissed, setUpdateDismissed] = useState(false);
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showCopiedFeedback = useCallback(() => {
+    setCopied(true);
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    copiedTimerRef.current = setTimeout(() => setCopied(false), 3000);
+  }, []);
   const [panelTab, setPanelTab] = useState<"elements" | "design">("design");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
@@ -1350,47 +783,12 @@ function RetuneInner(props: RetuneConfig) {
         // immediately, without waiting for React to re-render.
         selectedElementRef.current = inspected;
         selectedElementsRef.current = multiInspected;
-        tracker.track(
-          inspected.selector,
-          inspected.tagName,
-          inspected.textContent,
-          inspected.classes,
-          inspected.reactComponents,
-          inspected.computedStyles,
-          inspected.sourceFile,
-          inspected.stylingApproach,
-          inspected.inlineStyles,
-          inspected.elementId,
-          inspected.accessibleName,
-          inspected.parentContext,
-          inspected.childSummary,
-          inspected.domPath,
-          inspected.nearbySiblings,
-          inspected.position,
-          inspected.reactProps,
-        );
+        trackInspectedElement(tracker, inspected);
 
         // Track all scope level selectors so migration works correctly
         for (const level of levels) {
           if (level.selector) {
-            tracker.track(
-              level.selector,
-              inspected.tagName,
-              inspected.textContent,
-              inspected.classes,
-              inspected.reactComponents,
-              inspected.computedStyles,
-              inspected.sourceFile,
-              inspected.stylingApproach,
-              inspected.inlineStyles,
-              inspected.elementId,
-              inspected.accessibleName,
-              inspected.parentContext,
-              inspected.childSummary,
-              inspected.domPath,
-              inspected.nearbySiblings,
-              inspected.position,
-            );
+            trackInspectedElement(tracker, inspected, level.selector, null);
           }
         }
       },
@@ -1777,9 +1175,7 @@ function RetuneInner(props: RetuneConfig) {
     if (!active) return;
     const handleModeKey = (e: KeyboardEvent) => {
       // Skip if typing in an input/textarea (check composedPath for shadow DOM)
-      const actualTarget = e.composedPath()[0] as HTMLElement | undefined;
-      const tag = actualTarget?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || actualTarget?.isContentEditable) return;
+      if (isEditableKeyboardTarget(e)) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (shouldBlockForPopoverRef.current()) return;
       if (e.key === "v" || e.key === "V") {
@@ -3419,9 +2815,7 @@ function RetuneInner(props: RetuneConfig) {
         toggleOverlay();
       }
       if (active && (e.metaKey || e.ctrlKey) && e.key === "z") {
-        const path = e.composedPath();
-        const target = path[0] as HTMLElement;
-        if (target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable) return;
+        if (isEditableKeyboardTarget(e)) return;
         e.preventDefault();
         if (e.shiftKey) handleRedo();
         else handleUndo();
@@ -3430,9 +2824,7 @@ function RetuneInner(props: RetuneConfig) {
       // Up/Down for vertical layouts, Left/Right for horizontal (flex-direction: row)
       // Uses reorder proxy: if selected element has no siblings, walks up to find a reorderable ancestor
       if (active && selectedElementRef.current && (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "ArrowLeft" || e.key === "ArrowRight")) {
-        const path = e.composedPath();
-        const target = path[0] as HTMLElement;
-        if (target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable) return;
+        if (isEditableKeyboardTarget(e)) return;
 
         const el = selectedElementRef.current.element as HTMLElement;
         const context = findReorderProxy(el);
@@ -3463,9 +2855,7 @@ function RetuneInner(props: RetuneConfig) {
 
       // Element navigation: Shift+Enter=parent, Enter=child, Tab=next sibling, Shift+Tab=prev sibling
       if (active && selectedElementRef.current && (e.key === "Enter" || e.key === "Tab")) {
-        const path = e.composedPath();
-        const target = path[0] as HTMLElement;
-        if (target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable) return;
+        if (isEditableKeyboardTarget(e)) return;
 
         const el = selectedElementRef.current.element;
         const picker = pickerRef.current;
@@ -3514,9 +2904,7 @@ function RetuneInner(props: RetuneConfig) {
       // Delete selected element
       if (active && selectedElementRef.current && (e.key === "Delete" || e.key === "Backspace")) {
         // Don't intercept if focus is in a text input inside Retune's shadow root
-        const path = e.composedPath();
-        const target = path[0] as HTMLElement;
-        if (target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable) return;
+        if (isEditableKeyboardTarget(e)) return;
         e.preventDefault();
         e.stopPropagation();
         handleDelete();
@@ -3630,9 +3018,7 @@ function RetuneInner(props: RetuneConfig) {
     if (!active) return;
     function handleKeyDown(e: KeyboardEvent) {
       if (!(e.metaKey || e.ctrlKey) || (e.key !== "r" && e.key !== "R")) return;
-      const actualTarget = e.composedPath()[0] as HTMLElement | undefined;
-      const tag = actualTarget?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || actualTarget?.isContentEditable) return;
+      if (isEditableKeyboardTarget(e)) return;
       if (changeCount === 0 && commentCount === 0) return;
       e.preventDefault();
       handleReset();
@@ -3763,19 +3149,15 @@ function RetuneInner(props: RetuneConfig) {
     const tracker = trackerRef.current;
     if (!tracker) return;
     navigator.clipboard.writeText(formatChanges(tracker.getPendingChanges(), fidelity, commentStoreRef.current.getAll(), manifestDataRef.current));
-    setCopied(true);
-    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
-    copiedTimerRef.current = setTimeout(() => setCopied(false), 3000);
-  }, [fidelity]);
+    showCopiedFeedback();
+  }, [fidelity, showCopiedFeedback]);
 
   // Copy shortcut: ⌘C
   useEffect(() => {
     if (!active) return;
     function handleKeyDown(e: KeyboardEvent) {
       if (!(e.metaKey || e.ctrlKey) || (e.key !== "c" && e.key !== "C")) return;
-      const actualTarget = e.composedPath()[0] as HTMLElement | undefined;
-      const tag = actualTarget?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || actualTarget?.isContentEditable) return;
+      if (isEditableKeyboardTarget(e)) return;
       if (changeCount === 0 && commentCount === 0) return;
       e.preventDefault();
       handleCopy();
@@ -3803,10 +3185,8 @@ function RetuneInner(props: RetuneConfig) {
       : blocks[0];
 
     navigator.clipboard.writeText(text);
-    setCopied(true);
-    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
-    copiedTimerRef.current = setTimeout(() => setCopied(false), 3000);
-  }, []);
+    showCopiedFeedback();
+  }, [showCopiedFeedback]);
 
   const getDrawnPathBounds = useCallback((paths: SVGPathElement[]) => {
     const rects = paths.map((path) => path.getBoundingClientRect()).filter((rect) => rect.width > 0 || rect.height > 0);
@@ -3901,10 +3281,8 @@ function RetuneInner(props: RetuneConfig) {
       ].join("\n");
     });
     navigator.clipboard.writeText(`Drawn paths from Retune:\n\n${blocks.join("\n\n")}`);
-    setCopied(true);
-    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
-    copiedTimerRef.current = setTimeout(() => setCopied(false), 3000);
-  }, [activeDrawPaths]);
+    showCopiedFeedback();
+  }, [activeDrawPaths, showCopiedFeedback]);
 
   const handleDrawDeselect = useCallback(() => {
     if (selectedDrawPaths.length > 0) {

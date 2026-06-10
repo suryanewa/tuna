@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3001",
-    "build": "next build",
+    "dev": "next dev --webpack -p 3001",
+    "build": "next build --webpack",
     "start": "next start -p 3001"
   },
   "dependencies": {
@@ -12,7 +12,7 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vercel/analytics": "^1.6.1",
-    "next": "^15.0.0",
+    "next": "^16.3.0-canary.47",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "retune": "file:../packages/overlay",

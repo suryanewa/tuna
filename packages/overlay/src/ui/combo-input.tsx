@@ -425,7 +425,7 @@ export function ComboInput({ label, prop, value, options, onChange, variableMatc
       {pickerOpen && pickerAnchor && portalTarget && createPortal(
         <VariableDialog
           property={property || prop}
-          currentVariable={variableMatch?.variable}
+            currentVariable={undefined}
           onSelect={handleVariableSelectInternal}
           onClose={closeVariablePicker}
           anchorRect={pickerAnchor}

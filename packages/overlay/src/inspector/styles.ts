@@ -332,7 +332,7 @@ export function getScopedStyles(
   const scopedValues: Record<string, string> = {};
   const scopedSpecificity: Record<string, number> = {};
 
-  const scopeClasses = scopeSelector.match(/\.[a-zA-Z0-9_-]+/g) || [];
+  const scopeClasses: string[] = scopeSelector.match(/\.[a-zA-Z0-9_-]+/g) || [];
 
   // Probe element for resolving var() values
   const probe = document.createElement("div");
@@ -373,7 +373,7 @@ export function getScopedStyles(
       if (sel.includes(":hover") || sel.includes(":focus") || sel.includes(":active")) continue;
       try { if (!element.matches(sel)) continue; } catch { continue; }
 
-      const ruleClasses = sel.match(/\.[a-zA-Z0-9_-]+/g) || [];
+      const ruleClasses: string[] = sel.match(/\.[a-zA-Z0-9_-]+/g) || [];
       if (ruleClasses.length === 0) continue;
 
       // Include rules where all classes are within scope (rule ⊆ scope)

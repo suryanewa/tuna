@@ -120,8 +120,7 @@ describe("scoreNamePattern (multi-signal name scoring)", () => {
       "sticky", "fixed", "visible", "invisible", "truncate", "italic",
       "isolate", "contents", "collapse"];
     for (const word of bareWords) {
-      expect(scoreNamePattern(word).score).toBeGreaterThanOrEqual(0.65,
-        `Expected "${word}" to score >= 0.65 as utility`);
+      expect(scoreNamePattern(word).score).toBeGreaterThanOrEqual(0.65);
     }
   });
 
@@ -138,8 +137,7 @@ describe("scoreNamePattern (multi-signal name scoring)", () => {
       "object-cover", "object-contain",
     ];
     for (const cls of keywordUtilities) {
-      expect(scoreNamePattern(cls).score).toBeGreaterThanOrEqual(0.65,
-        `Expected "${cls}" to score >= 0.65 as utility`);
+      expect(scoreNamePattern(cls).score).toBeGreaterThanOrEqual(0.65);
     }
   });
 

@@ -56,7 +56,7 @@ export class MentionNode extends TextNode {
     return dom;
   }
 
-  updateDOM(prevNode: MentionNode, dom: HTMLElement, config: EditorConfig): boolean {
+  updateDOM(prevNode: this, dom: HTMLElement, config: EditorConfig): boolean {
     const shouldReplace = super.updateDOM(prevNode, dom, config);
     if (prevNode.__color !== this.__color) {
       dom.style.color = this.__color;

@@ -25,7 +25,10 @@ describe("@media rule skip pattern", () => {
       matches: query === "(max-width: 1024px)" ? false : true,
     });
 
-    const rules = [
+    const rules: Array<
+      | { type: "media"; conditionText: string; styles: { color: string } }
+      | { type: "style"; styles: { color: string } }
+    > = [
       { type: "media", conditionText: "(max-width: 768px)", styles: { color: "red" } },
       { type: "media", conditionText: "(max-width: 1024px)", styles: { color: "blue" } },
       { type: "style", styles: { color: "green" } },

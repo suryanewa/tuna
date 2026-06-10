@@ -140,6 +140,48 @@ export function getMentionName(tagName: string, componentName: string | null): s
   return componentName ? rawName : rawName.charAt(0).toUpperCase() + rawName.slice(1);
 }
 
+function getElementMentionFallbackName(target: CommentElementTarget): string {
+  const text = target.textContent?.replace(/\s+/g, " ").trim();
+  if (text) {
+    return text.length > 48 ? `${text.slice(0, 45).trim()}...` : text;
+  }
+  return target.tagName.charAt(0).toUpperCase() + target.tagName.slice(1);
+}
+
+function isLikelyWrapperComponentName(name: string | null | undefined): boolean {
+  return !!name && /(Boundary|Consumer|Context|Controller|Handler|Manager|Positioner|Provider|Router|Wrapper)(Old)?$/.test(name);
+}
+
+function getTargetComponentMentionName(target: CommentElementTarget): string | null {
+  const path = target.componentPath ?? [];
+  const preferred = [...path].reverse().find((name) => !isLikelyWrapperComponentName(name));
+  if (preferred) return preferred;
+  if (target.componentName && !isLikelyWrapperComponentName(target.componentName)) {
+    return target.componentName;
+  }
+  return null;
+}
+
+export function getMentionNameForTarget(
+  target: CommentElementTarget,
+  peers: CommentElementTarget[] = [target],
+): string {
+  if (target.tagName === "drawing") {
+    return getMentionName(target.tagName, target.componentName);
+  }
+  const targetComponentName = getTargetComponentMentionName(target);
+  const componentName = targetComponentName
+    ? getMentionName(target.tagName, targetComponentName)
+    : getElementMentionFallbackName(target);
+  const duplicateComponentName = peers.some((peer) =>
+    peer !== target
+    && peer.tagName !== "drawing"
+    && getMentionNameForTarget(peer, [peer]) === componentName
+  );
+  if (!duplicateComponentName) return componentName;
+  return getElementMentionFallbackName(target);
+}
+
 export function getQuickSelector(el: Element): string {
   if (el.id) return "#" + CSS.escape(el.id);
   let base: string;
@@ -185,12 +227,13 @@ export function buildCommentTargetFromInspected(inspected: InspectedElement): Co
       inspected.sourceFile.columnNumber ? `:${inspected.sourceFile.columnNumber}` : ""
     }`
     : undefined;
+  const componentName = inspected.reactComponents.length > 0
+    ? inspected.reactComponents[inspected.reactComponents.length - 1]
+    : null;
   return {
     tagName: inspected.tagName.toLowerCase(),
     selector: inspected.selector,
-    componentName: inspected.reactComponents.length > 0
-      ? inspected.reactComponents[inspected.reactComponents.length - 1]
-      : null,
+    componentName,
     componentPath: inspected.reactComponents,
     classes: inspected.classes,
     textContent: inspected.textContent,
@@ -357,7 +400,7 @@ export function parseCommentTextIntoParts(
   const targetIndexBySelector = new Map<string, number>();
   for (const [index, target] of targets.entries()) {
     targetIndexBySelector.set(target.selector, index);
-    const name = getMentionName(target.tagName, target.componentName);
+    const name = getMentionNameForTarget(target, targets);
     const list = pools.get(name) ?? [];
     list.push(target);
     pools.set(name, list);

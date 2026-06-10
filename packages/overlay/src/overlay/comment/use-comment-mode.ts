@@ -15,8 +15,30 @@ import {
   type CommentDraft,
 } from "./comment-draft";
 
+function colorByElementFromMeta(meta?: SelectEventMeta): Map<Element, string> {
+  const colors = new Map<Element, string>();
+  if (!meta?.selectionColors) return colors;
+  for (let i = 0; i < meta.selectedElements.length; i++) {
+    const color = meta.selectionColors[i];
+    if (color) colors.set(meta.selectedElements[i], color);
+  }
+  return colors;
+}
+
+function buildCommentTargetWithColor(
+  inspected: InspectedElement,
+  colorByElement: Map<Element, string>,
+  existingTargetBySelector: Map<string, CommentElementTarget>,
+): CommentElementTarget {
+  const target = buildCommentTargetFromInspected(inspected);
+  const mentionColor = colorByElement.get(inspected.element)
+    ?? existingTargetBySelector.get(target.selector)?.mentionColor;
+  return mentionColor ? { ...target, mentionColor } : target;
+}
+
 type PickerHandle = {
   clearSelection: () => void;
+  getSelectionColors?: () => string[];
   hideScopeHighlights: () => void;
   restoreSelection: (elements: Element[], primary?: Element) => void;
   setChromeLayout: (layout: SelectionChromeLayout | null) => void;
@@ -114,15 +136,22 @@ export function useCommentMode({
         : [];
   }, [selectedElementRef, selectedElementsRef]);
 
-  const appendElementsToCommentDraft = useCallback((inspectedTargets: InspectedElement[]) => {
+  const appendElementsToCommentDraft = useCallback((
+    inspectedTargets: InspectedElement[],
+    colorByElement = new Map<Element, string>(),
+  ) => {
     const draft = commentDraftRef.current;
-    if (!draft || !popoverOpenRef.current || !supportsLiveMentionEditing(draft)) return;
+    const liveEditable = supportsLiveMentionEditing(draft);
+    if (!draft || !popoverOpenRef.current || !liveEditable) return;
 
     const existing = getDraftElementTargets(draft);
+    const existingTargetBySelector = new Map(existing.map((target) => [target.selector, target]));
     const drawingTargets = existing.filter((target) => target.tagName === "drawing");
     const knownElements = new Set(selectedElementsRef.current.map((t) => t.element));
     const elementTargets = selectedElementsRef.current.length > 0
-      ? selectedElementsRef.current.map(buildCommentTargetFromInspected)
+      ? selectedElementsRef.current.map((target) =>
+        buildCommentTargetWithColor(target, colorByElement, existingTargetBySelector)
+      )
       : existing.filter((target) => target.tagName !== "drawing");
     const knownSelectors = new Set(elementTargets.map((t) => t.selector));
     const novel = inspectedTargets.filter((target) => {
@@ -132,7 +161,9 @@ export function useCommentMode({
     if (novel.length === 0) return;
 
     const multiInspected = [...selectedElementsRef.current, ...novel];
-    const newElementTargets = multiInspected.map(buildCommentTargetFromInspected);
+    const newElementTargets = multiInspected.map((target) =>
+      buildCommentTargetWithColor(target, colorByElement, existingTargetBySelector)
+    );
     const newTargets = [...newElementTargets, ...drawingTargets];
     setCommentDraft((prev) => {
       if (!prev || !supportsLiveMentionEditing(prev)) return prev;
@@ -151,12 +182,17 @@ export function useCommentMode({
 
   const removeElementsFromCommentDraft = useCallback((elementsToRemove: Element[]) => {
     const draft = commentDraftRef.current;
-    if (!draft || !popoverOpenRef.current || !supportsLiveMentionEditing(draft)) return;
+    const liveEditable = supportsLiveMentionEditing(draft);
+    if (!draft || !popoverOpenRef.current || !liveEditable) return;
 
     const removeSet = new Set(elementsToRemove);
     const remainingInspected = selectedElementsRef.current.filter((target) => !removeSet.has(target.element));
-    const remainingElementTargets = remainingInspected.map(buildCommentTargetFromInspected);
-    const drawingTargets = getDraftElementTargets(draft).filter((target) => target.tagName === "drawing");
+    const existingTargets = getDraftElementTargets(draft);
+    const existingTargetBySelector = new Map(existingTargets.map((target) => [target.selector, target]));
+    const remainingElementTargets = remainingInspected.map((target) =>
+      buildCommentTargetWithColor(target, new Map(), existingTargetBySelector)
+    );
+    const drawingTargets = existingTargets.filter((target) => target.tagName === "drawing");
     const remainingTargets = [...remainingElementTargets, ...drawingTargets];
     setCommentDraft((prev) => {
       if (!prev || !supportsLiveMentionEditing(prev)) return prev;
@@ -231,10 +267,11 @@ export function useCommentMode({
   }, [overlayRootRef]);
 
   const shouldBlockForPopover = useCallback(() => {
+    const liveEditable = supportsLiveMentionEditing(commentDraftRef.current);
     if (!popoverOpenRef.current) return false;
     // Element and drawing-tool drafts keep page clicks live so shift/alt-click can
     // add/remove inline mentions while the composer is open.
-    if (supportsLiveMentionEditing(commentDraftRef.current)) return false;
+    if (liveEditable) return false;
     if (areaDragJustEndedRef.current) return true;
     const isDirty = popoverTextRef.current !== popoverInitialTextRef.current;
     if (isDirty) {
@@ -260,6 +297,17 @@ export function useCommentMode({
       y: rect.top + rect.height / 2,
     };
     let draft = buildSelectionCommentDraft(targets, primary, cursor);
+    const selectionColors = pickerRef.current?.getSelectionColors?.() ?? [];
+    if (selectionColors.length > 0) {
+      draft = applyTargetsToDraft(
+        draft,
+        targets.map((target, index) => {
+          const commentTarget = buildCommentTargetFromInspected(target);
+          const mentionColor = selectionColors[index];
+          return mentionColor ? { ...commentTarget, mentionColor } : commentTarget;
+        }),
+      );
+    }
     if (enrichCommentDraft) {
       draft = enrichCommentDraft(draft);
     }
@@ -288,19 +336,35 @@ export function useCommentMode({
 
   const handleCommentSelect = useCallback((element: Element, meta?: SelectEventMeta): boolean => {
     const selectedEls = meta?.selectedElements ?? [element];
+    const liveEditable = supportsLiveMentionEditing(commentDraftRef.current);
     if (selectedEls.length === 0) {
-      if (supportsLiveMentionEditing(commentDraftRef.current) && popoverOpenRef.current) return true;
+      if (supportsLiveMentionEditing(commentDraftRef.current) && popoverOpenRef.current) {
+        if (meta?.altKey || meta?.shiftKey) removeElementsFromCommentDraft([element]);
+        return true;
+      }
       return false;
     }
 
-    if (supportsLiveMentionEditing(commentDraftRef.current) && popoverOpenRef.current) {
+    if (liveEditable && popoverOpenRef.current) {
       if (areaDragJustEndedRef.current) return true;
-      if (meta?.altKey) {
-        removeElementsFromCommentDraft([element]);
-        return true;
-      }
-      if (meta?.shiftKey) {
-        appendElementsToCommentDraft([inspectElement(element)]);
+      if (meta?.altKey || meta?.shiftKey) {
+        const colorByElement = colorByElementFromMeta(meta);
+        const nextSet = new Set(selectedEls);
+        const currentElements = selectedElementsRef.current.map((target) => target.element);
+        const removed = currentElements.filter((current) => !nextSet.has(current));
+        if (removed.length > 0) {
+          removeElementsFromCommentDraft(removed);
+          return true;
+        }
+
+        const currentSet = new Set(currentElements);
+        const added = selectedEls.filter((selected) => !currentSet.has(selected));
+        if (added.length > 0) {
+          appendElementsToCommentDraft(
+            added.map((selected) => inspectElement(selected)),
+            colorByElement,
+          );
+        }
         return true;
       }
       if (modeRef.current !== "comment") return true;
@@ -340,10 +404,12 @@ export function useCommentMode({
 
     const handlePointerDown = (e: PointerEvent) => {
       const path = e.composedPath();
-      for (let i = 0; i < path.length; i++) {
-        if (path[i] instanceof HTMLElement && (path[i] as HTMLElement).hasAttribute("data-retune-host")) return;
-      }
+      const fromRetuneHost = path.some(
+        (entry) => entry instanceof HTMLElement && entry.hasAttribute("data-retune-host"),
+      );
+      if (fromRetuneHost) return;
       if (shouldBlockForPopoverRef.current()) return;
+      if (e.shiftKey || e.altKey) return;
       e.preventDefault();
       const areaEl = document.createElement("div");
       areaEl.style.cssText = `position:fixed;border:1px dashed #0D99FF;pointer-events:none;z-index:2147483640;display:none;`;

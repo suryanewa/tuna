@@ -11,6 +11,7 @@ import {
 import {
   getCommentElementTargets,
   getMentionName,
+  getMentionNameForTarget,
   orderTargetsBySelectors,
   parseCommentTextIntoParts,
 } from "./comment-draft";
@@ -64,25 +65,25 @@ export function CommentPopover({
     if (!elementInfo) return [];
     const spanCount = spanMentionCount ?? 1;
     if (elementInfo.selectedElements) {
-      return elementInfo.selectedElements.slice(0, spanCount).map((target, idx) => ({
-        name: getMentionName(target.tagName, target.componentName),
+      const nextMentions = elementInfo.selectedElements.slice(0, spanCount).map((target, idx) => ({
+        name: getMentionNameForTarget(target, elementInfo.selectedElements ?? []),
         color: getMentionColorForTarget(target, idx),
         selector: target.selector,
       }));
+      return nextMentions;
     }
+    const target = {
+      tagName: elementInfo.tagName,
+      selector: primarySelector ?? "",
+      componentName: elementInfo.componentName,
+      componentPath: elementInfo.componentPath,
+      classes: elementInfo.classes,
+      textContent: elementInfo.textContent,
+      mentionColor: undefined,
+    };
     return [{
-      name: getMentionName(elementInfo.tagName, elementInfo.componentName),
-      color: getMentionColorForTarget(
-        {
-          tagName: elementInfo.tagName,
-          selector: primarySelector ?? "",
-          componentName: elementInfo.componentName,
-          classes: elementInfo.classes,
-          textContent: elementInfo.textContent,
-          mentionColor: elementInfo.selectedElements?.[0]?.mentionColor,
-        },
-        0,
-      ),
+      name: getMentionNameForTarget(target),
+      color: getMentionColorForTarget(target, 0),
       selector: primarySelector ?? "",
     }];
   }, [contentParts, elementInfo, primarySelector, spanMentionCount]);

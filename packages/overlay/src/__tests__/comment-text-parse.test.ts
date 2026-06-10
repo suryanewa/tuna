@@ -6,6 +6,7 @@ import {
   getDrawingMentionName,
   getDrawingOrderIndex,
   getMentionName,
+  getMentionNameForTarget,
   orderTargetsBySelectors,
   parseCommentTextIntoParts,
   areDraftElementTargetsEqual,
@@ -196,6 +197,76 @@ describe("drawing mention names", () => {
       [{ tagName: "button", selector: ".btn", componentName: "Button", componentPath: [], classes: [], textContent: "Save" }],
       [{ tagName: "button", selector: ".btn", componentName: "Button", componentPath: [], classes: [], textContent: "Save" }],
     )).toBe(true);
+  });
+});
+
+describe("element mention names", () => {
+  it("uses element-specific text when selected targets share the same component name", () => {
+    const duplicateComponentTargets = [
+      {
+        tagName: "button",
+        selector: ".cta-primary",
+        componentName: "InnerScrollAndFocusHandlerOld",
+        classes: ["cta-primary"],
+        textContent: "Try it here",
+      },
+      {
+        tagName: "p",
+        selector: ".hero-sub",
+        componentName: "InnerScrollAndFocusHandlerOld",
+        classes: ["hero-sub"],
+        textContent: "Retune lets you select and tweak any element right in the browser.",
+      },
+      {
+        tagName: "h1",
+        selector: ".hero-heading",
+        componentName: "InnerScrollAndFocusHandlerOld",
+        classes: ["hero-heading"],
+        textContent: "The visual layer for vibe coding.",
+      },
+    ];
+
+    expect(duplicateComponentTargets.map((target) =>
+      getMentionNameForTarget(target, duplicateComponentTargets),
+    )).toEqual([
+      "Try it here",
+      "Retune lets you select and tweak any element...",
+      "The visual layer for vibe coding.",
+    ]);
+  });
+
+  it("keeps a unique component name when it distinguishes the target", () => {
+    const selectedTargets = [
+      { tagName: "button", selector: ".btn", componentName: "Button", classes: [], textContent: "Save" },
+      { tagName: "span", selector: ".label", componentName: "Label", classes: [], textContent: "Beta" },
+    ];
+
+    expect(selectedTargets.map((target) => getMentionNameForTarget(target, selectedTargets))).toEqual([
+      "Button",
+      "Label",
+    ]);
+  });
+
+  it("does not expose wrapper component names for a single target", () => {
+    expect(getMentionNameForTarget({
+      tagName: "h1",
+      selector: ".hero-heading",
+      componentName: "InnerScrollAndFocusHandlerOld",
+      componentPath: ["InnerScrollAndFocusHandlerOld"],
+      classes: ["hero-heading"],
+      textContent: "The visual layer for vibe coding.",
+    })).toBe("The visual layer for vibe coding.");
+  });
+
+  it("uses a meaningful component from the path before falling back to text", () => {
+    expect(getMentionNameForTarget({
+      tagName: "button",
+      selector: ".cta-primary",
+      componentName: "InnerScrollAndFocusHandlerOld",
+      componentPath: ["TryItButton", "InnerScrollAndFocusHandlerOld"],
+      classes: ["cta-primary"],
+      textContent: "Try it here",
+    })).toBe("TryItButton");
   });
 });
 
