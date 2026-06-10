@@ -91,6 +91,8 @@ View and edit React component props and state hooks directly in the panel. Enum 
 
 Annotate elements (click) or areas (drag) with text notes. Comment markers follow scroll, expand on hover with a text preview. Comments are included in the output so your AI agent can address them alongside visual changes.
 
+The comment popover uses a Lexical editor with inline mention tokens inside the overlay's Shadow DOM. See [Comment Editor: Lexical + Shadow DOM](../../docs/comment-editor-lexical-shadow-dom.md) for known pitfalls, fixes, and a regression test matrix.
+
 ### Manifest System (v2)
 
 Generate a `retune.manifest.json` to describe your design system's components, props, state hooks, and tokens. The manifest powers accurate token pickers, component variant controls, scope pill labels, and richer output context for your AI agent.

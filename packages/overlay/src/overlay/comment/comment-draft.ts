@@ -1,16 +1,6 @@
 import type { Comment, CommentElementTarget } from "../../engine/comment-store";
 import type { InspectedElement } from "../../types";
-
-export const SELECTION_COLORS = [
-  "#0D99FF",
-  "#FF6B6B",
-  "#51CF66",
-  "#FAB005",
-  "#845EF7",
-  "#FF922B",
-  "#20C997",
-  "#F06595",
-] as const;
+import { SELECTION_COLORS } from "../../ui/selection-colors";
 
 export type CommentContentPart =
   | { type: "mention"; mention: { name: string; color: string; selector: string } }
@@ -85,47 +75,14 @@ export function syncElementTargetsInDraft(
   draft: CommentDraft,
   inspectedElements: InspectedElement[],
 ): CommentDraft {
-  const existing = draft.elementInfo?.selectedElements ?? getDraftElementTargets(draft);
+  const existing = getDraftElementTargets(draft);
   const drawingTargets = existing.filter((target) => target.tagName === "drawing");
   const elementTargets = inspectedElements.map(buildCommentTargetFromInspected);
   const allTargets = [...elementTargets, ...drawingTargets];
 
   if (elementTargets.length === 0) return draft;
 
-  const primaryTarget = elementTargets[0];
-
-  if (!draft.elementInfo) {
-    return {
-      ...draft,
-      spanMentionCount: allTargets.length,
-      elementInfo: {
-        tagName: primaryTarget.tagName,
-        componentName: primaryTarget.componentName,
-        componentPath: primaryTarget.componentPath ?? [],
-        classes: primaryTarget.classes,
-        textContent: primaryTarget.textContent,
-        source: primaryTarget.source,
-        domPath: primaryTarget.domPath,
-        selectedElements: allTargets,
-      },
-    };
-  }
-
-  return {
-    ...draft,
-    spanMentionCount: allTargets.length,
-    elementInfo: {
-      ...draft.elementInfo,
-      tagName: primaryTarget.tagName,
-      componentName: primaryTarget.componentName,
-      componentPath: primaryTarget.componentPath ?? [],
-      classes: primaryTarget.classes,
-      textContent: primaryTarget.textContent,
-      source: primaryTarget.source,
-      domPath: primaryTarget.domPath,
-      selectedElements: allTargets,
-    },
-  };
+  return applyTargetsToDraft(draft, allTargets);
 }
 
 export function syncDrawingTargetsInDraft(
@@ -134,34 +91,11 @@ export function syncDrawingTargetsInDraft(
   drawnPathsInOrder: SVGPathElement[],
 ): CommentDraft {
   const drawingTargets = buildDrawingTargetsFromPaths(selectedPaths, drawnPathsInOrder);
-  const existing = draft.elementInfo?.selectedElements ?? getDraftElementTargets(draft);
+  const existing = getDraftElementTargets(draft);
   const nonDrawingTargets = existing.filter((target) => target.tagName !== "drawing");
   const allTargets = [...nonDrawingTargets, ...drawingTargets];
 
-  if (!draft.elementInfo) {
-    if (drawingTargets.length === 0) return draft;
-    return {
-      ...draft,
-      spanMentionCount: drawingTargets.length,
-      elementInfo: {
-        tagName: "drawing",
-        componentName: drawingTargets[0]?.componentName ?? null,
-        componentPath: [],
-        classes: [],
-        textContent: null,
-        selectedElements: drawingTargets,
-      },
-    };
-  }
-
-  return {
-    ...draft,
-    spanMentionCount: allTargets.length,
-    elementInfo: {
-      ...draft.elementInfo,
-      selectedElements: allTargets,
-    },
-  };
+  return applyTargetsToDraft(draft, allTargets);
 }
 
 export function getMentionName(tagName: string, componentName: string | null): string {
@@ -304,11 +238,18 @@ export function getCommentElementTargets(
   elementInfo: Comment["elementInfo"],
   primarySelector?: string,
 ): CommentElementTarget[] {
+  return resolveCommentElementTargets(elementInfo, primarySelector);
+}
+
+export function resolveCommentElementTargets(
+  elementInfo: Comment["elementInfo"],
+  fallbackSelector?: string,
+): CommentElementTarget[] {
   if (!elementInfo) return [];
-  if (elementInfo.selectedElements?.length) return elementInfo.selectedElements;
+  if (Array.isArray(elementInfo.selectedElements)) return elementInfo.selectedElements;
   return [{
     tagName: elementInfo.tagName,
-    selector: primarySelector ?? "",
+    selector: fallbackSelector ?? "",
     componentName: elementInfo.componentName,
     componentPath: elementInfo.componentPath,
     classes: elementInfo.classes,
@@ -316,6 +257,41 @@ export function getCommentElementTargets(
     source: elementInfo.source,
     domPath: elementInfo.domPath,
   }];
+}
+
+export function applyTargetsToDraft(
+  draft: CommentDraft,
+  targets: CommentElementTarget[],
+): CommentDraft {
+  const primaryTarget = targets.find((target) => target.tagName !== "drawing") ?? targets[0];
+
+  if (!primaryTarget) {
+    if (!draft.elementInfo) return draft;
+    return {
+      ...draft,
+      spanMentionCount: 0,
+      elementInfo: {
+        ...draft.elementInfo,
+        selectedElements: [],
+      },
+    };
+  }
+
+  return {
+    ...draft,
+    spanMentionCount: targets.length,
+    elementInfo: {
+      ...draft.elementInfo,
+      tagName: primaryTarget.tagName,
+      componentName: primaryTarget.componentName,
+      componentPath: primaryTarget.componentPath ?? [],
+      classes: primaryTarget.classes,
+      textContent: primaryTarget.textContent,
+      source: primaryTarget.source,
+      domPath: primaryTarget.domPath,
+      selectedElements: targets,
+    },
+  };
 }
 
 function findNextMentionStart(
@@ -397,19 +373,7 @@ export function parseCommentTextIntoParts(
 }
 
 export function getDraftElementTargets(draft: CommentDraft): CommentElementTarget[] {
-  const info = draft.elementInfo;
-  if (!info) return [];
-  if (info.selectedElements) return info.selectedElements;
-  return [{
-    tagName: info.tagName,
-    selector: draft.selector ?? "",
-    componentName: info.componentName,
-    componentPath: info.componentPath,
-    classes: info.classes,
-    textContent: info.textContent,
-    source: info.source,
-    domPath: info.domPath,
-  }];
+  return resolveCommentElementTargets(draft.elementInfo, draft.selector);
 }
 
 export function scanContainedElements(area: { x: number; y: number; width: number; height: number }): ContainedCommentElement[] {

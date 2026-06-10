@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from "react";
 import type { CommentElementTarget } from "../../engine/comment-store";
 import type { SelectEventMeta } from "../../selector/picker";
+import type { SelectionChromeLayout } from "../../selector/selection-chrome-layout";
 import type { InspectedElement } from "../../types";
 import { inspectElement } from "../../ui/helpers";
 import {
+  applyTargetsToDraft,
   buildCommentTargetFromInspected,
   buildElementCommentDraft,
   buildSelectionCommentDraft,
@@ -17,7 +19,7 @@ type PickerHandle = {
   clearSelection: () => void;
   hideScopeHighlights: () => void;
   restoreSelection: (elements: Element[], primary?: Element) => void;
-  setChromeLayout: (layout: any) => void;
+  setChromeLayout: (layout: SelectionChromeLayout | null) => void;
   setCommentDraftActive: (active: boolean) => void;
   setCommentMode: (enabled: boolean) => void;
   setPropertyEditMode: (enabled: boolean) => void;
@@ -132,25 +134,9 @@ export function useCommentMode({
     const multiInspected = [...selectedElementsRef.current, ...novel];
     const newElementTargets = multiInspected.map(buildCommentTargetFromInspected);
     const newTargets = [...newElementTargets, ...drawingTargets];
-    const primaryTarget = newElementTargets[0] ?? drawingTargets[0];
-
     setCommentDraft((prev) => {
-      if (!prev || !supportsLiveMentionEditing(prev) || !prev.elementInfo) return prev;
-      return {
-        ...prev,
-        spanMentionCount: newTargets.length,
-        elementInfo: {
-          ...prev.elementInfo,
-          tagName: primaryTarget.tagName,
-          componentName: primaryTarget.componentName,
-          componentPath: primaryTarget.componentPath ?? [],
-          classes: primaryTarget.classes,
-          textContent: primaryTarget.textContent,
-          source: primaryTarget.source,
-          domPath: primaryTarget.domPath,
-          selectedElements: newTargets,
-        },
-      };
+      if (!prev || !supportsLiveMentionEditing(prev)) return prev;
+      return applyTargetsToDraft(prev, newTargets);
     });
 
     selectedElementsRef.current = multiInspected;
@@ -172,35 +158,9 @@ export function useCommentMode({
     const remainingElementTargets = remainingInspected.map(buildCommentTargetFromInspected);
     const drawingTargets = getDraftElementTargets(draft).filter((target) => target.tagName === "drawing");
     const remainingTargets = [...remainingElementTargets, ...drawingTargets];
-    const primaryTarget = remainingElementTargets[0] ?? drawingTargets[0];
-
     setCommentDraft((prev) => {
-      if (!prev || !supportsLiveMentionEditing(prev) || !prev.elementInfo) return prev;
-      if (!primaryTarget) {
-        return {
-          ...prev,
-          spanMentionCount: 0,
-          elementInfo: {
-            ...prev.elementInfo,
-            selectedElements: [],
-          },
-        };
-      }
-      return {
-        ...prev,
-        spanMentionCount: remainingTargets.length,
-        elementInfo: {
-          ...prev.elementInfo,
-          tagName: primaryTarget.tagName,
-          componentName: primaryTarget.componentName,
-          componentPath: primaryTarget.componentPath ?? [],
-          classes: primaryTarget.classes,
-          textContent: primaryTarget.textContent,
-          source: primaryTarget.source,
-          domPath: primaryTarget.domPath,
-          selectedElements: remainingTargets,
-        },
-      };
+      if (!prev || !supportsLiveMentionEditing(prev)) return prev;
+      return applyTargetsToDraft(prev, remainingTargets);
     });
 
     selectedElementsRef.current = remainingInspected;
@@ -223,52 +183,9 @@ export function useCommentMode({
     if (remainingTargets.length === existing.length) return;
 
     const remainingInspected = selectedElementsRef.current.filter((target) => selectorSet.has(target.selector));
-    const primaryTarget = remainingTargets.find((target) => target.tagName !== "drawing") ?? remainingTargets[0];
-
     setCommentDraft((prev) => {
       if (!prev) return prev;
-      if (!prev.elementInfo) {
-        if (remainingTargets.length === 0) return prev;
-        return {
-          ...prev,
-          spanMentionCount: remainingTargets.length,
-          elementInfo: {
-            tagName: remainingTargets[0].tagName,
-            componentName: remainingTargets[0].componentName,
-            componentPath: remainingTargets[0].componentPath ?? [],
-            classes: remainingTargets[0].classes,
-            textContent: remainingTargets[0].textContent,
-            source: remainingTargets[0].source,
-            domPath: remainingTargets[0].domPath,
-            selectedElements: remainingTargets,
-          },
-        };
-      }
-      if (remainingTargets.length === 0) {
-        return {
-          ...prev,
-          spanMentionCount: 0,
-          elementInfo: {
-            ...prev.elementInfo,
-            selectedElements: [],
-          },
-        };
-      }
-      return {
-        ...prev,
-        spanMentionCount: remainingTargets.length,
-        elementInfo: {
-          ...prev.elementInfo,
-          tagName: primaryTarget?.tagName ?? prev.elementInfo.tagName,
-          componentName: primaryTarget?.componentName ?? prev.elementInfo.componentName,
-          componentPath: primaryTarget?.componentPath ?? prev.elementInfo.componentPath ?? [],
-          classes: primaryTarget?.classes ?? prev.elementInfo.classes,
-          textContent: primaryTarget?.textContent ?? prev.elementInfo.textContent,
-          source: primaryTarget?.source ?? prev.elementInfo.source,
-          domPath: primaryTarget?.domPath ?? prev.elementInfo.domPath,
-          selectedElements: remainingTargets,
-        },
-      };
+      return applyTargetsToDraft(prev, remainingTargets);
     });
 
     selectedElementsRef.current = remainingInspected;

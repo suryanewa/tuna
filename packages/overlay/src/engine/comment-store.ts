@@ -55,6 +55,8 @@ export interface Comment {
   timestamp: number;
 }
 
+export type CommentPatch = Partial<Omit<Comment, "id" | "timestamp">>;
+
 const STORAGE_KEY = "retune-comments";
 
 // ── Comment Store ──
@@ -98,6 +100,16 @@ export class CommentStore {
     const comment = this.comments.get(id);
     if (!comment) return false;
     comment.text = text;
+    comment.timestamp = Date.now();
+    this.persist();
+    return true;
+  }
+
+  /** Patch comment metadata while keeping persistence and timestamps centralized. */
+  patch(id: number, updates: CommentPatch): boolean {
+    const comment = this.comments.get(id);
+    if (!comment) return false;
+    Object.assign(comment, updates);
     comment.timestamp = Date.now();
     this.persist();
     return true;

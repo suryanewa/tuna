@@ -12,8 +12,8 @@ import {
   getMentionName,
   orderTargetsBySelectors,
   parseCommentTextIntoParts,
-  SELECTION_COLORS,
 } from "./comment-draft";
+import { SELECTION_COLORS } from "../../ui/selection-colors";
 
 type DictationSnapshot = {
   text: string;

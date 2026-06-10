@@ -8,8 +8,12 @@ import {
   orderTargetsBySelectors,
   parseCommentTextIntoParts,
   areDraftElementTargetsEqual,
+  getCommentElementTargets,
+  getDraftElementTargets,
+  syncElementTargetsInDraft,
   syncDrawingTargetsInDraft,
 } from "../overlay/comment/comment-draft";
+import type { InspectedElement } from "../types";
 
 const targets = [
   {
@@ -27,6 +31,36 @@ const targets = [
     textContent: "Beta",
   },
 ];
+
+function inspectedElement(
+  selector: string,
+  tagName: string,
+  reactComponents: string[] = [],
+): InspectedElement {
+  return {
+    element: {} as Element,
+    selector,
+    tagName,
+    textContent: tagName === "button" ? "Save" : "Label",
+    classes: [selector.slice(1)],
+    rect: {} as DOMRect,
+    computedStyles: {},
+    layoutMode: "block",
+    reactComponents,
+    reactProps: null,
+    reactState: null,
+    sourceFile: { fileName: "Component.tsx", lineNumber: 12 },
+    stylingApproach: "css",
+    inlineStyles: null,
+    elementId: null,
+    accessibleName: null,
+    parentContext: null,
+    childSummary: null,
+    domPath: `body > ${tagName}`,
+    nearbySiblings: null,
+    position: { x: 0, y: 0, width: 10, height: 10 },
+  };
+}
 
 describe("parseCommentTextIntoParts", () => {
   it("reconstructs leading mentions and user text", () => {
@@ -126,5 +160,85 @@ describe("orderTargetsBySelectors", () => {
   it("keeps only selectors from the snapshot in document order", () => {
     const ordered = orderTargetsBySelectors(targets, [".label", ".btn"]);
     expect(ordered.map((target) => target.selector)).toEqual([".label", ".btn"]);
+  });
+});
+
+describe("comment target resolution", () => {
+  it("falls back to a single legacy target when selectedElements is absent", () => {
+    const resolved = getCommentElementTargets({
+      tagName: "button",
+      componentName: "Button",
+      componentPath: ["Hero", "Button"],
+      classes: ["btn"],
+      textContent: "Save",
+      source: "Hero.tsx:12",
+      domPath: "body > button",
+    }, ".btn");
+
+    expect(resolved).toEqual([{
+      tagName: "button",
+      selector: ".btn",
+      componentName: "Button",
+      componentPath: ["Hero", "Button"],
+      classes: ["btn"],
+      textContent: "Save",
+      source: "Hero.tsx:12",
+      domPath: "body > button",
+    }]);
+  });
+
+  it("syncs inspected element targets while preserving drawing targets", () => {
+    const drawingTarget = buildDrawingCommentTarget(1);
+    const synced = syncElementTargetsInDraft(
+      {
+        position: { x: 0, y: 0 },
+        type: "area",
+        spanMentionCount: 1,
+        elementInfo: {
+          tagName: "drawing",
+          componentName: "Drawing 1",
+          componentPath: [],
+          classes: [],
+          textContent: null,
+          selectedElements: [drawingTarget],
+        },
+      },
+      [
+        inspectedElement(".btn", "button", ["Hero", "Button"]),
+        inspectedElement(".label", "span", ["Hero", "Label"]),
+      ],
+    );
+
+    expect(synced.spanMentionCount).toBe(3);
+    expect(synced.elementInfo?.tagName).toBe("button");
+    expect(synced.elementInfo?.componentName).toBe("Button");
+    expect(getDraftElementTargets(synced).map((target) => target.selector)).toEqual([
+      ".btn",
+      ".label",
+      "retune-drawing:1",
+    ]);
+  });
+
+  it("clears selected targets through the shared draft application path", () => {
+    const synced = syncDrawingTargetsInDraft(
+      {
+        position: { x: 0, y: 0 },
+        type: "area",
+        spanMentionCount: 1,
+        elementInfo: {
+          tagName: "drawing",
+          componentName: "Drawing 1",
+          componentPath: [],
+          classes: [],
+          textContent: null,
+          selectedElements: [buildDrawingCommentTarget(1)],
+        },
+      },
+      [],
+      [],
+    );
+
+    expect(synced.spanMentionCount).toBe(0);
+    expect(synced.elementInfo?.selectedElements).toEqual([]);
   });
 });

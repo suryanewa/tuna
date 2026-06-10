@@ -23,22 +23,13 @@ import {
   finalizeDrawPoints,
   type DrawPoint,
 } from "./path-utils";
+import { SELECTION_COLORS } from "../ui/selection-colors";
 
 const PICKER_OUTLINE_COLOR = "#0D99FF";
 /** Light fill on the selected element — same hue as the outline, much lower opacity. */
 const SELECTION_FILL_ALPHA = "0.08";
 
-/** Distinct outline colors for multi-select (index 0 = primary). */
-export const SELECTION_COLORS = [
-  "#0D99FF",
-  "#FF6B6B",
-  "#51CF66",
-  "#FAB005",
-  "#845EF7",
-  "#FF922B",
-  "#20C997",
-  "#F06595",
-] as const;
+export { SELECTION_COLORS };
 
 const MULTI_SELECT_POOL_SIZE = 20;
 

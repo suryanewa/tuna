@@ -74,6 +74,48 @@ describe("CommentStore", () => {
     });
   });
 
+  describe("patch", () => {
+    it("updates area metadata through the store API", () => {
+      store.add("area", { x: 10, y: 20 }, "area", {
+        area: { x: 0, y: 0, width: 100, height: 100 },
+        elementInfo: {
+          tagName: "area",
+          componentName: null,
+          componentPath: [],
+          classes: [],
+          textContent: null,
+          containedElements: [],
+        },
+      });
+
+      const patched = store.patch(1, {
+        position: { x: 120, y: 140 },
+        area: { x: 0, y: 0, width: 120, height: 140 },
+        elementInfo: {
+          tagName: "area",
+          componentName: null,
+          componentPath: [],
+          classes: [],
+          textContent: null,
+          containedElements: [
+            { tagName: "button", selector: ".btn", componentName: "Button", textContent: "Save" },
+          ],
+        },
+      });
+
+      expect(patched).toBe(true);
+      expect(store.get(1)?.position).toEqual({ x: 120, y: 140 });
+      expect(store.get(1)?.area).toEqual({ x: 0, y: 0, width: 120, height: 140 });
+      expect(store.get(1)?.elementInfo?.containedElements).toEqual([
+        { tagName: "button", selector: ".btn", componentName: "Button", textContent: "Save" },
+      ]);
+    });
+
+    it("returns false for non-existent comments", () => {
+      expect(store.patch(99, { text: "missing" })).toBe(false);
+    });
+  });
+
   describe("delete", () => {
     it("removes a comment", () => {
       store.add("to delete", { x: 0, y: 0 }, "element");

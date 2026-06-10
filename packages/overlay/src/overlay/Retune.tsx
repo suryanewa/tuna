@@ -4383,16 +4383,20 @@ function RetuneInner(props: RetuneConfig) {
             const comment = store.get(c.id);
             if (!comment || !comment.area) return;
             const area = comment.area;
-            comment.area = {
+            const nextArea = {
               x: area.x,
               y: area.y,
               width: Math.max(20, newPos.x - area.x),
               height: Math.max(20, newPos.y - area.y),
             };
-            comment.position = newPos;
-            const contained = scanContainedElements(comment.area);
-            if (comment.elementInfo) (comment.elementInfo as any).containedElements = contained;
-            store.persist();
+            const contained = scanContainedElements(nextArea);
+            store.patch(c.id, {
+              area: nextArea,
+              position: newPos,
+              ...(comment.elementInfo
+                ? { elementInfo: { ...comment.elementInfo, containedElements: contained } }
+                : {}),
+            });
             syncCommentState();
           } : undefined}
           onOpen={() => {
@@ -4411,12 +4415,13 @@ function RetuneInner(props: RetuneConfig) {
             const store = commentStoreRef.current;
             const updated = store.get(c.id);
             if (!updated) return;
-            updated.area = newArea;
             const contained = scanContainedElements(newArea);
-            if (updated.elementInfo) {
-              (updated.elementInfo as any).containedElements = contained;
-            }
-            store.persist();
+            store.patch(c.id, {
+              area: newArea,
+              ...(updated.elementInfo
+                ? { elementInfo: { ...updated.elementInfo, containedElements: contained } }
+                : {}),
+            });
             syncCommentState();
           }}
         />
