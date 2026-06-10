@@ -4,7 +4,7 @@
  * Features an iOS-style sliding pill indicator.
  */
 
-import { useState, useRef, useLayoutEffect, useCallback, type ReactNode } from "react";
+import { useState, useRef, useLayoutEffect, useCallback, useEffect, type ReactNode } from "react";
 import { Tooltip } from "./tooltip";
 
 export interface SegmentedOption<T extends string = string> {
@@ -28,16 +28,14 @@ export function SegmentedControl<T extends string = string>({
   disabled = false,
 }: SegmentedControlProps<T>) {
   const [localValue, setLocalValue] = useState(value);
-  const [prevPropValue, setPrevPropValue] = useState(value);
   const containerRef = useRef<HTMLDivElement>(null);
   const pillRef = useRef<HTMLDivElement>(null);
   const isFirstRender = useRef(true);
 
   // Sync from parent only when the prop itself changes (e.g. new element selected)
-  if (value !== prevPropValue) {
-    setPrevPropValue(value);
+  useEffect(() => {
     setLocalValue(value);
-  }
+  }, [value]);
 
   const updatePill = useCallback(() => {
     const container = containerRef.current;

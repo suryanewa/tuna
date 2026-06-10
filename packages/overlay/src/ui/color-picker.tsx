@@ -129,11 +129,9 @@ export function ColorPicker({
   const tokenListRef = useRef<HTMLDivElement>(null);
 
   // Sync initialTab when it changes (e.g. reopened to a different tab)
-  const prevInitialTab = useRef(initialTab);
-  if (initialTab !== prevInitialTab.current) {
-    prevInitialTab.current = initialTab;
+  useEffect(() => {
     if (initialTab) setActiveTab(initialTab);
-  }
+  }, [initialTab]);
 
   const filteredVariables = useMemo(() => {
     if (!tokenSearch) return allVariables;
@@ -246,13 +244,10 @@ export function ColorPicker({
   }, []);
 
   // Sync from parent when value changes externally
-  const [prevValue, setPrevValue] = useState(value);
-  if (value !== prevValue) {
-    setPrevValue(value);
-    if (value !== lastSentRef.current) {
-      setHsva(hexToHsva(value || "#000000"));
-    }
-  }
+  useEffect(() => {
+    if (value === lastSentRef.current) return;
+    setHsva(hexToHsva(value || "#000000"));
+  }, [value]);
 
   // Hex input local state
   const [hexInput, setHexInput] = useState(() =>
@@ -265,15 +260,12 @@ export function ColorPicker({
   const focusedRef = useRef<string | null>(null);
 
   // Sync local inputs from hsva when not focused
-  const [prevHsva, setPrevHsva] = useState(hsva);
-  if (hsva !== prevHsva) {
-    setPrevHsva(hsva);
-    if (!focusedRef.current) {
-      setHexInput(hsvToHex(hsva.h, hsva.s, hsva.v).replace("#", "").toUpperCase());
-      const { r, g, b } = hsvToRgb(hsva.h, hsva.s, hsva.v);
-      setRgbInputs({ r: String(r), g: String(g), b: String(b) });
-    }
-  }
+  useEffect(() => {
+    if (focusedRef.current) return;
+    setHexInput(hsvToHex(hsva.h, hsva.s, hsva.v).replace("#", "").toUpperCase());
+    const { r, g, b } = hsvToRgb(hsva.h, hsva.s, hsva.v);
+    setRgbInputs({ r: String(r), g: String(g), b: String(b) });
+  }, [hsva]);
 
   const emitChange = useCallback((newHsva: HSVA) => {
     setHsva(newHsva);
@@ -371,11 +363,9 @@ export function ColorPicker({
   const onAlphaChangeRef = useRef(onAlphaChange);
   onAlphaChangeRef.current = onAlphaChange;
 
-  const [prevAlpha, setPrevAlpha] = useState(alpha);
-  if (alpha !== prevAlpha) {
-    setPrevAlpha(alpha);
+  useEffect(() => {
     setLocalAlpha(alpha);
-  }
+  }, [alpha]);
 
   const getAlpha = useCallback((clientX: number) => {
     if (!alphaSliderRef.current) return 100;

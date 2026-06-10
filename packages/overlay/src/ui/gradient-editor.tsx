@@ -6,7 +6,7 @@
  * All inline — no dialogs. Reuses the existing ColorInput component.
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type { GradientFill } from "./gradient-utils";
 import type { DesignVariable, VariableMatch } from "../variables/types";
 import { interpolateColor, gradientBarCss } from "./gradient-utils";
@@ -79,11 +79,10 @@ export function GradientEditor({ gradient, onChange, originalGradient, isNewGrad
   }, [gradient, originalGradient, onChange]);
 
   // Sync angle display from parent when not editing
-  const [prevAngle, setPrevAngle] = useState(gradient.angle);
-  if (gradient.angle !== prevAngle) {
-    setPrevAngle(gradient.angle);
-    if (!isEditingAngle) setAngleInput(`${gradient.angle}°`);
-  }
+  useEffect(() => {
+    if (isEditingAngle) return;
+    setAngleInput(`${gradient.angle}°`);
+  }, [gradient.angle, isEditingAngle]);
 
   // ── Gradient bar handlers ──
 

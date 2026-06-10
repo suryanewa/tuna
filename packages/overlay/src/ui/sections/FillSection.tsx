@@ -9,7 +9,7 @@
  * 3. **Fill** — Background color / gradient for non-image, non-SVG elements
  */
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import type { BaseSectionProps } from "./section-props";
 import type { VariableMatch, DesignVariable } from "../../variables/types";
 import { Section, Row, Field } from "../section";
@@ -94,19 +94,18 @@ export function FillSection({
   const gradientEditingRef = useRef(false);
 
   // Sync fill mode from element changes
-  const [prevBgImage, setPrevBgImage] = useState(s.backgroundImage);
-  if (s.backgroundImage !== prevBgImage) {
-    setPrevBgImage(s.backgroundImage);
-    if (!gradientEditingRef.current) {
-      const newMode = detectFillMode(s.backgroundColor, s.backgroundImage);
-      setFillMode(newMode);
-      if (newMode !== "solid") {
-        const parsed = parseCssGradient(s.backgroundImage || "");
-        if (parsed) setGradient(parsed);
-      }
+  useEffect(() => {
+    if (gradientEditingRef.current) {
+      gradientEditingRef.current = false;
+      return;
     }
-    gradientEditingRef.current = false;
-  }
+    const newMode = detectFillMode(s.backgroundColor, s.backgroundImage);
+    setFillMode(newMode);
+    if (newMode !== "solid") {
+      const parsed = parseCssGradient(s.backgroundImage || "");
+      if (parsed) setGradient(parsed);
+    }
+  }, [s.backgroundColor, s.backgroundImage]);
 
   // ── Fill (null-or-active) ──
   const hasFill = (() => {

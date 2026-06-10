@@ -24,6 +24,7 @@ import {
   type DrawPoint,
 } from "./path-utils";
 import { SELECTION_COLORS } from "../ui/selection-colors";
+import { resolveSelectionClick, type SelectionClickResult } from "./selection-click";
 
 const PICKER_OUTLINE_COLOR = "#0D99FF";
 /** Light fill on the selected element — same hue as the outline, much lower opacity. */
@@ -2089,9 +2090,111 @@ export function createPicker(
     reorderDrag = null;
   }
 
-  // Fork: reposition for absolute/fixed, reorder for flow elements in flex/grid
+  function performSelectionClickAtPoint(
+    x: number,
+    y: number,
+    modifiers: { shiftKey: boolean; altKey: boolean },
+    fallbackElement?: Element,
+  ) {
+    if (!active || commentMode || drawMode || suspended || commentDraftActive) return;
+
+    const { shiftKey, altKey } = modifiers;
+
+    if (!commentMode) {
+      const drawHit = hitTestDrawPath(x, y);
+      if (drawHit) {
+        handleDrawPathClick(drawHit, { clientX: x, clientY: y, shiftKey, altKey } as MouseEvent);
+        return;
+      }
+
+      if (!commentDraftActive && selectedDrawPaths.length > 0 && !shiftKey && !isPointInsideDrawSelectionBounds(x, y)) {
+        clearDrawSelection();
+      }
+    }
+
+    const sameSpot =
+      Math.abs(x - lastClickPos.x) <= CLICK_RADIUS &&
+      Math.abs(y - lastClickPos.y) <= CLICK_RADIUS &&
+      elementStack.length > 1;
+
+    let el: Element | undefined;
+    if (sameSpot) {
+      elementStack = buildElementStack(x, y);
+      if (elementStack.length <= 1) {
+        stackIndex = 0;
+        el = elementStack[0] ?? fallbackElement;
+      } else {
+        stackIndex = (stackIndex + 1) % elementStack.length;
+        el = elementStack[stackIndex];
+      }
+    } else {
+      elementStack = buildElementStack(x, y);
+      stackIndex = 0;
+      lastClickPos = { x, y };
+      el = elementStack[0] ?? fallbackElement;
+    }
+
+    if (!el) {
+      if (!commentMode && !commentDraftActive && selectedElements.length > 0 && !shiftKey) {
+        deselect();
+      }
+      return;
+    }
+
+    if (commentDraftActive) {
+      if (!shiftKey && !altKey && !commentMode) {
+        showSelection();
+        return;
+      }
+      hideHighlight();
+      hoveredElement = null;
+      blurPageFocus();
+      callbacks.onSelect(el, { shiftKey, altKey, selectedElements: [el] });
+      return;
+    }
+
+    if (commentMode) {
+      hideHighlight();
+      hoveredElement = null;
+      blurPageFocus();
+      callbacks.onSelect(el, { shiftKey, altKey, selectedElements: [el] });
+      return;
+    }
+
+    applySelectionClickResult(
+      resolveSelectionClick(
+        el,
+        selectedElements,
+        selectedElement,
+        { shiftKey, altKey },
+        MULTI_SELECT_POOL_SIZE + 1,
+      ),
+      el,
+    );
+  }
+
+  // Fork: reposition for absolute/fixed, reorder for flow elements in flex/grid.
+  // Shift/alt always select or deselect; grab/reorder only when already selected without modifiers.
   selection.addEventListener("pointerdown", (e: PointerEvent) => {
     if (!selectedElement) return;
+
+    if (e.shiftKey || e.altKey) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const prevSelectionDisplay = selection.style.display;
+      const prevLabelDisplay = selectionLabel.style.display;
+      selection.style.display = "none";
+      selectionLabel.style.display = "none";
+      performSelectionClickAtPoint(e.clientX, e.clientY, {
+        shiftKey: e.shiftKey,
+        altKey: e.altKey,
+      }, selectedElement);
+      selection.style.display = prevSelectionDisplay;
+      selectionLabel.style.display = prevLabelDisplay;
+      if (selectedElement) showSelection();
+      return;
+    }
 
     // Absolute/fixed → reposition (existing behavior)
     if (isRepositionable(selectedElement)) {
@@ -3584,6 +3687,8 @@ export function createPicker(
   function handleMarqueePointerDown(e: PointerEvent) {
     if (!active || commentMode || drawMode || suspended) return;
     if (commentDraftActive) return;
+    if (propertyEditMode) return;
+    if (e.shiftKey || e.altKey) return;
     if (isRetuneOverlayEvent(e)) return;
     if (callbacks.shouldBlockClick?.()) return;
     // Document listeners see a Shadow DOM-retargeted host as e.target, so use
@@ -3643,153 +3748,45 @@ export function createPicker(
 
     const { clientX: x, clientY: y } = e;
 
-    if (!commentMode) {
-      const drawHit = hitTestDrawPath(x, y);
-      if (drawHit) {
-        handleDrawPathClick(drawHit, e);
-        return;
-      }
-
-      if (!commentDraftActive && selectedDrawPaths.length > 0 && !e.shiftKey && !isPointInsideDrawSelectionBounds(x, y)) {
-        clearDrawSelection();
-      }
-    }
-
-    // Check if clicking the same spot — cycle through element stack
+    // Second click of a double-click must not cycle the stack — dblclick will sync selection
     const sameSpot =
       Math.abs(x - lastClickPos.x) <= CLICK_RADIUS &&
       Math.abs(y - lastClickPos.y) <= CLICK_RADIUS &&
       elementStack.length > 1;
-
-    // Second click of a double-click must not cycle the stack — dblclick will sync selection
     if (sameSpot && e.detail >= 2) return;
 
-    if (sameSpot) {
-      // Rebuild stack in case DOM changed (HMR, navigation)
-      elementStack = buildElementStack(x, y);
-      if (elementStack.length <= 1) {
-        stackIndex = 0;
-      } else {
-        // Advance to the next element in the stack (deeper → shallower → wrap)
-        stackIndex = (stackIndex + 1) % elementStack.length;
-      }
-    } else {
-      // New click position — rebuild the stack
-      elementStack = buildElementStack(x, y);
-      stackIndex = 0;
-      lastClickPos = { x, y };
-    }
+    performSelectionClickAtPoint(x, y, { shiftKey: e.shiftKey, altKey: e.altKey });
+  }
 
-    if (elementStack.length === 0) {
-      if (!commentMode && !commentDraftActive && selectedElements.length > 0 && !e.shiftKey) {
-        deselect();
-      }
-      return;
-    }
-    const el = elementStack[stackIndex];
+  function applySelectionClickResult(result: SelectionClickResult | null, clicked: Element) {
+    if (!result) return;
 
-    if (!commentMode && !commentDraftActive && e.altKey) {
-      const existingIndex = selectedElements.indexOf(el);
-      if (existingIndex < 0) return;
-
-      selectedElements = selectedElements.filter((_, i) => i !== existingIndex);
-      if (selectedElements.length === 0) {
-        selectedElement = null;
-        selectionLabelHidden = false;
-        hideHighlight();
-        hoveredElement = null;
-        blurPageFocus();
-        callbacks.onSelect(el, { shiftKey: false, selectedElements: [] });
-        refreshSelectionVisuals();
-        return;
-      }
-
-      if (!selectedElement || selectedElement === el || !selectedElements.includes(selectedElement)) {
-        selectedElement = selectedElements[selectedElements.length - 1];
-      }
-      selectionLabelHidden = false;
-      observeSelectedElements();
+    if (result.kind === "noop") {
       showSelection();
       hideHighlight();
       hoveredElement = null;
       blurPageFocus();
-      notifySelect(selectedElement, false);
       return;
     }
 
-    // Comment draft: add clicked element without mutating picker selection state here
-    if (commentDraftActive) {
-      if (!e.shiftKey && !e.altKey) {
-        if (!commentMode) {
-          showSelection();
-          return;
-        }
-      }
+    if (result.kind === "toggle-off" && result.selected.length === 0) {
+      clearElementSelection();
       hideHighlight();
       hoveredElement = null;
       blurPageFocus();
-      callbacks.onSelect(el, { shiftKey: e.shiftKey, altKey: e.altKey, selectedElements: [el] });
+      callbacks.onSelect(clicked, {
+        shiftKey: result.shiftKey,
+        altKey: result.altKey,
+        selectedElements: [],
+      });
+      refreshSelectionVisuals();
       return;
     }
 
-    // Click outside selected bounds → deselect, or select a different element under the cursor
-    if (!commentMode && selectedElements.length > 0 && !e.shiftKey) {
-      if (!isPointInsideSelectionBounds(x, y, selectedElements)) {
-        const targetIsSelected = selectedElements.includes(el);
-        clearElementSelection();
-        hideHighlight();
-        hoveredElement = null;
-        selectionLabelHidden = false;
-
-        if (!targetIsSelected) {
-          selectedElements = [el];
-          selectedElement = el;
-          observeSelectedElements();
-          showSelection();
-          blurPageFocus();
-          notifySelect(el, false);
-        } else {
-          refreshSelectionVisuals();
-          callbacks.onSelect(el, { shiftKey: false, selectedElements: [] });
-        }
-        return;
-      }
-    }
-
-    if (commentMode) {
-      // In comment mode: just call onSelect (no selection UI)
-      hideHighlight();
-      hoveredElement = null;
-      callbacks.onSelect(el, { shiftKey: e.shiftKey, altKey: e.altKey, selectedElements: [el] });
-      return;
-    }
-
-    const shiftKey = e.shiftKey;
-    if (shiftKey && selectedElements.length > 0) {
-      shiftHeldForSelection = true;
-      const existingIndex = selectedElements.indexOf(el);
-      if (existingIndex >= 0) {
-        selectedElements = selectedElements.filter((_, i) => i !== existingIndex);
-        if (selectedElements.length === 0) {
-          selectedElement = null;
-          selectionLabelHidden = false;
-          hideHighlight();
-          hoveredElement = null;
-          notifySelect(el, true);
-          refreshSelectionVisuals();
-          return;
-        }
-        selectedElement = selectedElements[selectedElements.length - 1];
-      } else if (selectedElements.length < MULTI_SELECT_POOL_SIZE + 1) {
-        selectedElements = [...selectedElements, el];
-        selectedElement = el;
-      } else {
-        return;
-      }
-    } else {
-      selectedElements = [el];
-      selectedElement = el;
-    }
+    selectedElements = result.selected;
+    selectedElement = result.primary;
+    shiftHeldForSelection = result.kind === "add"
+      || (result.kind === "toggle-off" && result.shiftKey);
 
     selectionLabelHidden = false;
     observeSelectedElements();
@@ -3797,7 +3794,13 @@ export function createPicker(
     hideHighlight();
     hoveredElement = null;
     blurPageFocus();
-    notifySelect(selectedElement ?? el, shiftKey);
+
+    const notifyShiftKey = result.kind === "add"
+      || (result.kind === "toggle-off" && result.shiftKey);
+
+    if (selectedElement) {
+      notifySelect(selectedElement, notifyShiftKey);
+    }
   }
 
   function handleDblClick(e: MouseEvent) {

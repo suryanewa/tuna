@@ -75,14 +75,10 @@ export function ComboInput({ label, prop, value, options, onChange, variableMatc
     return [...options, { value: ADD_VARIABLE_VALUE, label: "Add variable", separatorBefore: true }];
   }, [options, hasAvailable, variableMatch]);
 
-  const [prevValue, setPrevValue] = useState(value);
-  if (value !== prevValue) {
-    setPrevValue(value);
-    // Don't overwrite what the user is typing or preview value during drag
-    if (!editingRef.current && !previewActiveRef.current) {
-      setLocalValue(isMixedValue(value) ? MIXED_LABEL : roundCssValue(value || ""));
-    }
-  }
+  useEffect(() => {
+    if (editingRef.current || previewActiveRef.current) return;
+    setLocalValue(isMixedValue(value) ? MIXED_LABEL : roundCssValue(value || ""));
+  }, [value]);
 
   const openDropdown = useCallback(() => {
     const el = containerRef.current;

@@ -6,7 +6,7 @@
  * individual values when they differ. Supports CSS shorthand input.
  */
 
-import { useState, useRef, useCallback, type ReactNode } from "react";
+import { useState, useRef, useCallback, useEffect, type ReactNode } from "react";
 import { roundCssValue, inferCssUnit } from "./round-css-value";
 import type { VariableMatch } from "../variables/types";
 import { ChangeIndicator } from "./change-indicator";
@@ -64,18 +64,15 @@ function computeDisplay(values: string[]): string {
 
 export function ShorthandInput({ label, props, values, onChange, placeholder, min, max, variableMatch, property, onVariableSelect, onVariableApply, onVariableUnlink, isChanged, onReset }: ShorthandInputProps) {
   const [localValue, setLocalValue] = useState(() => computeDisplay(values));
-  const [prevValues, setPrevValues] = useState(values);
   const varPickerRef = useRef<(() => void) | null>(null);
 
   const handleInputClick = useCallback(() => {
     if (variableMatch) varPickerRef.current?.();
   }, [variableMatch]);
 
-  // Sync from external changes
-  if (values.join("\0") !== prevValues.join("\0")) {
-    setPrevValues(values);
+  useEffect(() => {
     setLocalValue(computeDisplay(values));
-  }
+  }, [values]);
 
   // Scrub-to-adjust: drag on label changes all values equally
   const scrubRef = useRef({ startX: 0, startVals: [] as number[], active: false });

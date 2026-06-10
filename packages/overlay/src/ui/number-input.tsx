@@ -3,7 +3,7 @@
  * Equivalent to the portfolio editor's NumberInput component.
  */
 
-import { useState, useRef, useCallback, type ReactNode } from "react";
+import { useState, useRef, useCallback, useEffect, type ReactNode } from "react";
 import { roundCssValue, inferCssUnit } from "./round-css-value";
 import type { VariableMatch } from "../variables/types";
 import { ChangeIndicator } from "./change-indicator";
@@ -70,14 +70,10 @@ export function NumberInput({ label, prop, value, placeholder, onChange, min, ma
     if (variableMatch) varPickerRef.current?.();
   }, [variableMatch]);
 
-  const [prevValue, setPrevValue] = useState(value);
-  if (value !== prevValue) {
-    setPrevValue(value);
-    // Don't overwrite preview value during drag
-    if (!previewActiveRef.current) {
-      setLocalValue(isMixedValue(value) ? MIXED_LABEL : roundCssValue(value || ""));
-    }
-  }
+  useEffect(() => {
+    if (previewActiveRef.current) return;
+    setLocalValue(isMixedValue(value) ? MIXED_LABEL : roundCssValue(value || ""));
+  }, [value]);
 
   // Scrub-to-adjust: drag on label to change numeric values
   const scrubRef = useRef({ startX: 0, startVal: 0, active: false });

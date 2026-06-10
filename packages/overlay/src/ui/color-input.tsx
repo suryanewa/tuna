@@ -4,7 +4,7 @@
  * Clicking the swatch opens a floating ColorPicker panel.
  */
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { parseCssColor, hexToRgba } from "./color-utils";
 import { ColorPicker } from "./color-picker";
 import type { VariableMatch, DesignVariable } from "../variables/types";
@@ -53,10 +53,7 @@ export function ColorInput({ prop, value, onChange, variableMatch, property, onV
   const currentHexRef = useRef(parsed.hex);
   const currentOpacityRef = useRef(parsed.opacity);
 
-  // Sync from parent
-  const [prevValue, setPrevValue] = useState(value);
-  if (value !== prevValue) {
-    setPrevValue(value);
+  useEffect(() => {
     const mixedValue = isMixedValue(value);
     const p = parseCssColor(mixedValue ? "" : value || "");
     currentHexRef.current = p.hex;
@@ -67,7 +64,7 @@ export function ColorInput({ prop, value, onChange, variableMatch, property, onV
     if (!opacityFocusedRef.current) {
       setOpacityLocal(mixedValue ? MIXED_LABEL : String(p.opacity));
     }
-  }
+  }, [value]);
 
   // Build and emit CSS color value
   const emitColor = useCallback((hex: string, opacity: number) => {

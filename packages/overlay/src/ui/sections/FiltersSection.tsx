@@ -28,19 +28,15 @@ export function FiltersSection({
   // Use a ref to skip re-sync when we are the source of the change
   const filterSelfUpdate = useRef(false);
   const [filters, setFilters] = useState<FilterItem[]>(() => parseFilters(s.filter, s.backdropFilter));
-  const [prevFilter, setPrevFilter] = useState(s.filter);
-  const [prevBackdropFilter, setPrevBackdropFilter] = useState(s.backdropFilter);
 
   // Sync from parent when external styles change
-  if (s.filter !== prevFilter || s.backdropFilter !== prevBackdropFilter) {
-    setPrevFilter(s.filter);
-    setPrevBackdropFilter(s.backdropFilter);
+  useEffect(() => {
     if (filterSelfUpdate.current) {
       filterSelfUpdate.current = false;
-    } else {
-      setFilters(parseFilters(s.filter, s.backdropFilter));
+      return;
     }
-  }
+    setFilters(parseFilters(s.filter, s.backdropFilter));
+  }, [s.filter, s.backdropFilter]);
 
   // ── Menu state ──
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);

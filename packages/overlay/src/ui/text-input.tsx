@@ -4,7 +4,7 @@
  * where scrub-to-adjust doesn't make sense.
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { isMixedValue, MIXED_LABEL } from "./mixed-value";
 
 export interface TextInputProps {
@@ -16,11 +16,9 @@ export interface TextInputProps {
 export function TextInput({ prop, value, onChange }: TextInputProps) {
   const [localValue, setLocalValue] = useState(isMixedValue(value) ? MIXED_LABEL : value || "");
 
-  const [prevValue, setPrevValue] = useState(value);
-  if (value !== prevValue) {
-    setPrevValue(value);
+  useEffect(() => {
     setLocalValue(isMixedValue(value) ? MIXED_LABEL : value || "");
-  }
+  }, [value]);
 
   return (
     <div className="retune-text-input">

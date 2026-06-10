@@ -34,12 +34,10 @@ export function SelectInput({ label, prop, value, options, onChange, isChanged, 
   const containerRef = useRef<HTMLDivElement>(null);
   useScrollLock(open);
 
-  // Sync from parent
-  const [prevValue, setPrevValue] = useState(value);
-  if (value !== prevValue) {
-    setPrevValue(value);
-    setLocalValue(value || "");
-  }
+  // Sync from parent without setState during render (React 19)
+  useEffect(() => {
+    setLocalValue(isMixedValue(value) ? MIXED_LABEL : value || "");
+  }, [value]);
 
   const openDropdown = useCallback(() => {
     const el = containerRef.current;

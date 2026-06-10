@@ -117,12 +117,10 @@ export function FontInput({ prop, value, onChange, isChanged, onReset }: FontInp
     } catch {}
   }, [systemFonts]);
 
-  // Sync from parent
-  const [prevValue, setPrevValue] = useState(value);
-  if (value !== prevValue) {
-    setPrevValue(value);
+  // Sync from parent without setState during render (React 19)
+  useEffect(() => {
     setLocalValue(isMixedValue(value) ? MIXED_LABEL : extractPrimaryFont(value || ""));
-  }
+  }, [value]);
 
   // Build font sections
   const projectFonts = useMemo(() => getProjectFonts(), []);
