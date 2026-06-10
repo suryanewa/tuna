@@ -3142,7 +3142,7 @@ export function createPicker(
         path.setAttribute("fill", fillForColor(selectedColor));
       } else {
         path.setAttribute("stroke", baseColor);
-        path.setAttribute("fill", drawMode && !commentDraftActive ? fillForColor(baseColor) : "none");
+        path.setAttribute("fill", "none");
       }
     }
   }
@@ -3352,8 +3352,8 @@ export function createPicker(
     e.stopImmediatePropagation();
 
     if (!e.shiftKey) {
-      pushState();
-      removeDrawnPaths();
+      clearDrawSelection();
+      syncDrawingPathAppearance();
     }
 
     hideHighlight();

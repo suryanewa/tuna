@@ -3,7 +3,6 @@ import {
   buildDrawingCommentTarget,
   buildDrawingTargetsFromPaths,
   resolveActiveDrawPaths,
-  resolveDrawPathsForDrawModeComment,
   getDrawingMentionName,
   getDrawingOrderIndex,
   getMentionName,
@@ -17,6 +16,16 @@ import {
   syncDrawingTargetsInDraft,
 } from "../overlay/comment/comment-draft";
 import type { InspectedElement } from "../types";
+
+function mockDrawPath(stroke: string, drawColor?: string): SVGPathElement {
+  return {
+    getAttribute(name: string) {
+      if (name === "stroke") return stroke;
+      if (name === "data-retune-draw-color") return drawColor ?? null;
+      return null;
+    },
+  } as SVGPathElement;
+}
 
 const targets = [
   {
@@ -92,26 +101,57 @@ describe("parseCommentTextIntoParts", () => {
       { type: "text", text: "@Button hello" },
     ]);
   });
+
+  it("uses stored mentionColor for drawing targets when re-opening a comment", () => {
+    const drawingTargets = [
+      buildDrawingCommentTarget(1, "#845EF7"),
+      buildDrawingCommentTarget(2, "#20C997"),
+    ];
+    const parts = parseCommentTextIntoParts("@Drawing 1 @Drawing 2 overlap", drawingTargets);
+    expect(parts).toEqual([
+      { type: "mention", mention: { name: "Drawing 1", color: "#845EF7", selector: "retune-drawing:1" } },
+      { type: "text", text: " " },
+      { type: "mention", mention: { name: "Drawing 2", color: "#20C997", selector: "retune-drawing:2" } },
+      { type: "text", text: " overlap" },
+    ]);
+  });
 });
 
 describe("drawing mention names", () => {
   it("names drawings by creation order", () => {
-    const paths = [{}, {}, {}] as SVGPathElement[];
+    const paths = [mockDrawPath("#0D99FF"), mockDrawPath("#FF6B6B"), mockDrawPath("#51CF66")];
     expect(getDrawingOrderIndex(paths[1], paths)).toBe(2);
     expect(getDrawingMentionName(2)).toBe("Drawing 2");
-    expect(buildDrawingCommentTarget(2)).toEqual({
+    expect(buildDrawingCommentTarget(2, "#FF6B6B")).toEqual({
       tagName: "drawing",
       selector: "retune-drawing:2",
       componentName: "Drawing 2",
       componentPath: [],
       classes: [],
       textContent: null,
+      mentionColor: "#FF6B6B",
     });
     expect(getMentionName("drawing", "Drawing 2")).toBe("Drawing 2");
   });
 
+  it("captures each drawing outline stroke as mentionColor", () => {
+    const paths = [
+      mockDrawPath("#0D99FF"),
+      mockDrawPath("#FF6B6B"),
+      mockDrawPath("#845EF7"),
+    ];
+    expect(buildDrawingTargetsFromPaths([paths[0], paths[2]], paths)).toEqual([
+      buildDrawingCommentTarget(1, "#0D99FF"),
+      buildDrawingCommentTarget(3, "#845EF7"),
+    ]);
+  });
+
   it("syncs multi-selected drawings into an open draft", () => {
-    const paths = [{}, {}, {}] as SVGPathElement[];
+    const paths = [
+      mockDrawPath("#0D99FF"),
+      mockDrawPath("#FF6B6B"),
+      mockDrawPath("#51CF66"),
+    ];
     const synced = syncDrawingTargetsInDraft(
       {
         position: { x: 0, y: 0 },
@@ -137,8 +177,8 @@ describe("drawing mention names", () => {
     );
 
     expect(buildDrawingTargetsFromPaths([paths[0], paths[2]], paths)).toEqual([
-      buildDrawingCommentTarget(1),
-      buildDrawingCommentTarget(3),
+      buildDrawingCommentTarget(1, "#0D99FF"),
+      buildDrawingCommentTarget(3, "#51CF66"),
     ]);
     expect(synced.spanMentionCount).toBe(3);
     expect(synced.elementInfo?.selectedElements).toEqual([
@@ -149,8 +189,8 @@ describe("drawing mention names", () => {
         classes: [],
         textContent: "Save",
       },
-      buildDrawingCommentTarget(1),
-      buildDrawingCommentTarget(3),
+      buildDrawingCommentTarget(1, "#0D99FF"),
+      buildDrawingCommentTarget(3, "#51CF66"),
     ]);
     expect(areDraftElementTargetsEqual(
       [{ tagName: "button", selector: ".btn", componentName: "Button", componentPath: [], classes: [], textContent: "Save" }],
@@ -167,20 +207,20 @@ describe("orderTargetsBySelectors", () => {
 });
 
 describe("draw path resolution", () => {
-  it("falls back to all canvas paths when none are selected", () => {
+  it("returns only selected paths — unselected canvas paths are not targets", () => {
     const canvas = [{ id: "a" }, { id: "b" }] as SVGPathElement[];
-    expect(resolveActiveDrawPaths([], canvas)).toEqual(canvas);
-    expect(resolveDrawPathsForDrawModeComment(canvas)).toEqual(canvas);
+    expect(resolveActiveDrawPaths([])).toEqual([]);
+    const selected = [canvas[1]];
+    expect(resolveActiveDrawPaths(selected)).toEqual(selected);
   });
 
-  it("prefers explicit draw selection when paths are selected", () => {
-    const canvas = [{ id: "a" }, { id: "b" }, { id: "c" }] as SVGPathElement[];
-    const selected = [canvas[1], canvas[2]];
-    expect(resolveActiveDrawPaths(selected, canvas)).toEqual(selected);
-  });
-
-  it("syncs all canvas paths into a draft when selection is empty", () => {
-    const canvas = [{}, {}, {}] as SVGPathElement[];
+  it("syncs only selected paths into a draft", () => {
+    const canvas = [
+      mockDrawPath("#0D99FF"),
+      mockDrawPath("#FF6B6B"),
+      mockDrawPath("#51CF66"),
+    ];
+    const selected = [canvas[0], canvas[2]];
     const synced = syncDrawingTargetsInDraft(
       {
         position: { x: 0, y: 0 },
@@ -196,16 +236,47 @@ describe("draw path resolution", () => {
           selectedElements: [],
         },
       },
-      resolveActiveDrawPaths([], canvas),
+      resolveActiveDrawPaths(selected),
       canvas,
     );
 
     expect(getDraftElementTargets(synced).map((target) => target.selector)).toEqual([
       "retune-drawing:1",
-      "retune-drawing:2",
       "retune-drawing:3",
     ]);
-    expect(synced.spanMentionCount).toBe(3);
+    expect(getDraftElementTargets(synced).map((target) => target.mentionColor)).toEqual([
+      "#0D99FF",
+      "#51CF66",
+    ]);
+    expect(synced.spanMentionCount).toBe(2);
+  });
+
+  it("clears drawing mentions when selection becomes empty", () => {
+    const canvas = [mockDrawPath("#0D99FF"), mockDrawPath("#FF6B6B")];
+    const synced = syncDrawingTargetsInDraft(
+      {
+        position: { x: 0, y: 0 },
+        type: "area",
+        fromDrawing: true,
+        spanMentionCount: 2,
+        elementInfo: {
+          tagName: "drawing",
+          componentName: "Drawing 1",
+          componentPath: [],
+          classes: [],
+          textContent: null,
+          selectedElements: [
+            { tagName: "drawing", selector: "retune-drawing:1", componentName: "Drawing 1", componentPath: [], classes: [], textContent: null },
+            { tagName: "drawing", selector: "retune-drawing:2", componentName: "Drawing 2", componentPath: [], classes: [], textContent: null },
+          ],
+        },
+      },
+      resolveActiveDrawPaths([]),
+      canvas,
+    );
+
+    expect(getDraftElementTargets(synced)).toEqual([]);
+    expect(synced.spanMentionCount).toBe(0);
   });
 });
 

@@ -17,6 +17,8 @@ export interface CommentElementTarget {
   textContent: string | null;
   source?: string;
   domPath?: string;
+  /** Outline / mention color when the target was captured (e.g. draw stroke). */
+  mentionColor?: string;
 }
 
 export interface Comment {

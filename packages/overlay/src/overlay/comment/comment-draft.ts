@@ -31,11 +31,27 @@ export type ContainedCommentElement = {
   textContent: string | null;
 };
 
+const DRAW_COLOR_ATTR = "data-retune-draw-color";
+
 export function getDrawingMentionName(orderIndex: number): string {
   return `Drawing ${orderIndex}`;
 }
 
-export function buildDrawingCommentTarget(orderIndex: number): CommentElementTarget {
+/** Visible stroke on the path — matches picker outline after selection sync. */
+export function getDrawPathDisplayColor(path: SVGPathElement): string {
+  return path.getAttribute("stroke")
+    ?? path.getAttribute(DRAW_COLOR_ATTR)
+    ?? SELECTION_COLORS[0];
+}
+
+export function getMentionColorForTarget(
+  target: CommentElementTarget,
+  fallbackIndex: number,
+): string {
+  return target.mentionColor ?? SELECTION_COLORS[fallbackIndex % SELECTION_COLORS.length];
+}
+
+export function buildDrawingCommentTarget(orderIndex: number, mentionColor?: string): CommentElementTarget {
   return {
     tagName: "drawing",
     selector: `retune-drawing:${orderIndex}`,
@@ -43,6 +59,7 @@ export function buildDrawingCommentTarget(orderIndex: number): CommentElementTar
     componentPath: [],
     classes: [],
     textContent: null,
+    ...(mentionColor ? { mentionColor } : {}),
   };
 }
 
@@ -62,23 +79,18 @@ export function buildDrawingTargetsFromPaths(
     (a, b) => drawnPathsInOrder.indexOf(a) - drawnPathsInOrder.indexOf(b),
   );
   return orderedPaths.map((path) =>
-    buildDrawingCommentTarget(getDrawingOrderIndex(path, drawnPathsInOrder)),
+    buildDrawingCommentTarget(
+      getDrawingOrderIndex(path, drawnPathsInOrder),
+      getDrawPathDisplayColor(path),
+    ),
   );
 }
 
-/** Picker draw selection, falling back to every path on the canvas when none are selected. */
+/** Picker draw selection — only selected paths become inline comment targets. */
 export function resolveActiveDrawPaths(
   selectedPaths: SVGPathElement[],
-  drawnPathsInOrder: SVGPathElement[],
 ): SVGPathElement[] {
-  return selectedPaths.length > 0 ? selectedPaths : drawnPathsInOrder;
-}
-
-/** All paths on the canvas — used when opening a comment from draw mode. */
-export function resolveDrawPathsForDrawModeComment(
-  drawnPathsInOrder: SVGPathElement[],
-): SVGPathElement[] {
-  return drawnPathsInOrder;
+  return selectedPaths;
 }
 
 export function areDraftElementTargetsEqual(
@@ -384,7 +396,7 @@ export function parseCommentTextIntoParts(
       type: "mention",
       mention: {
         name: matched.name,
-        color: SELECTION_COLORS[colorIndex % SELECTION_COLORS.length],
+        color: getMentionColorForTarget(matched.target, colorIndex),
         selector: matched.target.selector,
       },
     });

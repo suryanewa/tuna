@@ -54,7 +54,6 @@ import {
   buildDrawingTargetsFromPaths,
   getDrawingOrderIndex,
   resolveActiveDrawPaths,
-  resolveDrawPathsForDrawModeComment,
   scanContainedElements,
   areDraftElementTargetsEqual,
   syncDrawingTargetsInDraft,
@@ -916,10 +915,7 @@ function RetuneInner(props: RetuneConfig) {
   drawnPathAnchorsRef.current = drawnPathAnchors;
 
   const enrichCommentDraft = useCallback((draft: CommentDraft) => {
-    const drawingPaths = resolveActiveDrawPaths(
-      selectedDrawPathsRef.current,
-      drawnPathAnchorsRef.current,
-    );
+    const drawingPaths = resolveActiveDrawPaths(selectedDrawPathsRef.current);
     let enriched = syncDrawingTargetsInDraft(
       draft,
       drawingPaths,
@@ -3822,25 +3818,16 @@ function RetuneInner(props: RetuneConfig) {
     return { x: left, y: top, width: right - left, height: bottom - top };
   }, []);
 
-  const activeDrawPaths = useMemo(
-    () => selectedDrawPaths.length > 0 ? selectedDrawPaths : drawnPathAnchors,
-    [drawnPathAnchors, selectedDrawPaths],
-  );
+  const activeDrawPaths = useMemo(() => selectedDrawPaths, [selectedDrawPaths]);
 
   const handleDrawComment = useCallback(() => {
-    const pathsForComment = mode === "draw"
-      ? resolveDrawPathsForDrawModeComment(drawnPathAnchors)
-      : activeDrawPaths;
-    if (pathsForComment.length === 0) return;
+    if (selectedDrawPaths.length === 0) return;
 
+    const pathsForComment = selectedDrawPaths;
     const area = getDrawnPathBounds(pathsForComment);
     if (!area) return;
     const containedElements = scanContainedElements(area);
     const drawingTargets = buildDrawingTargetsFromPaths(pathsForComment, drawnPathAnchors);
-
-    // Sync selection state before opening the draft so enrich + mention props see every path.
-    selectedDrawPathsRef.current = pathsForComment;
-    setSelectedDrawPaths(pathsForComment);
 
     openDraftPopover();
     const draft = enrichCommentDraft({
@@ -3873,7 +3860,7 @@ function RetuneInner(props: RetuneConfig) {
     setEditPanelOpen(false);
     pickerRef.current?.setPropertyEditMode(false);
     pickerRef.current?.setChromeLayout(null);
-  }, [activeDrawPaths, drawnPathAnchors, enrichCommentDraft, getDrawnPathBounds, mode, openDraftPopover, setCommentDraft]);
+  }, [drawnPathAnchors, enrichCommentDraft, getDrawnPathBounds, openDraftPopover, selectedDrawPaths, setCommentDraft]);
 
   const handleCommentMentionsChange = useCallback((selectors: string[]) => {
     syncCommentDraftMentionsFromEditor(selectors);

@@ -13,7 +13,7 @@ import {
   orderTargetsBySelectors,
   parseCommentTextIntoParts,
 } from "./comment-draft";
-import { SELECTION_COLORS } from "../../ui/selection-colors";
+import { getMentionColorForTarget } from "./comment-draft";
 
 type DictationSnapshot = {
   text: string;
@@ -65,13 +65,23 @@ export function CommentPopover({
     if (elementInfo.selectedElements) {
       return elementInfo.selectedElements.slice(0, spanCount).map((target, idx) => ({
         name: getMentionName(target.tagName, target.componentName),
-        color: SELECTION_COLORS[idx % SELECTION_COLORS.length],
+        color: getMentionColorForTarget(target, idx),
         selector: target.selector,
       }));
     }
     return [{
       name: getMentionName(elementInfo.tagName, elementInfo.componentName),
-      color: SELECTION_COLORS[0],
+      color: getMentionColorForTarget(
+        {
+          tagName: elementInfo.tagName,
+          selector: primarySelector ?? "",
+          componentName: elementInfo.componentName,
+          classes: elementInfo.classes,
+          textContent: elementInfo.textContent,
+          mentionColor: elementInfo.selectedElements?.[0]?.mentionColor,
+        },
+        0,
+      ),
       selector: primarySelector ?? "",
     }];
   }, [contentParts, elementInfo, primarySelector, spanMentionCount]);
