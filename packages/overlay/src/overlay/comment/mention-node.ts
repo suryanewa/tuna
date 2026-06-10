@@ -35,7 +35,7 @@ export class MentionNode extends TextNode {
   }
 
   constructor(name: string, color: string, selector: string, key?: NodeKey) {
-    super(`@${name}`, key);
+    super(`@${name} `, key);
     this.__name = name;
     this.__color = color;
     this.__selector = selector;
@@ -78,6 +78,14 @@ export class MentionNode extends TextNode {
 
   getSelector(): string {
     return this.getLatest().__selector;
+  }
+
+  getName(): string {
+    return this.getLatest().__name;
+  }
+
+  getColor(): string {
+    return this.getLatest().__color;
   }
 }
 

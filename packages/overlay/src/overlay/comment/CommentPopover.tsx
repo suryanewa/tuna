@@ -1,5 +1,5 @@
 import { IconCrossMedium } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconCrossMedium";
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEventHandler } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEventHandler } from "react";
 import type { Comment } from "../../engine/comment-store";
 import { useCommentDictation } from "../use-comment-dictation";
 import { AudioWaveform } from "./AudioWaveform";
@@ -9,68 +9,106 @@ import {
   type CommentMention,
 } from "./CommentEditor";
 import {
+  cloneDoc,
+  createDocFromTargets,
+  docToLexicalParts,
+  docToPlainText,
+  docToUserText,
+  getDoc,
+  type CommentDoc,
+} from "./comment-doc";
+import {
   getCommentElementTargets,
-  getMentionName,
+  getMentionColorForTarget,
   getMentionNameForTarget,
-  orderTargetsBySelectors,
-  parseCommentTextIntoParts,
 } from "./comment-draft";
-import { getMentionColorForTarget } from "./comment-draft";
 
-type DictationSnapshot = {
-  text: string;
-  mentionSelectors: string[];
-};
+const DEFAULT_POPOVER_WIDTH = 360;
+const COLLAPSED_POPOVER_WIDTH = 320;
+// Fixed chrome around the editor in the collapsed pill: left/right padding (20),
+// close button (20), dictation pill (24), and the two 6px top-row gaps (12).
+const COLLAPSED_CHROME_PX = 76;
+const COLLAPSED_CONTENT_MAX_PX = COLLAPSED_POPOVER_WIDTH - COLLAPSED_CHROME_PX;
+const COLLAPSED_MEASURER_STYLE =
+  "position:absolute;left:-9999px;top:0;visibility:hidden;white-space:nowrap;font-size:13px;font-weight:400;line-height:1.4;letter-spacing:-0.005em;font-family:InterVariable,Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;";
+
+function collapsedContentWouldOverflow(text: string): boolean {
+  if (!text.trim() || typeof document === "undefined") return false;
+  const measurer = document.createElement("span");
+  measurer.textContent = text;
+  measurer.style.cssText = COLLAPSED_MEASURER_STYLE;
+  document.body.appendChild(measurer);
+  const contentWidth = measurer.offsetWidth;
+  measurer.remove();
+  return contentWidth > COLLAPSED_CONTENT_MAX_PX;
+}
 
 export function CommentPopover({
   position,
   initialText,
+  initialContent,
   onSubmit,
   onCancel,
   onDelete,
-  onTextChange,
-  onMentionsChange,
+  onDocChange,
   elementInfo,
   spanMentionCount,
   primarySelector,
 }: {
   position: { x: number; y: number };
   initialText: string;
-  onSubmit: (text: string) => void;
+  initialContent?: CommentDoc;
+  onSubmit: (doc: CommentDoc) => void;
   onCancel: () => void;
   onDelete?: () => void;
-  onTextChange?: (text: string) => void;
-  onMentionsChange?: (selectors: string[]) => void;
+  onDocChange?: (doc: CommentDoc) => void;
   elementInfo?: Comment["elementInfo"];
   /** Elements shown as colored @ spans before the input (frozen at draft open). */
   spanMentionCount?: number;
   /** Selector for single-element drafts without selectedElements. */
   primarySelector?: string;
 }) {
-  const [text, setText] = useState(initialText);
-  const [hasUserText, setHasUserText] = useState(!!initialText.trim());
+  const targets = useMemo(
+    () => getCommentElementTargets(elementInfo, primarySelector),
+    [elementInfo, primarySelector],
+  );
+
+  const seedDoc = useMemo((): CommentDoc => {
+    if (initialContent) return initialContent;
+    if (initialText.trim()) {
+      return getDoc({
+        text: initialText,
+        elementInfo,
+        selector: primarySelector,
+      } as Comment);
+    }
+    return createDocFromTargets(targets, spanMentionCount ?? 1, "");
+  }, [elementInfo, initialContent, initialText, primarySelector, spanMentionCount, targets]);
+
+  const [doc, setDoc] = useState<CommentDoc>(seedDoc);
+  const hasUserText = docToUserText(doc).trim().length > 0;
   const [dictationSeconds, setDictationSeconds] = useState(0);
   const editorRef = useRef<CommentEditorApi>(null);
-  const dictationSnapshotRef = useRef<DictationSnapshot>({ text: "", mentionSelectors: [] });
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const inputWrapRef = useRef<HTMLDivElement>(null);
+  const dictationSnapshotRef = useRef<CommentDoc>(cloneDoc(seedDoc));
   const isEdit = !!onDelete;
 
   const contentParts = useMemo(() => {
-    if (!isEdit || !elementInfo) return undefined;
-    const targets = getCommentElementTargets(elementInfo, primarySelector);
-    return parseCommentTextIntoParts(initialText, targets);
-  }, [elementInfo, initialText, isEdit, primarySelector]);
+    if (!isEdit) return undefined;
+    return docToLexicalParts(seedDoc);
+  }, [isEdit, seedDoc]);
 
   const mentions = useMemo<CommentMention[]>(() => {
     if (contentParts) return [];
     if (!elementInfo) return [];
     const spanCount = spanMentionCount ?? 1;
     if (elementInfo.selectedElements) {
-      const nextMentions = elementInfo.selectedElements.slice(0, spanCount).map((target, idx) => ({
+      return elementInfo.selectedElements.slice(0, spanCount).map((target, idx) => ({
         name: getMentionNameForTarget(target, elementInfo.selectedElements ?? []),
         color: getMentionColorForTarget(target, idx),
         selector: target.selector,
       }));
-      return nextMentions;
     }
     const target = {
       tagName: elementInfo.tagName,
@@ -88,12 +126,10 @@ export function CommentPopover({
     }];
   }, [contentParts, elementInfo, primarySelector, spanMentionCount]);
 
-  const handleEditorChange = useCallback((snapshot: { text: string; userText: string; mentionSelectors: string[] }) => {
-    setText(snapshot.text);
-    setHasUserText(snapshot.userText.trim().length > 0);
-    onTextChange?.(snapshot.text);
-    onMentionsChange?.(snapshot.mentionSelectors);
-  }, [onMentionsChange, onTextChange]);
+  const handleEditorChange = useCallback((nextDoc: CommentDoc) => {
+    setDoc(nextDoc);
+    onDocChange?.(nextDoc);
+  }, [onDocChange]);
 
   const handleDictationDelta = useCallback((spokenText: string) => {
     editorRef.current?.insertText(spokenText);
@@ -111,37 +147,24 @@ export function CommentPopover({
   } = useCommentDictation(handleDictationDelta);
 
   const handleStartDictation = useCallback(() => {
-    dictationSnapshotRef.current = {
-      text: editorRef.current?.getText() ?? "",
-      mentionSelectors: editorRef.current?.getMentions() ?? [],
-    };
+    dictationSnapshotRef.current = cloneDoc(editorRef.current?.getDoc() ?? doc);
     toggleDictation();
-  }, [toggleDictation]);
+  }, [doc, toggleDictation]);
 
   const handleCancelDictation = useCallback(() => {
     const snapshot = dictationSnapshotRef.current;
     cancelDictation();
-    const targets = getCommentElementTargets(elementInfo, primarySelector);
-    const orderedTargets = orderTargetsBySelectors(targets, snapshot.mentionSelectors);
-    const restoredParts = parseCommentTextIntoParts(snapshot.text, orderedTargets);
-    editorRef.current?.restoreContent(snapshot.text, orderedTargets);
-    onMentionsChange?.(snapshot.mentionSelectors);
-    onTextChange?.(snapshot.text);
-    const restoredUserText = restoredParts
-      .filter((part) => part.type === "text")
-      .map((part) => part.text)
-      .join("")
-      .trim();
-    setText(snapshot.text);
-    setHasUserText(restoredUserText.length > 0);
+    editorRef.current?.restoreDoc(snapshot);
+    setDoc(snapshot);
+    onDocChange?.(snapshot);
     editorRef.current?.focus();
-  }, [cancelDictation, elementInfo, onMentionsChange, onTextChange, primarySelector]);
+  }, [cancelDictation, onDocChange]);
 
   const handleSubmit = useCallback(() => {
-    const trimmed = text.trim();
+    const trimmed = docToPlainText(doc).trim();
     if (!trimmed) return;
-    onSubmit(trimmed);
-  }, [onSubmit, text]);
+    onSubmit(doc);
+  }, [doc, onSubmit]);
 
   const handleCancel = useCallback(() => {
     if (isDictating) {
@@ -182,9 +205,56 @@ export function CommentPopover({
         ? (isDictating ? "Stop recording" : "Record comment (Whisper)")
         : (isDictating ? "Stop dictation" : "Dictate comment"));
 
-  const popoverWidth = 360;
-  const isExpanded = hasUserText || isDictating;
-  const popoverHeight = isExpanded ? 76 : 40;
+  // Text that the collapsed pill must show before the user types: the mention
+  // chips (each rendered as "@name ") for a fresh draft, or the seeded content
+  // when editing an existing comment.
+  const collapsedContentText = useMemo(() => {
+    if (contentParts) {
+      return contentParts
+        .map((part) => (part.type === "mention" ? `@${part.mention.name} ` : part.text))
+        .join("");
+    }
+    return mentions.map((m) => `@${m.name} `).join("");
+  }, [contentParts, mentions]);
+
+  // When pre-selected elements are too wide to fit the collapsed pill on one
+  // line, open in the taller layout immediately. Text measurement gives a good
+  // first-render guess; a layout pass after Lexical seeds mention chips catches
+  // cases where fonts or chip layout differ from the hidden measurer.
+  const textOverflows = useMemo(
+    () => collapsedContentWouldOverflow(collapsedContentText),
+    [collapsedContentText],
+  );
+  const [domOverflows, setDomOverflows] = useState(false);
+  const [measuredHeight, setMeasuredHeight] = useState<number | null>(null);
+
+  useLayoutEffect(() => {
+    if (hasUserText || isDictating || textOverflows) {
+      setDomOverflows(false);
+      return;
+    }
+    const editor = popoverRef.current?.querySelector(".retune-comment-editor");
+    if (!(editor instanceof HTMLElement)) {
+      setDomOverflows(false);
+      return;
+    }
+    // Collapsed layout uses a single short row; chips can wrap or clip vertically
+    // even when scrollWidth matches clientWidth.
+    const overflows = editor.scrollWidth > editor.clientWidth + 1
+      || editor.scrollHeight > editor.clientHeight + 1;
+    setDomOverflows(overflows);
+  }, [collapsedContentText, hasUserText, isDictating, mentions, textOverflows]);
+
+  const popoverWidth = DEFAULT_POPOVER_WIDTH;
+  const isExpanded = hasUserText || isDictating || textOverflows || domOverflows;
+
+  useLayoutEffect(() => {
+    const el = popoverRef.current;
+    if (!el) return;
+    setMeasuredHeight(el.offsetHeight);
+  }, [isExpanded, collapsedContentText, hasUserText, isDictating, mentions, doc]);
+
+  const popoverHeight = measuredHeight ?? (isExpanded ? 76 : 40);
   const vw = window.innerWidth;
   const vh = window.innerHeight;
 
@@ -205,11 +275,15 @@ export function CommentPopover({
     position: "fixed",
     left,
     top,
+    width: popoverWidth,
     zIndex: 2147483647,
   };
 
+  const plainText = docToPlainText(doc);
+
   return (
     <div
+      ref={popoverRef}
       className={`retune-comment-popover${isExpanded ? " has-content" : ""}`}
       style={style}
       onPointerDownCapture={(e) => e.stopPropagation()}
@@ -232,14 +306,26 @@ export function CommentPopover({
           <IconCrossMedium size={14} />
         </button>
         <div
+          ref={inputWrapRef}
           className="retune-comment-input-wrap"
-          onPointerDown={() => editorRef.current?.focus()}
+          onPointerDown={(e) => {
+            editorRef.current?.focus();
+            const target = e.target instanceof HTMLElement
+              ? e.target
+              : e.target instanceof Text
+                ? e.target.parentElement
+                : null;
+            if (!target?.closest(".retune-comment-editor")) {
+              editorRef.current?.placeSelectionAtPoint(e.clientX, e.clientY);
+            }
+          }}
         >
           <CommentEditor
             ref={editorRef}
             initialText={initialText}
             mentions={mentions}
             contentParts={contentParts}
+            targets={targets}
             onChange={handleEditorChange}
             onSubmit={handleSubmit}
             onCancel={handleCancel}
@@ -257,6 +343,7 @@ export function CommentPopover({
                 e.stopPropagation();
                 if (isDictating) {
                   confirmDictation();
+                  requestAnimationFrame(() => editorRef.current?.focus());
                 } else {
                   handleStartDictation();
                 }
@@ -321,6 +408,7 @@ export function CommentPopover({
                     e.preventDefault();
                     e.stopPropagation();
                     confirmDictation();
+                    requestAnimationFrame(() => editorRef.current?.focus());
                   }}
                   title="Confirm dictation"
                 >
@@ -338,6 +426,7 @@ export function CommentPopover({
                     e.stopPropagation();
                     if (isDictating) {
                       confirmDictation();
+                      requestAnimationFrame(() => editorRef.current?.focus());
                     } else {
                       handleStartDictation();
                     }
@@ -347,7 +436,7 @@ export function CommentPopover({
                 <button
                   className="retune-comment-circular-btn send"
                   onPointerUp={handleSubmit}
-                  disabled={!text.trim()}
+                  disabled={!plainText.trim()}
                   title="Send comment"
                 >
                   <SendIcon />

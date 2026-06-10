@@ -14,6 +14,7 @@ import {
   supportsLiveMentionEditing,
   type CommentDraft,
 } from "./comment-draft";
+import { docToMentionSelectors, docToPlainText, type CommentDoc } from "./comment-doc";
 
 function colorByElementFromMeta(meta?: SelectEventMeta): Map<Element, string> {
   const colors = new Map<Element, string>();
@@ -94,8 +95,8 @@ export function useCommentMode({
   const modeRef = useRef(mode);
   modeRef.current = mode;
 
-  const setPopoverText = useCallback((text: string) => {
-    popoverTextRef.current = text;
+  const setPopoverDoc = useCallback((doc: CommentDoc) => {
+    popoverTextRef.current = docToPlainText(doc);
   }, []);
 
   const openDraftPopover = useCallback((initialText = "") => {
@@ -209,10 +210,11 @@ export function useCommentMode({
     );
   }, [pickerRef, selectedElementRef, selectedElementsRef, setSelectedElement, setSelectedElements]);
 
-  const syncCommentDraftMentionsFromEditor = useCallback((selectors: string[]) => {
+  const syncCommentDraftFromDoc = useCallback((doc: CommentDoc) => {
     const draft = commentDraftRef.current;
     if (!draft || !popoverOpenRef.current) return;
 
+    const selectors = docToMentionSelectors(doc);
     const existing = getDraftElementTargets(draft);
     const selectorSet = new Set(selectors);
     const remainingTargets = existing.filter((target) => selectorSet.has(target.selector));
@@ -510,7 +512,7 @@ export function useCommentMode({
     commentDraft,
     setCommentDraft,
     popoverOpenRef,
-    setPopoverText,
+    setPopoverDoc,
     openDraftPopover,
     openExistingComment,
     closeExistingComment,
@@ -519,7 +521,7 @@ export function useCommentMode({
     shouldBlockForPopoverRef,
     handleSelectionComment,
     handleCommentSelect,
-    syncCommentDraftMentionsFromEditor,
+    syncCommentDraftFromDoc,
     getDraftElementTargets: getCurrentDraftElementTargets,
   };
 }

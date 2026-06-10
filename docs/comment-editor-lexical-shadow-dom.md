@@ -181,6 +181,7 @@ root.addEventListener("beforeinput", (e) => {
 - Treat Shadow DOM text input as **fully controlled** — do not rely on Lexical's default DOM listener chain alone
 - Always call `preventDefault()` + `stopImmediatePropagation()` after handling, or native and Lexical paths will race
 - Test with slow, deliberate typing — race conditions are easier to miss with fast input
+- On `insertText`, trust Lexical selection when already collapsed in an editable text node. Unconditional `$applyDomSelectionToLexical` before every keystroke re-introduces Shadow DOM selection desync and causes typing-at-end regressions after pointer-based caret placement.
 
 ---
 
@@ -455,6 +456,7 @@ These were not required for the fix but would reduce fragility:
 ## Related Reading
 
 - [Overlay Comment Mode: Session Postmortem](./overlay-comment-mode-postmortem.md) — code quality pass, mention reinsert bug (Issue 9), mixed element/drawing sync (Issue 10), dashed outline suppression (Issue 11), draft/editor/picker state ownership
+- [Comment Editor: Mention Delete & Live Editing](./comment-editor-mention-delete-and-live-editing.md) — wrong mention on Backspace/Delete (Issue 12), live shift/alt editing (Issue 13), mention titles/colors (Issues 14–15), typecheck CI (`cf764cd`)
 - [Lexical TextNode token mode](https://lexical.dev/docs/concepts/nodes#textnode)
 - [You Might Not Need an Effect](https://react.dev/learn/you-might-not-need-an-effect) — editor state should be mutated in event handlers, not synced via Effects
 - Retune comment architecture: `packages/overlay/src/overlay/comment/comment-draft.ts` (serialization of inline mentions)

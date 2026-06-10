@@ -388,7 +388,11 @@ function findNextMentionStart(
   return text.length;
 }
 
-/** Reconstruct editor content from persisted comment text and element targets. */
+/**
+ * Legacy migration helper: reconstruct parts from plain text + targets.
+ * Prefer `getDoc(comment)` / `commentToDoc` for runtime reads — do not use
+ * outside the comment-doc migration layer and tests.
+ */
 export function parseCommentTextIntoParts(
   text: string,
   targets: CommentElementTarget[],

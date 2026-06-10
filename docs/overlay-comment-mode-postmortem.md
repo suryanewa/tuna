@@ -4,6 +4,8 @@ This document records **all issues encountered during the comment-editor work se
 
 It complements the deeper Lexical-specific guide: [Comment Editor: Lexical + Shadow DOM](./comment-editor-lexical-shadow-dom.md).
 
+**Later session (June 2026):** [Comment Editor: Mention Delete & Live Editing](./comment-editor-mention-delete-and-live-editing.md) — wrong mention on Backspace/Delete, live shift/alt editing, mention titles/colors, typecheck CI (`cf764cd`).
+
 **Primary commits:**
 
 | Commit | Summary |

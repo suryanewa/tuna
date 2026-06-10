@@ -52,6 +52,7 @@ import { BoxModelOverlay, type BoxModelProperty } from "../ui/box-model-overlay"
 import { SelectionActionBar } from "../ui/selection-action-bar";
 import {
   buildDrawingTargetsFromPaths,
+  getCommentElementTargets,
   getDrawingOrderIndex,
   resolveActiveDrawPaths,
   scanContainedElements,
@@ -60,6 +61,7 @@ import {
   syncElementTargetsInDraft,
   type CommentDraft,
 } from "./comment/comment-draft";
+import { docToMentionSelectors, docToTargets, type CommentDoc } from "./comment/comment-doc";
 import { CommentPopover as NewCommentPopover } from "./comment/CommentPopover";
 import { useCommentMode } from "./comment/use-comment-mode";
 import { AnimatedPanel } from "./AnimatedPanel";
@@ -366,7 +368,7 @@ function RetuneInner(props: RetuneConfig) {
     commentDraft,
     setCommentDraft,
     popoverOpenRef,
-    setPopoverText,
+    setPopoverDoc,
     openDraftPopover,
     openExistingComment,
     closeExistingComment,
@@ -374,7 +376,7 @@ function RetuneInner(props: RetuneConfig) {
     shouldBlockForPopoverRef,
     handleSelectionComment,
     handleCommentSelect,
-    syncCommentDraftMentionsFromEditor,
+    syncCommentDraftFromDoc,
   } = useCommentMode({
     active,
     mode,
@@ -3242,14 +3244,16 @@ function RetuneInner(props: RetuneConfig) {
     pickerRef.current?.setChromeLayout(null);
   }, [drawnPathAnchors, enrichCommentDraft, getDrawnPathBounds, openDraftPopover, selectedDrawPaths, setCommentDraft]);
 
-  const handleCommentMentionsChange = useCallback((selectors: string[]) => {
-    syncCommentDraftMentionsFromEditor(selectors);
+  const handleCommentDocChange = useCallback((doc: CommentDoc) => {
+    setPopoverDoc(doc);
+    syncCommentDraftFromDoc(doc);
+    const selectors = docToMentionSelectors(doc);
     const drawingSelectors = new Set(selectors.filter((selector) => selector.startsWith("retune-drawing:")));
     const remainingPaths = drawnPathAnchors.filter((path) =>
       drawingSelectors.has(`retune-drawing:${getDrawingOrderIndex(path, drawnPathAnchors)}`),
     );
     pickerRef.current?.selectDrawPaths(remainingPaths);
-  }, [drawnPathAnchors, syncCommentDraftMentionsFromEditor]);
+  }, [drawnPathAnchors, setPopoverDoc, syncCommentDraftFromDoc]);
 
   useEffect(() => {
     if (!commentDraft || activeCommentId) return;
@@ -3862,16 +3866,24 @@ function RetuneInner(props: RetuneConfig) {
           elementInfo={commentDraft.elementInfo}
           spanMentionCount={commentDraft.spanMentionCount}
           primarySelector={commentDraft.selector}
-          onTextChange={setPopoverText}
-          onMentionsChange={handleCommentMentionsChange}
-          onSubmit={(text) => {
+          onDocChange={handleCommentDocChange}
+          onSubmit={(doc) => {
             const store = commentStoreRef.current;
-            store.add(text, commentDraft.position, commentDraft.type, {
+            const draftInfo = commentDraft.elementInfo;
+            const existingTargets = getCommentElementTargets(draftInfo, commentDraft.selector);
+            store.addWithDoc(doc, commentDraft.position, commentDraft.type, {
               selector: commentDraft.selector,
               anchorOffset: commentDraft.anchorOffset,
               area: commentDraft.area,
               areaScroll: commentDraft.areaScroll,
-              elementInfo: commentDraft.elementInfo,
+              ...(draftInfo
+                ? {
+                    elementInfo: {
+                      ...draftInfo,
+                      selectedElements: docToTargets(doc, existingTargets),
+                    },
+                  }
+                : {}),
             });
             syncCommentState();
             dismissCommentDraft();
@@ -3888,11 +3900,17 @@ function RetuneInner(props: RetuneConfig) {
           <NewCommentPopover
             position={c.position}
             initialText={c.text}
+            initialContent={c.content}
             elementInfo={c.elementInfo}
             primarySelector={c.selector}
-            onTextChange={setPopoverText}
-            onSubmit={(text) => {
-              commentStoreRef.current.update(activeCommentId, text);
+            onDocChange={setPopoverDoc}
+            onSubmit={(doc) => {
+              const existingTargets = getCommentElementTargets(c.elementInfo, c.selector);
+              commentStoreRef.current.updateContent(
+                activeCommentId,
+                doc,
+                docToTargets(doc, existingTargets),
+              );
               syncCommentState();
               closeExistingComment();
             }}

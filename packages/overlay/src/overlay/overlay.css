@@ -3429,6 +3429,30 @@ input, textarea, [contenteditable] {
   align-items: flex-start;
   width: 100%;
 }
+.retune-comment-popover.has-content .retune-comment-input-wrap {
+  overflow: visible;
+  align-items: flex-start;
+}
+.retune-comment-popover.has-content .retune-comment-editor {
+  overflow: visible;
+  height: auto;
+  min-height: 1.4em;
+}
+/* Lexical token mentions stay nowrap; flex-wrap on the paragraph forces chips
+   onto new lines instead of clipping at the popover edge. */
+.retune-comment-popover.has-content .retune-comment-editor p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  row-gap: 2px;
+  margin: 0;
+}
+.retune-comment-popover.has-content .retune-comment-mention {
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .retune-comment-close {
   width: 20px;
   height: 20px;
@@ -3596,6 +3620,8 @@ input, textarea, [contenteditable] {
   font-weight: 400;
   line-height: 1.4;
   white-space: nowrap;
+  user-select: text;
+  -webkit-user-select: text;
 }
 .retune-comment-pill-actions {
   display: flex;

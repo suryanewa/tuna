@@ -6,6 +6,9 @@
  * AI agents alongside (or instead of) property diffs.
  */
 
+import type { CommentDoc } from "../overlay/comment/comment-doc";
+import { docToPlainText, migrateCommentIfNeeded } from "../overlay/comment/comment-doc";
+
 // ── Types ──
 
 export interface CommentElementTarget {
@@ -24,6 +27,8 @@ export interface CommentElementTarget {
 export interface Comment {
   id: number;
   text: string;
+  /** Canonical structured content; plain text is a derived projection. */
+  content?: CommentDoc;
   /** Marker position (where the user clicked / drag ended) */
   position: { x: number; y: number };
   type: "element" | "area";
@@ -78,11 +83,14 @@ export class CommentStore {
       area?: { x: number; y: number; width: number; height: number };
       areaScroll?: { x: number; y: number };
       elementInfo?: Comment["elementInfo"];
+      content?: CommentDoc;
     },
   ): Comment {
+    const content = opts?.content;
     const comment: Comment = {
       id: this.nextId++,
-      text,
+      text: content ? docToPlainText(content) : text,
+      content,
       position,
       type,
       selector: opts?.selector,
@@ -97,11 +105,60 @@ export class CommentStore {
     return comment;
   }
 
+  /** Add a comment using canonical doc content (dual-writes derived text). */
+  addWithDoc(
+    content: CommentDoc,
+    position: { x: number; y: number },
+    type: "element" | "area",
+    opts?: {
+      selector?: string;
+      anchorOffset?: { x: number; y: number };
+      area?: { x: number; y: number; width: number; height: number };
+      areaScroll?: { x: number; y: number };
+      elementInfo?: Comment["elementInfo"];
+    },
+  ): Comment {
+    return this.add(docToPlainText(content), position, type, { ...opts, content });
+  }
+
   /** Update an existing comment's text. */
   update(id: number, text: string): boolean {
     const comment = this.comments.get(id);
     if (!comment) return false;
     comment.text = text;
+    comment.timestamp = Date.now();
+    this.persist();
+    return true;
+  }
+
+  /** Atomically update canonical content, derived text, and mention targets. */
+  updateContent(
+    id: number,
+    content: CommentDoc,
+    selectedElements: CommentElementTarget[],
+  ): boolean {
+    const comment = this.comments.get(id);
+    if (!comment) return false;
+    comment.content = content;
+    comment.text = docToPlainText(content);
+    if (comment.elementInfo) {
+      comment.elementInfo = {
+        ...comment.elementInfo,
+        selectedElements,
+      };
+    } else if (selectedElements.length > 0) {
+      const primary = selectedElements.find((target) => target.tagName !== "drawing") ?? selectedElements[0];
+      comment.elementInfo = {
+        tagName: primary.tagName,
+        componentName: primary.componentName,
+        componentPath: primary.componentPath ?? [],
+        classes: primary.classes,
+        textContent: primary.textContent,
+        source: primary.source,
+        domPath: primary.domPath,
+        selectedElements,
+      };
+    }
     comment.timestamp = Date.now();
     this.persist();
     return true;
@@ -174,10 +231,14 @@ export class CommentStore {
       const data = JSON.parse(raw);
       if (!data.comments || !Array.isArray(data.comments)) return false;
       this.comments.clear();
+      let migrated = false;
       for (const c of data.comments) {
-        this.comments.set(c.id, c);
+        const comment = migrateCommentIfNeeded(c as Comment);
+        if (comment.content && !(c as Comment).content) migrated = true;
+        this.comments.set(comment.id, comment);
       }
       this.nextId = data.nextId || this.comments.size + 1;
+      if (migrated) this.persist();
       return true;
     } catch {
       return false;
