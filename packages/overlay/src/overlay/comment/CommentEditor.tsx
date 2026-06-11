@@ -6,7 +6,9 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
+  useState,
   type MutableRefObject,
+  type RefObject,
 } from "react";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
@@ -17,6 +19,7 @@ import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext
 import {
   $createParagraphNode,
   $createTextNode,
+  $getNodeByKey,
   $getRoot,
   $getSelection,
   $insertNodes,
@@ -59,6 +62,10 @@ let latestCaretAfterMentionSelector: string | null = null;
 let latestCaretAfterMentionOffset = 0;
 let suppressMentionDeleteUntilFreshInput = false;
 let shouldSyncDomSelectionOnNextInput = false;
+let skipDomSelectionSyncOnNextInput = false;
+/** Keeps DOM caret at row-margin placement until the user types or moves the caret. */
+let pendingRowMarginPointer: { x: number; y: number } | null = null;
+let reinforcingMarginCaret = false;
 let latestEditorPointerForInput: { x: number; y: number } | null = null;
 let latestEditorPointerDown: { x: number; y: number } | null = null;
 const CARET_ANCHOR_TEXT = "\u200b";
@@ -71,6 +78,34 @@ const CARET_NAV_KEYS = new Set([
   "Home",
   "End",
 ]);
+/** Hides the native caret while the margin overlay is shown for wrapped line ends. */
+const MARGIN_CUSTOM_CARET_ACTIVE_CLASS = "retune-margin-custom-caret-active";
+
+type MarginCaretOverlayRect = {
+  left: number;
+  top: number;
+  height: number;
+};
+
+type MarginCaretListener = (rect: MarginCaretOverlayRect | null) => void;
+
+let marginCaretListener: MarginCaretListener | null = null;
+
+function subscribeMarginCaret(listener: MarginCaretListener): () => void {
+  marginCaretListener = listener;
+  return () => {
+    if (marginCaretListener === listener) marginCaretListener = null;
+  };
+}
+
+function setMarginCaretOverlay(rect: MarginCaretOverlayRect | null): void {
+  marginCaretListener?.(rect);
+}
+
+function clearMarginCustomCaret(editor: LexicalEditor): void {
+  editor.getRootElement()?.classList.remove(MARGIN_CUSTOM_CARET_ACTIVE_CLASS);
+  setMarginCaretOverlay(null);
+}
 
 function getEditorPlainText(root: HTMLElement): string {
   return (root.textContent ?? "").replace(/\u200b/g, "");
@@ -250,15 +285,39 @@ function getTextOffsetAtClientX(textNode: Text, x: number): number {
   return low;
 }
 
-function $setSelectionAtTextNodeX(
+function getTextOffsetAtClientPoint(
+  rootEl: HTMLElement,
+  textNode: Text,
+  x: number,
+  y: number,
+): number | null {
+  const range = getCaretRangeFromPoint(rootEl, x, y);
+  if (!range) return null;
+  if (range.startContainer === textNode) {
+    return Math.max(0, Math.min(range.startOffset, textNode.textContent?.length ?? 0));
+  }
+  if (textNode.contains(range.startContainer)) {
+    const resolved = resolveDomTextPoint(range.startContainer, range.startOffset);
+    if (resolved?.textNode === textNode) {
+      return Math.max(0, Math.min(resolved.offset, textNode.textContent?.length ?? 0));
+    }
+  }
+  return null;
+}
+
+function $setSelectionAtTextNodePoint(
   editor: LexicalEditor,
+  rootEl: HTMLElement,
   lexicalTextNode: TextNode,
   x: number,
+  y: number,
 ): boolean {
   const element = editor.getElementByKey(lexicalTextNode.getKey());
   if (!element) return false;
   const domText = getDOMTextNodeFromElement(element);
-  const offset = domText ? getTextOffsetAtClientX(domText, x) : 0;
+  if (!domText) return false;
+  const pointOffset = getTextOffsetAtClientPoint(rootEl, domText, x, y);
+  const offset = pointOffset ?? getTextOffsetAtClientX(domText, x);
   const clamped = Math.max(0, Math.min(offset, lexicalTextNode.getTextContent().length));
   const sel = $createRangeSelection();
   sel.anchor.set(lexicalTextNode.getKey(), clamped, "text");
@@ -275,7 +334,7 @@ function elementFromClientPoint(rootEl: HTMLElement, x: number, y: number): Elem
   return hit instanceof Element ? hit : null;
 }
 
-function $placeSelectionOnHitTextNode(
+function $placeSelectionOnMentionEdgeHit(
   editor: LexicalEditor,
   rootEl: HTMLElement,
   x: number,
@@ -284,24 +343,14 @@ function $placeSelectionOnHitTextNode(
   const hit = elementFromClientPoint(rootEl, x, y);
   if (!hit || !nodeWithinEditorRoot(rootEl, hit)) return false;
   const mentionHit = hit.closest<HTMLElement>("[data-mention-selector]");
-  if (mentionHit?.dataset.mentionSelector) {
-    const mention = findMentionNodeBySelector(mentionHit.dataset.mentionSelector);
-    const rect = mentionHit.getBoundingClientRect();
-    if (mention && shouldPlaceCaretBeforeMention(rect, x)) {
-      return $placeCaretBeforeMention(editor, mention, x, rect);
-    }
-    if (mention && shouldPlaceCaretAfterMention(rect, x)) {
-      return $placeCaretAfterMention(editor, mention, x, rect);
-    }
-    return false;
+  if (!mentionHit?.dataset.mentionSelector) return false;
+  const mention = findMentionNodeBySelector(mentionHit.dataset.mentionSelector);
+  const rect = mentionHit.getBoundingClientRect();
+  if (mention && shouldPlaceCaretBeforeMention(rect, x)) {
+    return $placeCaretBeforeMention(editor, mention, x, rect);
   }
-  for (const lexicalNode of rootTextNodes()) {
-    if ($isMentionNode(lexicalNode)) continue;
-    const element = editor.getElementByKey(lexicalNode.getKey());
-    if (!element) continue;
-    if (element === hit || element.contains(hit)) {
-      return $setSelectionAtTextNodeX(editor, lexicalNode, x);
-    }
+  if (mention && shouldPlaceCaretAfterMention(rect, x)) {
+    return $placeCaretAfterMention(editor, mention, x, rect);
   }
   return false;
 }
@@ -317,13 +366,22 @@ function $setLexicalSelectionFromDomRange(editor: LexicalEditor, range: Range): 
   return true;
 }
 
+function isHitOnEditableText(hit: Element): boolean {
+  if (hit.closest("[data-mention-selector]")) return false;
+  const textEl = hit.closest("[data-lexical-text]");
+  return textEl != null && !textEl.closest("[data-mention-selector]");
+}
+
 function $placeSelectionFromPointerGeometry(
   editor: LexicalEditor,
   rootEl: HTMLElement,
   x: number,
   y: number,
 ): boolean {
-  const nearMentions = getMentionElementsNearPoint(rootEl, x, y);
+  const hit = elementFromClientPoint(rootEl, x, y);
+  if (hit && isHitOnEditableText(hit)) return false;
+
+  const nearMentions = getMentionElementsOnRow(rootEl, editor, x, y);
 
   // Before-mention placement wins in tight gaps between adjacent chips.
   for (const mentionEl of nearMentions) {
@@ -376,7 +434,7 @@ function $overrideDomCaretNearMention(
   x: number,
   y: number,
 ): boolean {
-  const nearMentions = getMentionElementsNearPoint(rootEl, x, y);
+  const nearMentions = getMentionElementsOnRow(rootEl, editor, x, y);
 
   for (const mentionEl of nearMentions) {
     const selector = mentionEl.dataset.mentionSelector;
@@ -401,60 +459,570 @@ function $overrideDomCaretNearMention(
   return false;
 }
 
-function $placeSelectionAtCoordinates(
+/** Vertical slack for matching a click to a visual line rect (inter-line gaps, subpixel bottoms). */
+const ROW_Y_TOLERANCE_PX = 6;
+/** Subpixel slack so x ≈ rect.right still counts as trailing margin. */
+const ROW_TRAILING_EDGE_SLOP_PX = 8;
+const ROW_LEADING_EDGE_SLOP_PX = 2;
+
+function verticalDistanceToLineRect(y: number, rect: DOMRect): number {
+  if (y < rect.top) return rect.top - y;
+  if (y > rect.bottom) return y - rect.bottom;
+  return 0;
+}
+
+/** Clicks deep in the blank past a short row may sit on a lower row's y band. */
+function trailingVerticalTolerance(x: number, rect: DOMRect): number {
+  const marginPast = Math.max(0, x - rect.right);
+  return ROW_Y_TOLERANCE_PX + Math.min(16, Math.floor(marginPast / 16));
+}
+
+type RowGeometryItem =
+  | { kind: "mention"; rect: DOMRect; selector: string }
+  | { kind: "text"; rect: DOMRect; element: HTMLElement };
+
+type RowContentItem =
+  | { kind: "mention"; rect: DOMRect; mention: MentionNode }
+  | { kind: "text"; rect: DOMRect; textNode: TextNode };
+
+function collectLineRectsForTextElement(element: HTMLElement): DOMRect[] {
+  const domText = getDOMTextNodeFromElement(element);
+  if (!domText) return [element.getBoundingClientRect()];
+  const range = domText.ownerDocument.createRange();
+  range.selectNodeContents(domText);
+  const rects = Array.from(range.getClientRects()).filter((rect) => rect.width > 0 || rect.height > 0);
+  return rects.length > 0 ? rects : [element.getBoundingClientRect()];
+}
+
+function collectRowGeometryItems(rootEl: HTMLElement): RowGeometryItem[] {
+  const items: RowGeometryItem[] = [];
+  for (const mentionEl of rootEl.querySelectorAll<HTMLElement>("[data-mention-selector]")) {
+    const selector = mentionEl.dataset.mentionSelector;
+    if (!selector) continue;
+    items.push({ kind: "mention", rect: mentionEl.getBoundingClientRect(), selector });
+  }
+  for (const element of rootEl.querySelectorAll<HTMLElement>("[data-lexical-text]")) {
+    if (element.closest("[data-mention-selector]")) continue;
+    for (const rect of collectLineRectsForTextElement(element)) {
+      items.push({ kind: "text", rect, element });
+    }
+  }
+  return items;
+}
+
+function collectRowContentItems(
+  rootEl: HTMLElement,
+  editor: LexicalEditor,
+): RowContentItem[] {
+  const items: RowContentItem[] = [];
+  for (const mentionEl of rootEl.querySelectorAll<HTMLElement>("[data-mention-selector]")) {
+    const selector = mentionEl.dataset.mentionSelector;
+    if (!selector) continue;
+    const mention = findMentionNodeBySelector(selector);
+    if (!mention) continue;
+    items.push({ kind: "mention", rect: mentionEl.getBoundingClientRect(), mention });
+  }
+  for (const lexicalNode of rootTextNodes()) {
+    if ($isMentionNode(lexicalNode)) continue;
+    const element = editor.getElementByKey(lexicalNode.getKey());
+    if (!element) continue;
+    for (const rect of collectLineRectsForTextElement(element)) {
+      items.push({ kind: "text", rect, textNode: lexicalNode });
+    }
+  }
+  return items;
+}
+
+function resolveRowGeometryTarget(
+  editor: LexicalEditor,
+  target: RowGeometryItem,
+): RowContentItem | null {
+  if (target.kind === "mention") {
+    const mention = findMentionNodeBySelector(target.selector);
+    if (!mention) return null;
+    return { kind: "mention", rect: target.rect, mention };
+  }
+  for (const lexicalNode of rootTextNodes()) {
+    if ($isMentionNode(lexicalNode)) continue;
+    const element = editor.getElementByKey(lexicalNode.getKey());
+    if (element === target.element) {
+      return { kind: "text", rect: target.rect, textNode: lexicalNode };
+    }
+  }
+  return null;
+}
+
+function caretRectMatchesLineBand(rect: DOMRect, lineRect: DOMRect): boolean {
+  return Math.abs(rect.top - lineRect.top) <= ROW_Y_TOLERANCE_PX
+    && rect.bottom <= lineRect.bottom + ROW_Y_TOLERANCE_PX;
+}
+
+function getTextOffsetAtLineStartForRect(domText: Text, lineRect: DOMRect): number {
+  const text = domText.textContent ?? "";
+  const range = domText.ownerDocument.createRange();
+  let best: number | null = null;
+  for (let offset = 0; offset <= text.length; offset += 1) {
+    range.setStart(domText, offset);
+    range.collapse(true);
+    for (const rect of range.getClientRects()) {
+      if (caretRectMatchesLineBand(rect, lineRect) && (best == null || offset < best)) {
+        best = offset;
+      }
+    }
+  }
+  return best ?? 0;
+}
+
+function getLastCharacterIndexOnLineRect(domText: Text, lineRect: DOMRect): number | null {
+  const text = domText.textContent ?? "";
+  const range = domText.ownerDocument.createRange();
+  let lastIndex: number | null = null;
+  let lastRight = -Infinity;
+  for (let index = 0; index < text.length; index += 1) {
+    range.setStart(domText, index);
+    range.setEnd(domText, index + 1);
+    for (const rect of range.getClientRects()) {
+      if (caretRectMatchesLineBand(rect, lineRect) && rect.right >= lastRight) {
+        lastRight = rect.right;
+        lastIndex = index;
+      }
+    }
+  }
+  return lastIndex;
+}
+
+function characterIndexMatchesLineRect(domText: Text, index: number, lineRect: DOMRect): boolean {
+  if (index < 0 || index >= (domText.textContent?.length ?? 0)) return false;
+  const range = domText.ownerDocument.createRange();
+  range.setStart(domText, index);
+  range.setEnd(domText, index + 1);
+  for (const rect of range.getClientRects()) {
+    if (caretRectMatchesLineBand(rect, lineRect)) return true;
+  }
+  return false;
+}
+
+function collapsedRangeMatchesLineRect(range: Range, lineRect: DOMRect): boolean {
+  const rect = range.getBoundingClientRect();
+  if (rect.width === 0 && rect.height === 0 && rect.left === 0 && rect.top === 0) {
+    return false;
+  }
+  return caretRectMatchesLineBand(rect, lineRect) && rect.top < lineRect.bottom - 1;
+}
+
+function collapsedCaretMatchesLineRect(domText: Text, offset: number, lineRect: DOMRect): boolean {
+  const range = domText.ownerDocument.createRange();
+  range.setStart(domText, offset);
+  range.collapse(true);
+  for (const rect of range.getClientRects()) {
+    if (caretRectMatchesLineBand(rect, lineRect) && rect.top < lineRect.bottom - 1) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Lexical insert point: after the last glyph on the target visual line. */
+function getLexicalOffsetAtLineEndForRect(domText: Text, lineRect: DOMRect): number {
+  const lastCharIndex = getLastCharacterIndexOnLineRect(domText, lineRect);
+  if (lastCharIndex == null) {
+    return getTextOffsetAtLineStartForRect(domText, lineRect);
+  }
+  return lastCharIndex + 1;
+}
+
+function getLastGlyphRectOnLine(
+  domText: Text,
+  lastCharIndex: number,
+  lexicalOffset: number,
+  lineRect: DOMRect,
+): DOMRect | null {
+  const charRange = domText.ownerDocument.createRange();
+  charRange.setStart(domText, lastCharIndex);
+  charRange.setEnd(domText, lexicalOffset);
+  const glyphRects = Array.from(charRange.getClientRects()).filter((rect) => rect.width > 0 || rect.height > 0);
+  return glyphRects.find((rect) => caretRectMatchesLineBand(rect, lineRect))
+    ?? glyphRects[glyphRects.length - 1]
+    ?? null;
+}
+
+function textLineEndNeedsCustomCaret(domText: Text, lineRect: DOMRect): boolean {
+  const lastCharIndex = getLastCharacterIndexOnLineRect(domText, lineRect);
+  if (lastCharIndex == null) return false;
+  const lexicalOffset = lastCharIndex + 1;
+  const text = domText.textContent ?? "";
+  return lexicalOffset < text.length
+    && !characterIndexMatchesLineRect(domText, lexicalOffset, lineRect);
+}
+
+function computeMarginCaretOverlayRect(
+  editor: LexicalEditor,
+  shellEl: HTMLElement,
+  textNode: TextNode,
+  lineRect: DOMRect,
+): MarginCaretOverlayRect | null {
+  const element = editor.getElementByKey(textNode.getKey());
+  if (!element) return null;
+  const domText = getDOMTextNodeFromElement(element);
+  if (!domText) return null;
+
+  const shellRect = shellEl.getBoundingClientRect();
+  const lastCharIndex = getLastCharacterIndexOnLineRect(domText, lineRect);
+  let clientLeft = lineRect.right;
+  let clientTop = lineRect.top;
+  let height = lineRect.height;
+
+  if (lastCharIndex != null) {
+    const lexicalOffset = lastCharIndex + 1;
+    const glyphRect = getLastGlyphRectOnLine(domText, lastCharIndex, lexicalOffset, lineRect);
+    if (glyphRect) {
+      clientLeft = glyphRect.right;
+      clientTop = glyphRect.top;
+      height = glyphRect.height;
+    }
+  }
+
+  return {
+    left: clientLeft - shellRect.left,
+    top: clientTop - shellRect.top,
+    height,
+  };
+}
+
+function applyTrailingMarginCaret(
+  editor: LexicalEditor,
+  shellEl: HTMLElement,
+  textNode: TextNode,
+  lineRect: DOMRect,
+): void {
+  const root = editor.getRootElement();
+  const element = editor.getElementByKey(textNode.getKey());
+  if (!root || !element) return;
+  const domText = getDOMTextNodeFromElement(element);
+  if (!domText) {
+    clearMarginCustomCaret(editor);
+    return;
+  }
+
+  const lastCharIndex = getLastCharacterIndexOnLineRect(domText, lineRect);
+  const offset = lastCharIndex != null
+    ? lastCharIndex + 1
+    : getTextOffsetAtLineStartForRect(domText, lineRect);
+  mirrorDomCaretOnTextNode(editor, textNode, offset);
+
+  if (textLineEndNeedsCustomCaret(domText, lineRect)) {
+    root.classList.add(MARGIN_CUSTOM_CARET_ACTIVE_CLASS);
+    setMarginCaretOverlay(computeMarginCaretOverlayRect(editor, shellEl, textNode, lineRect));
+    return;
+  }
+
+  clearMarginCustomCaret(editor);
+}
+
+function getTextOffsetAtLineStartForY(domText: Text, y: number): number {
+  const text = domText.textContent ?? "";
+  const range = domText.ownerDocument.createRange();
+  let best: number | null = null;
+  for (let offset = 0; offset <= text.length; offset += 1) {
+    range.setStart(domText, offset);
+    range.collapse(true);
+    for (const rect of range.getClientRects()) {
+      if (y >= rect.top - ROW_Y_TOLERANCE_PX && y <= rect.bottom + ROW_Y_TOLERANCE_PX) {
+        if (best == null || offset < best) best = offset;
+      }
+    }
+  }
+  return best ?? 0;
+}
+
+function getTextOffsetAtLineEndForY(domText: Text, y: number): number {
+  const text = domText.textContent ?? "";
+  const range = domText.ownerDocument.createRange();
+  let bestOffset = 0;
+  for (let offset = 0; offset <= text.length; offset += 1) {
+    range.setStart(domText, offset);
+    range.collapse(true);
+    for (const rect of range.getClientRects()) {
+      if (
+        y >= rect.top - ROW_Y_TOLERANCE_PX
+        && y <= rect.bottom + ROW_Y_TOLERANCE_PX
+        && rect.top < rect.bottom - 1
+      ) {
+        bestOffset = offset;
+        break;
+      }
+    }
+  }
+  return bestOffset;
+}
+
+function $selectTextNodeAtLinePoint(
+  editor: LexicalEditor,
+  textNode: TextNode,
+  x: number,
+  y: number,
+  edge: "start" | "end",
+  lineRect?: DOMRect,
+): boolean {
+  const element = editor.getElementByKey(textNode.getKey());
+  if (!element) return false;
+  const domText = getDOMTextNodeFromElement(element);
+  if (!domText) {
+    if (edge === "start") $selectTextNodeStart(textNode);
+    else $selectTextNodeEnd(textNode);
+    clearMentionEditPlacementState();
+    return true;
+  }
+  const offset = lineRect
+    ? (edge === "start"
+      ? getTextOffsetAtLineStartForRect(domText, lineRect)
+      : getLexicalOffsetAtLineEndForRect(domText, lineRect))
+    : (edge === "start"
+      ? getTextOffsetAtLineStartForY(domText, y)
+      : getTextOffsetAtLineEndForY(domText, y));
+  const clamped = Math.max(0, Math.min(offset, textNode.getTextContent().length));
+  textNode.select(clamped, clamped);
+  clearMentionEditPlacementState();
+  return true;
+}
+
+function filterItemsOnRow(items: RowContentItem[], y: number): RowContentItem[] {
+  if (items.length === 0) return [];
+  const onRow = items.filter((item) => y >= item.rect.top && y <= item.rect.bottom);
+  if (onRow.length > 0) {
+    const rowTop = Math.min(...onRow.map((item) => item.rect.top));
+    return items.filter((item) => Math.abs(item.rect.top - rowTop) <= ROW_Y_TOLERANCE_PX);
+  }
+  const rowTops = [...new Set(items.map((item) => Math.round(item.rect.top)))].sort((a, b) => a - b);
+  let nearestTop: number | null = null;
+  let nearestDist = Infinity;
+  for (const top of rowTops) {
+    const rowItems = items.filter((item) => Math.abs(item.rect.top - top) <= ROW_Y_TOLERANCE_PX);
+    const bandTop = Math.min(...rowItems.map((item) => item.rect.top));
+    const bandBottom = Math.max(...rowItems.map((item) => item.rect.bottom));
+    const dist = y < bandTop ? bandTop - y : y > bandBottom ? y - bandBottom : 0;
+    if (dist < nearestDist) {
+      nearestDist = dist;
+      nearestTop = top;
+    }
+  }
+  if (nearestTop == null) return [];
+  return items.filter((item) => Math.abs(item.rect.top - nearestTop) <= ROW_Y_TOLERANCE_PX);
+}
+
+function getRowBands<T extends { rect: DOMRect }>(items: T[]): Array<{ top: number; items: T[] }> {
+  const rowTops = [...new Set(items.map((item) => Math.round(item.rect.top)))].sort((a, b) => a - b);
+  return rowTops.map((top) => ({
+    top,
+    items: items.filter((item) => Math.abs(item.rect.top - top) <= ROW_Y_TOLERANCE_PX),
+  }));
+}
+
+function findTrailingRowGapGeometry(
+  rootEl: HTMLElement,
+  x: number,
+  y: number,
+): RowGeometryItem | null {
+  const items = collectRowGeometryItems(rootEl);
+  let best: { item: RowGeometryItem; dist: number } | null = null;
+  for (const item of items) {
+    if (x < item.rect.right - ROW_TRAILING_EDGE_SLOP_PX) continue;
+    const dist = verticalDistanceToLineRect(y, item.rect);
+    if (dist > trailingVerticalTolerance(x, item.rect)) continue;
+    // Prefer the widest line at this x (upper rows extend farther right than wrapped
+    // lines below), then break ties by vertical proximity to the click.
+    if (
+      !best
+      || item.rect.right > best.item.rect.right
+      || (item.rect.right === best.item.rect.right && dist < best.dist)
+    ) {
+      best = { item, dist };
+    }
+  }
+  return best?.item ?? null;
+}
+
+function findLeadingRowGapGeometry(
+  rootEl: HTMLElement,
+  x: number,
+  y: number,
+): RowGeometryItem | null {
+  const items = collectRowGeometryItems(rootEl);
+  let best: { item: RowGeometryItem; dist: number } | null = null;
+  for (const item of items) {
+    if (x > item.rect.left + ROW_LEADING_EDGE_SLOP_PX) continue;
+    const dist = verticalDistanceToLineRect(y, item.rect);
+    if (dist > ROW_Y_TOLERANCE_PX) continue;
+    if (
+      !best
+      || dist < best.dist
+      || (dist === best.dist && item.rect.left < best.item.rect.left)
+    ) {
+      best = { item, dist };
+    }
+  }
+  return best?.item ?? null;
+}
+
+function isPointerInRowMargin(rootEl: HTMLElement, x: number, y: number): boolean {
+  return findTrailingRowGapGeometry(rootEl, x, y) != null
+    || findLeadingRowGapGeometry(rootEl, x, y) != null;
+}
+
+function setDomSelectionRange(editor: LexicalEditor, range: Range): void {
+  const domSel = getEditorDomSelection(editor);
+  if (!domSel) return;
+  domSel.removeAllRanges();
+  domSel.addRange(range);
+}
+
+function mirrorDomCaretOnTextNode(
+  editor: LexicalEditor,
+  textNode: TextNode,
+  offset: number,
+): boolean {
+  const element = editor.getElementByKey(textNode.getKey());
+  if (!element) return false;
+  const domText = getDOMTextNodeFromElement(element);
+  if (!domText) return false;
+  const clamped = Math.max(0, Math.min(offset, domText.textContent?.length ?? 0));
+  const range = domText.ownerDocument.createRange();
+  range.setStart(domText, clamped);
+  range.collapse(true);
+  setDomSelectionRange(editor, range);
+  return true;
+}
+
+function setDomCaretAtTextLineEdge(
+  editor: LexicalEditor,
+  shellEl: HTMLElement | null,
+  textNode: TextNode,
+  y: number,
+  edge: "start" | "end",
+  lineRect?: DOMRect,
+): boolean {
+  if (edge === "end" && lineRect) {
+    if (shellEl) {
+      applyTrailingMarginCaret(editor, shellEl, textNode, lineRect);
+      return true;
+    }
+    clearMarginCustomCaret(editor);
+    const endElement = editor.getElementByKey(textNode.getKey());
+    const endDomText = endElement ? getDOMTextNodeFromElement(endElement) : null;
+    if (endDomText) {
+      mirrorDomCaretOnTextNode(
+        editor,
+        textNode,
+        getLexicalOffsetAtLineEndForRect(endDomText, lineRect),
+      );
+      return true;
+    }
+  }
+  const element = editor.getElementByKey(textNode.getKey());
+  if (!element) return false;
+  const domText = getDOMTextNodeFromElement(element);
+  if (!domText) return false;
+  const offset = lineRect
+    ? getTextOffsetAtLineStartForRect(domText, lineRect)
+    : getTextOffsetAtLineStartForY(domText, y);
+  const clamped = Math.max(0, Math.min(offset, domText.textContent?.length ?? 0));
+  const range = domText.ownerDocument.createRange();
+  range.setStart(domText, clamped);
+  range.collapse(true);
+  setDomSelectionRange(editor, range);
+  return true;
+}
+
+function placeDomCaretAtLineEdge(
+  editor: LexicalEditor,
+  rootEl: HTMLElement,
+  target: RowGeometryItem,
+  y: number,
+  edge: "start" | "end",
+  textNode?: TextNode,
+): boolean {
+  if (textNode) {
+    return setDomCaretAtTextLineEdge(editor, null, textNode, y, edge);
+  }
+  const probeX = edge === "end"
+    ? Math.max(target.rect.left, target.rect.right - 1)
+    : Math.min(target.rect.right, target.rect.left + 1);
+  const range = getCaretRangeFromPoint(rootEl, probeX, y);
+  if (!range) return false;
+  setDomSelectionRange(editor, range);
+  return true;
+}
+
+/** Blank space to the left of a visual row should edit that row, not snap to another line. */
+function $placeSelectionInLeadingRowGap(
   editor: LexicalEditor,
   rootEl: HTMLElement,
   x: number,
   y: number,
-): PlacementResult {
-  if ($placeSelectionFromPointerGeometry(editor, rootEl, x, y)) {
-    return { ok: true, method: "geometryFirst", domOffset: null };
+): boolean {
+  const geometry = findLeadingRowGapGeometry(rootEl, x, y);
+  if (!geometry) return false;
+  const target = resolveRowGeometryTarget(editor, geometry);
+  if (!target) return false;
+
+  if (target.kind === "mention") {
+    if (!$placeCaretBeforeMention(editor, target.mention, x, target.rect)) return false;
+    const spacerBefore = $getOrCreateEditableTextSibling(target.mention, "previous");
+    mirrorDomCaretOnTextNode(editor, spacerBefore, spacerBefore.getTextContent().length);
+    return true;
   }
 
-  const range = getCaretRangeFromPoint(rootEl.ownerDocument, x, y);
-  if (range && nodeWithinEditorRoot(rootEl, range.startContainer)) {
-    const resolved = resolveDomTextPoint(range.startContainer, range.startOffset);
-    if ($setLexicalSelectionFromDomRange(editor, range)) {
-      if ($overrideDomCaretNearMention(editor, rootEl, x, y)) {
-        return { ok: true, method: "domCaretNearMention", domOffset: null };
-      }
-      clearMentionEditPlacementState();
-      return { ok: true, method: "domCaret", domOffset: resolved?.offset ?? null };
-    }
-    const domSel = getEditorDomSelection(editor);
-    if (domSel) {
-      domSel.removeAllRanges();
-      domSel.addRange(range);
-      if ($applyDomSelectionToLexical(editor)) {
-        if ($overrideDomCaretNearMention(editor, rootEl, x, y)) {
-          return { ok: true, method: "domSelNearMention", domOffset: null };
-        }
-        clearMentionEditPlacementState();
-        return { ok: true, method: "domSelApply", domOffset: resolved?.offset ?? null };
-      }
-      if ($setLexicalSelectionFromDomRange(editor, range)) {
-        if ($overrideDomCaretNearMention(editor, rootEl, x, y)) {
-          return { ok: true, method: "domCaretRetryNearMention", domOffset: null };
-        }
-        clearMentionEditPlacementState();
-        return { ok: true, method: "domCaretRetry", domOffset: resolved?.offset ?? null };
-      }
-    }
-  }
-
-  if ($placeSelectionOnHitTextNode(editor, rootEl, x, y)) {
-    clearMentionEditPlacementState();
-    return { ok: true, method: "hitTextX", domOffset: null };
-  }
-
-  if ($selectEditorEnd()) {
-    return { ok: true, method: "editorEndFallback", domOffset: null };
-  }
-
-  return { ok: false, method: "none", domOffset: null };
+  if (!$selectTextNodeAtLinePoint(editor, target.textNode, x, y, "start", geometry.rect)) return false;
+  clearMarginCustomCaret(editor);
+  setDomCaretAtTextLineEdge(editor, null, target.textNode, y, "start", geometry.rect);
+  return true;
 }
 
-function getCaretRangeFromPoint(doc: Document, x: number, y: number): Range | null {
+/** Blank space to the right of a visual row should edit that row, not jump to the next line. */
+function $placeSelectionInTrailingRowGap(
+  editor: LexicalEditor,
+  rootEl: HTMLElement,
+  x: number,
+  y: number,
+): boolean {
+  const geometry = findTrailingRowGapGeometry(rootEl, x, y);
+  if (!geometry) return false;
+  const target = resolveRowGeometryTarget(editor, geometry);
+  if (!target) return false;
+
+  if (target.kind === "mention") {
+    if (!$placeCaretAfterMention(editor, target.mention, x, target.rect)) return false;
+    const spacerAfter = $getOrCreateEditableTextSibling(target.mention, "next");
+    mirrorDomCaretOnTextNode(editor, spacerAfter, latestCaretAfterMentionOffset);
+    return true;
+  }
+
+  return $selectTextNodeAtLinePoint(editor, target.textNode, x, y, "end", geometry.rect);
+}
+
+function $tryRowMarginPlacement(
+  editor: LexicalEditor,
+  rootEl: HTMLElement,
+  x: number,
+  y: number,
+): boolean {
+  if ($placeSelectionInTrailingRowGap(editor, rootEl, x, y)) return true;
+  if ($placeSelectionInLeadingRowGap(editor, rootEl, x, y)) return true;
+  return false;
+}
+
+function getCaretRangeFromPoint(rootEl: HTMLElement, x: number, y: number): Range | null {
+  const rootNode = rootEl.getRootNode();
+  if (rootNode instanceof ShadowRoot) {
+    const shadowCaret = (rootNode as ShadowRoot & {
+      caretRangeFromPoint?(x: number, y: number): Range | null;
+    }).caretRangeFromPoint;
+    if (typeof shadowCaret === "function") {
+      const range = shadowCaret.call(rootNode, x, y);
+      if (range) return range;
+    }
+  }
+  const doc = rootEl.ownerDocument;
   if (typeof doc.caretRangeFromPoint === "function") {
     return doc.caretRangeFromPoint(x, y);
   }
@@ -470,6 +1038,106 @@ function getCaretRangeFromPoint(doc: Document, x: number, y: number): Range | nu
     return range;
   }
   return null;
+}
+
+function $tryDomCaretPlacement(
+  editor: LexicalEditor,
+  rootEl: HTMLElement,
+  x: number,
+  y: number,
+): boolean {
+  const range = getCaretRangeFromPoint(rootEl, x, y);
+  if (!range || !nodeWithinEditorRoot(rootEl, range.startContainer)) return false;
+  if ($setLexicalSelectionFromDomRange(editor, range)) {
+    if ($overrideDomCaretNearMention(editor, rootEl, x, y)) return true;
+    clearMentionEditPlacementState();
+    return true;
+  }
+  const domSel = getEditorDomSelection(editor);
+  if (domSel) {
+    domSel.removeAllRanges();
+    domSel.addRange(range);
+    if ($applyDomSelectionToLexical(editor)) {
+      if ($overrideDomCaretNearMention(editor, rootEl, x, y)) return true;
+      clearMentionEditPlacementState();
+      return true;
+    }
+    if ($setLexicalSelectionFromDomRange(editor, range)) {
+      if ($overrideDomCaretNearMention(editor, rootEl, x, y)) return true;
+      clearMentionEditPlacementState();
+      return true;
+    }
+  }
+  const resolved = resolveDomTextPoint(range.startContainer, range.startOffset);
+  if (resolved) {
+    for (const lexicalNode of rootTextNodes()) {
+      if ($isMentionNode(lexicalNode)) continue;
+      const element = editor.getElementByKey(lexicalNode.getKey());
+      if (!element) continue;
+      const domText = getDOMTextNodeFromElement(element);
+      if (!domText) continue;
+      if (domText === resolved.textNode || domText.contains(resolved.textNode)) {
+        if ($setSelectionAtTextNodePoint(editor, rootEl, lexicalNode, x, y)) {
+          clearMentionEditPlacementState();
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+function $tryApplyCollapsedDomSelection(
+  editor: LexicalEditor,
+  rootEl: HTMLElement,
+  x: number,
+  y: number,
+): boolean {
+  const domSel = getEditorDomSelection(editor);
+  if (!domSel || domSel.rangeCount === 0 || !selectionIntersectsEditor(rootEl, editor)) return false;
+  const range = domSel.getRangeAt(0);
+  if (!range.collapsed || !nodeWithinEditorRoot(rootEl, range.startContainer)) return false;
+  if ($setLexicalSelectionFromDomRange(editor, range)) {
+    if ($overrideDomCaretNearMention(editor, rootEl, x, y)) return true;
+    clearMentionEditPlacementState();
+    return true;
+  }
+  if ($applyDomSelectionToLexical(editor)) {
+    if ($overrideDomCaretNearMention(editor, rootEl, x, y)) return true;
+    clearMentionEditPlacementState();
+    return true;
+  }
+  return false;
+}
+
+function $placeSelectionAtCoordinates(
+  editor: LexicalEditor,
+  rootEl: HTMLElement,
+  x: number,
+  y: number,
+): PlacementResult {
+  if ($tryRowMarginPlacement(editor, rootEl, x, y)) {
+    return { ok: true, method: "rowMargin", domOffset: null };
+  }
+
+  // DOM caret uses both x and y — required for wrapped multi-line content.
+  if ($tryDomCaretPlacement(editor, rootEl, x, y)) {
+    return { ok: true, method: "domCaret", domOffset: null };
+  }
+
+  if ($placeSelectionOnMentionEdgeHit(editor, rootEl, x, y)) {
+    return { ok: true, method: "mentionEdge", domOffset: null };
+  }
+
+  if ($placeSelectionFromPointerGeometry(editor, rootEl, x, y)) {
+    return { ok: true, method: "geometryFirst", domOffset: null };
+  }
+
+  if ($selectEditorEnd()) {
+    return { ok: true, method: "editorEndFallback", domOffset: null };
+  }
+
+  return { ok: false, method: "none", domOffset: null };
 }
 
 function $syncSelectionFromDomInteraction(
@@ -491,6 +1159,21 @@ function $syncSelectionFromDomInteraction(
     if ($setLexicalSelectionFromDomRange(editor, domSel.getRangeAt(0))) {
       return { ok: true, method: "expandedDomManual", domOffset: null };
     }
+  }
+  if ($tryRowMarginPlacement(editor, root, clientX, clientY)) {
+    skipDomSelectionSyncOnNextInput = true;
+    return { ok: true, method: "rowMargin", domOffset: null };
+  }
+  if ($tryApplyCollapsedDomSelection(editor, root, clientX, clientY)) {
+    return { ok: true, method: "nativeCollapsedDom", domOffset: null };
+  }
+  // Native caret is already visible but Lexical mapping failed — retry geometry
+  // without jumping to document end, which would desync typing from the caret.
+  if (hasCollapsedDomCaretInEditor(root, editor)) {
+    if ($tryDomCaretPlacement(editor, root, clientX, clientY)) {
+      return { ok: true, method: "domCaretRetry", domOffset: null };
+    }
+    return { ok: false, method: "domCaretUnmapped", domOffset: null };
   }
   return $placeSelectionAtCoordinates(editor, root, clientX, clientY);
 }
@@ -515,17 +1198,116 @@ function $applyDomSelectionToLexical(editor: LexicalEditor): boolean {
   return $setLexicalSelectionFromDomRange(editor, domSel.getRangeAt(0));
 }
 
+type RowMarginDomCaretAction =
+  | { kind: "text-end"; nodeKey: string; lineRect: DOMRect }
+  | { kind: "text-start"; nodeKey: string; lineRect: DOMRect }
+  | { kind: "mention-after"; nodeKey: string; offset: number }
+  | { kind: "mention-before"; nodeKey: string; offset: number };
+
+function reinforceRowMarginDomCaret(
+  editor: LexicalEditor,
+  rootEl: HTMLElement,
+  shellEl: HTMLElement | null,
+  x: number,
+  y: number,
+): void {
+  let action: RowMarginDomCaretAction | null = null;
+  editor.getEditorState().read(() => {
+    const trailing = findTrailingRowGapGeometry(rootEl, x, y);
+    if (trailing) {
+      const target = resolveRowGeometryTarget(editor, trailing);
+      if (target?.kind === "text") {
+        action = { kind: "text-end", nodeKey: target.textNode.getKey(), lineRect: trailing.rect };
+        return;
+      }
+      if (target?.kind === "mention") {
+        const spacerAfter = $getOrCreateEditableTextSibling(target.mention, "next");
+        action = {
+          kind: "mention-after",
+          nodeKey: spacerAfter.getKey(),
+          offset: latestCaretAfterMentionOffset,
+        };
+      }
+      return;
+    }
+    const leading = findLeadingRowGapGeometry(rootEl, x, y);
+    if (!leading) return;
+    const target = resolveRowGeometryTarget(editor, leading);
+    if (target?.kind === "text") {
+      action = { kind: "text-start", nodeKey: target.textNode.getKey(), lineRect: leading.rect };
+      return;
+    }
+    if (target?.kind === "mention") {
+      const spacerBefore = $getOrCreateEditableTextSibling(target.mention, "previous");
+      action = {
+        kind: "mention-before",
+        nodeKey: spacerBefore.getKey(),
+        offset: spacerBefore.getTextContent().length,
+      };
+    }
+  });
+  if (!action) return;
+  editor.getEditorState().read(() => {
+    const node = $getNodeByKey(action.nodeKey);
+    if (!$isTextNode(node) || $isMentionNode(node)) return;
+    switch (action.kind) {
+      case "text-end":
+        setDomCaretAtTextLineEdge(editor, shellEl, node, y, "end", action.lineRect);
+        break;
+      case "text-start":
+        clearMarginCustomCaret(editor);
+        setDomCaretAtTextLineEdge(editor, shellEl, node, y, "start", action.lineRect);
+        break;
+      case "mention-after":
+      case "mention-before":
+        clearMarginCustomCaret(editor);
+        mirrorDomCaretOnTextNode(editor, node, action.offset);
+        break;
+      default: {
+        const _exhaustive: never = action;
+        return _exhaustive;
+      }
+    }
+  });
+}
+
+function hasCollapsedDomCaretInEditor(root: HTMLElement, editor: LexicalEditor): boolean {
+  const domSel = getEditorDomSelection(editor);
+  if (!domSel || domSel.rangeCount === 0) return false;
+  if (!domSel.getRangeAt(0).collapsed) return false;
+  return selectionIntersectsEditor(root, editor);
+}
+
 function $syncSelectionForPendingPointerInput(editor: LexicalEditor, root: HTMLElement): void {
   if (!shouldSyncDomSelectionOnNextInput) return;
   shouldSyncDomSelectionOnNextInput = false;
 
-  if (latestEditorPointerForInput) {
-    $placeSelectionAtCoordinates(
-      editor,
-      root,
-      latestEditorPointerForInput.x,
-      latestEditorPointerForInput.y,
-    );
+  const pointer = latestEditorPointerForInput;
+
+  if (pointer && $tryRowMarginPlacement(editor, root, pointer.x, pointer.y)) {
+    skipDomSelectionSyncOnNextInput = true;
+    clearMentionEditPlacementState();
+    return;
+  }
+
+  if (skipDomSelectionSyncOnNextInput) {
+    skipDomSelectionSyncOnNextInput = false;
+    return;
+  }
+
+  // The browser already placed the native caret on click; mirror it into Lexical
+  // before typing/deleting. Pointer geometry is only a fallback (arrow keys use
+  // the same DOM sync path and work reliably).
+  if (hasCollapsedDomCaretInEditor(root, editor) && $applyDomSelectionToLexical(editor)) {
+    if (pointer) {
+      $overrideDomCaretNearMention(editor, root, pointer.x, pointer.y);
+    }
+    clearMentionEditPlacementState();
+    return;
+  }
+
+  if (pointer) {
+    $placeSelectionAtCoordinates(editor, root, pointer.x, pointer.y);
     return;
   }
 
@@ -568,6 +1350,24 @@ function getMentionElementsNearPoint(root: HTMLElement, x: number, y: number): H
     const withinX = x >= rect.left - OUTSIDE_POINTER_MENTION_HIT_SLOP_PX
       && x <= rect.right + OUTSIDE_POINTER_MENTION_HIT_SLOP_PX;
     return withinY && withinX;
+  });
+}
+
+function getMentionElementsOnRow(
+  rootEl: HTMLElement,
+  editor: LexicalEditor,
+  x: number,
+  y: number,
+): HTMLElement[] {
+  const rowMentionSelectors = new Set(
+    filterItemsOnRow(collectRowContentItems(rootEl, editor), y)
+      .filter((item): item is Extract<RowContentItem, { kind: "mention" }> => item.kind === "mention")
+      .map((item) => item.mention.getSelector()),
+  );
+  if (rowMentionSelectors.size === 0) return [];
+  return getMentionElementsNearPoint(rootEl, x, y).filter((mentionEl) => {
+    const selector = mentionEl.dataset.mentionSelector;
+    return selector != null && rowMentionSelectors.has(selector);
   });
 }
 
@@ -1003,6 +1803,23 @@ function insertMentionsAtSelection(editor: LexicalEditor, mentions: CommentMenti
   });
 }
 
+function MarginCaretOverlay() {
+  const [caret, setCaret] = useState<MarginCaretOverlayRect | null>(null);
+  useEffect(() => subscribeMarginCaret(setCaret), []);
+  if (!caret) return null;
+  return (
+    <span
+      className="retune-margin-caret"
+      aria-hidden="true"
+      style={{
+        left: `${caret.left}px`,
+        top: `${caret.top}px`,
+        height: `${caret.height}px`,
+      }}
+    />
+  );
+}
+
 function CommentEditorPlugins({
   initialText,
   mentions,
@@ -1012,8 +1829,10 @@ function CommentEditorPlugins({
   editorRef,
   onSubmit,
   onCancel,
+  shellRef,
 }: CommentEditorProps & {
   editorRef: MutableRefObject<LexicalEditor | null>;
+  shellRef: RefObject<HTMLDivElement | null>;
 }) {
   const [editor] = useLexicalComposerContext();
   const mentionSelectorsRef = useRef<string[]>(mentions.map((mention) => mention.selector));
@@ -1320,17 +2139,34 @@ function CommentEditorPlugins({
           onChangeRef.current?.(lexicalPartsToDoc(snapshot.parts));
         }}
       />
-      <KeyPlugin onSubmit={onSubmit} onCancel={onCancel} />
+      <KeyPlugin onSubmit={onSubmit} onCancel={onCancel} shellRef={shellRef} />
     </>
   );
 }
 
-function KeyPlugin({ onSubmit, onCancel }: { onSubmit?: () => void; onCancel?: () => void }) {
+function KeyPlugin({
+  onSubmit,
+  onCancel,
+  shellRef,
+}: {
+  onSubmit?: () => void;
+  onCancel?: () => void;
+  shellRef: RefObject<HTMLDivElement | null>;
+}) {
   const [editor] = useLexicalComposerContext();
   useEffect(() => {
     const root = editor.getRootElement();
     if (!root) return;
+    const shellEl = () => shellRef.current;
     const handleBeforeInputCapture = (e: InputEvent) => {
+      if (
+        e.inputType === "insertText"
+        || e.inputType === "deleteContentBackward"
+        || e.inputType === "deleteContentForward"
+      ) {
+        clearMarginCustomCaret(editor);
+        pendingRowMarginPointer = null;
+      }
       if (
         (e.inputType === "deleteContentBackward" || e.inputType === "deleteContentForward")
         && (domHasExpandedSelection(root, editor) || domSelectionCoversEditor(root, editor))
@@ -1385,27 +2221,77 @@ function KeyPlugin({ onSubmit, onCancel }: { onSubmit?: () => void; onCancel?: (
         }
       }
     };
-    const handlePointerUpInEditor = (e: PointerEvent) => {
-      requestAnimationFrame(() => {
-        editor.update(() => {
-          const pointerUp = { x: e.clientX, y: e.clientY };
-          if (
-            pointerMovedEnoughToSelectText(latestEditorPointerDown, pointerUp)
-            && domHasAnyExpandedSelectionInEditor(root, editor)
-          ) {
-            clearMentionEditPlacementState();
-            latestPointerIntentMentionSelector = null;
-            latestEditorPointerForInput = null;
-            shouldSyncDomSelectionOnNextInput = false;
-            $applyDomSelectionToLexical(editor);
-            return;
-          }
+    const commitPointerSelection = (clientX: number, clientY: number, rowMarginClick: boolean) => {
+      editor.update(() => {
+        const pointerUp = { x: clientX, y: clientY };
+        if (
+          pointerMovedEnoughToSelectText(latestEditorPointerDown, pointerUp)
+          && domHasAnyExpandedSelectionInEditor(root, editor)
+        ) {
           clearMentionEditPlacementState();
-          latestEditorPointerForInput = pointerUp;
-          $syncSelectionFromDomInteraction(editor, root, e.clientX, e.clientY);
-          shouldSyncDomSelectionOnNextInput = true;
-        });
+          latestPointerIntentMentionSelector = null;
+          latestEditorPointerForInput = null;
+          shouldSyncDomSelectionOnNextInput = false;
+          skipDomSelectionSyncOnNextInput = false;
+          $applyDomSelectionToLexical(editor);
+          return;
+        }
+        clearMentionEditPlacementState();
+        latestEditorPointerForInput = pointerUp;
+        $syncSelectionFromDomInteraction(editor, root, clientX, clientY);
+        shouldSyncDomSelectionOnNextInput = true;
       });
+      if (rowMarginClick) {
+        const reinforce = () => {
+          reinforceRowMarginDomCaret(editor, root, shellEl(), clientX, clientY);
+        };
+        reinforce();
+        requestAnimationFrame(reinforce);
+      }
+    };
+
+    const handlePointerDownInEditor = (e: PointerEvent) => {
+      if (e.button !== 0) return;
+      if (!isPointerInRowMargin(root, e.clientX, e.clientY)) return;
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    const handlePointerUpInEditor = (e: PointerEvent) => {
+      const pointerX = e.clientX;
+      const pointerY = e.clientY;
+      const rowMarginClick = isPointerInRowMargin(root, pointerX, pointerY);
+      if (rowMarginClick) {
+        e.preventDefault();
+        e.stopPropagation();
+        pendingRowMarginPointer = { x: pointerX, y: pointerY };
+        commitPointerSelection(pointerX, pointerY, true);
+        return;
+      }
+      pendingRowMarginPointer = null;
+      clearMarginCustomCaret(editor);
+      requestAnimationFrame(() => {
+        commitPointerSelection(pointerX, pointerY, false);
+      });
+    };
+
+    const handleClickInEditorCapture = (e: MouseEvent) => {
+      if (e.button !== 0) return;
+      if (!isPointerInRowMargin(root, e.clientX, e.clientY)) return;
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    const handleSelectionChange = () => {
+      if (!pendingRowMarginPointer || reinforcingMarginCaret) return;
+      if (!root.classList.contains(MARGIN_CUSTOM_CARET_ACTIVE_CLASS)) return;
+      const { x, y } = pendingRowMarginPointer;
+      reinforcingMarginCaret = true;
+      try {
+        reinforceRowMarginDomCaret(editor, root, shellEl(), x, y);
+      } finally {
+        reinforcingMarginCaret = false;
+      }
     };
     const handleDocumentPointerDownCapture = (e: PointerEvent) => {
       suppressMentionDeleteUntilFreshInput = false;
@@ -1422,10 +2308,7 @@ function KeyPlugin({ onSubmit, onCancel }: { onSubmit?: () => void; onCancel?: (
         const clientY = e.clientY;
         latestEditorPointerDown = { x: clientX, y: clientY };
         latestEditorPointerForInput = { x: clientX, y: clientY };
-        editor.update(() => {
-          clearMentionEditPlacementState();
-          $placeSelectionAtCoordinates(editor, root, clientX, clientY);
-        });
+        clearMentionEditPlacementState();
         latestPointerIntentMentionSelector = getPointerIntentMentionSelector(root, clientX, clientY);
         shouldSyncDomSelectionOnNextInput = true;
       } else {
@@ -1437,8 +2320,12 @@ function KeyPlugin({ onSubmit, onCancel }: { onSubmit?: () => void; onCancel?: (
       }
     };
     root.addEventListener("beforeinput", handleBeforeInputCapture, true);
-    root.addEventListener("pointerup", handlePointerUpInEditor);
+    root.addEventListener("pointerdown", handlePointerDownInEditor, true);
+    root.addEventListener("pointerup", handlePointerUpInEditor, true);
+    root.addEventListener("click", handleClickInEditorCapture, true);
     document.addEventListener("pointerdown", handleDocumentPointerDownCapture, true);
+    const selectionTarget = root.getRootNode();
+    selectionTarget.addEventListener("selectionchange", handleSelectionChange);
 
     const isEditorFocused = () => {
       const rootNode = root.getRootNode();
@@ -1476,6 +2363,8 @@ function KeyPlugin({ onSubmit, onCancel }: { onSubmit?: () => void; onCancel?: (
         return;
       }
       if (!CARET_NAV_KEYS.has(e.key)) return;
+      pendingRowMarginPointer = null;
+      clearMarginCustomCaret(editor);
 
       const plainHorizontal = (e.key === "ArrowLeft" || e.key === "ArrowRight")
         && !e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey;
@@ -1491,6 +2380,7 @@ function KeyPlugin({ onSubmit, onCancel }: { onSubmit?: () => void; onCancel?: (
           clearMentionEditPlacementState();
           latestPointerIntentMentionSelector = null;
           latestEditorPointerForInput = null;
+          pendingRowMarginPointer = null;
           shouldSyncDomSelectionOnNextInput = false;
           return;
         }
@@ -1502,6 +2392,7 @@ function KeyPlugin({ onSubmit, onCancel }: { onSubmit?: () => void; onCancel?: (
       clearMentionEditPlacementState();
       latestPointerIntentMentionSelector = null;
       latestEditorPointerForInput = null;
+      pendingRowMarginPointer = null;
       shouldSyncDomSelectionOnNextInput = true;
       const preferDirection = (e.key === "ArrowLeft" || e.key === "ArrowUp" || e.key === "Home")
         ? "previous"
@@ -1529,10 +2420,13 @@ function KeyPlugin({ onSubmit, onCancel }: { onSubmit?: () => void; onCancel?: (
       }
       root.removeEventListener("keydown", handleKeyDown);
       root.removeEventListener("beforeinput", handleBeforeInputCapture, true);
-      root.removeEventListener("pointerup", handlePointerUpInEditor);
+      root.removeEventListener("pointerdown", handlePointerDownInEditor, true);
+      root.removeEventListener("pointerup", handlePointerUpInEditor, true);
+      root.removeEventListener("click", handleClickInEditorCapture, true);
       document.removeEventListener("pointerdown", handleDocumentPointerDownCapture, true);
+      selectionTarget.removeEventListener("selectionchange", handleSelectionChange);
     };
-  }, [editor, onCancel, onSubmit]);
+  }, [editor, onCancel, onSubmit, shellRef]);
   return null;
 }
 
@@ -1550,6 +2444,7 @@ export const CommentEditor = forwardRef<CommentEditorApi, CommentEditorProps>(fu
   ref,
 ) {
   const editorRef = useRef<LexicalEditor | null>(null);
+  const shellRef = useRef<HTMLDivElement | null>(null);
   const latestMentionsRef = useRef(mentions);
   const latestTargetsRef = useRef(targets);
   latestMentionsRef.current = mentions;
@@ -1656,16 +2551,19 @@ export const CommentEditor = forwardRef<CommentEditorApi, CommentEditorProps>(fu
 
   return (
     <LexicalComposer initialConfig={initialConfig}>
-      <PlainTextPlugin
-        contentEditable={
-          <ContentEditable
-            className="retune-comment-editor"
-            aria-label={placeholder}
-          />
-        }
-        placeholder={<span className="retune-comment-placeholder" aria-hidden="true">{placeholder}</span>}
-        ErrorBoundary={LexicalErrorBoundary}
-      />
+      <div ref={shellRef} className="retune-comment-editor-shell">
+        <PlainTextPlugin
+          contentEditable={
+            <ContentEditable
+              className="retune-comment-editor"
+              aria-label={placeholder}
+            />
+          }
+          placeholder={<span className="retune-comment-placeholder" aria-hidden="true">{placeholder}</span>}
+          ErrorBoundary={LexicalErrorBoundary}
+        />
+        <MarginCaretOverlay />
+      </div>
       <CommentEditorPlugins
         initialText={initialText}
         mentions={mentions}
@@ -1673,6 +2571,7 @@ export const CommentEditor = forwardRef<CommentEditorApi, CommentEditorProps>(fu
         targets={targets}
         onChange={onChange}
         editorRef={editorRef}
+        shellRef={shellRef}
         onSubmit={onSubmit}
         onCancel={onCancel}
       />

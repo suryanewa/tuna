@@ -3417,6 +3417,7 @@ input, textarea, [contenteditable] {
   flex-direction: column;
   align-items: stretch;
   gap: 0;
+  overflow: hidden;
 }
 .retune-comment-top-row {
   display: flex;
@@ -3430,28 +3431,33 @@ input, textarea, [contenteditable] {
   width: 100%;
 }
 .retune-comment-popover.has-content .retune-comment-input-wrap {
-  overflow: visible;
+  overflow: hidden;
   align-items: flex-start;
+  max-width: 100%;
 }
 .retune-comment-popover.has-content .retune-comment-editor {
-  overflow: visible;
+  overflow-x: hidden;
+  overflow-y: visible;
   height: auto;
   min-height: 1.4em;
+  width: 100%;
+  max-width: 100%;
 }
-/* Lexical token mentions stay nowrap; flex-wrap on the paragraph forces chips
-   onto new lines instead of clipping at the popover edge. */
+/* Block-width paragraph forces inline chips to wrap; inline-block + max-width
+   keeps single long mentions inside the popover (ellipsis) without flex layout
+   that breaks multi-line caret placement. */
 .retune-comment-popover.has-content .retune-comment-editor p {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  row-gap: 2px;
-  margin: 0;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 .retune-comment-popover.has-content .retune-comment-mention {
-  white-space: nowrap;
+  display: inline-block;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
 }
 .retune-comment-close {
   width: 20px;
@@ -3589,8 +3595,13 @@ input, textarea, [contenteditable] {
   text-overflow: ellipsis;
   max-width: 100%;
 }
-.retune-comment-editor {
+.retune-comment-editor-shell {
+  position: relative;
   flex: 1;
+  width: 100%;
+  min-width: 4ch;
+}
+.retune-comment-editor {
   width: 100%;
   min-width: 4ch;
   background: transparent;
@@ -3613,6 +3624,25 @@ input, textarea, [contenteditable] {
 }
 .retune-comment-editor p {
   margin: 0;
+}
+.retune-comment-editor.retune-margin-custom-caret-active {
+  caret-color: transparent;
+}
+.retune-margin-caret {
+  position: absolute;
+  width: 1px;
+  pointer-events: none;
+  background-color: var(--retune-text);
+  animation: retune-margin-caret-blink 1.05s step-end infinite;
+}
+@keyframes retune-margin-caret-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .retune-margin-caret {
+    animation: none;
+  }
 }
 .retune-comment-mention {
   display: inline;
