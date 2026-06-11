@@ -2975,14 +2975,26 @@ export function createPicker(
     e.stopImmediatePropagation();
   }
 
+  function isRetuneFocusedElement(focused: Element): boolean {
+    if (focused instanceof HTMLElement) {
+      if (focused.hasAttribute("data-retune-host")) return true;
+      if (focused.closest("[data-retune-host]")) return true;
+    }
+    const root = focused.getRootNode();
+    if (root instanceof ShadowRoot) {
+      const host = root.host;
+      if (host instanceof HTMLElement && host.hasAttribute("data-retune-host")) return true;
+    }
+    return false;
+  }
+
   function blurPageFocus() {
     const focused = document.activeElement;
     if (
       focused instanceof HTMLElement
       && focused !== document.body
       && focused !== document.documentElement
-      && !focused.closest("[data-retune-host]")
-      && !focused.hasAttribute("data-retune-host")
+      && !isRetuneFocusedElement(focused)
     ) {
       focused.blur();
     }
@@ -3605,6 +3617,9 @@ export function createPicker(
 
     if (selectedElement) {
       notifySelect(selectedElement, notifyModifiers);
+    }
+    if (commentDraftActive && commentMode) {
+      callbacks.onCommentDraftSelection?.();
     }
   }
 

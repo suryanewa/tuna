@@ -14,6 +14,8 @@ export interface PickerCallbacks {
   onCancel: () => void;
   /** If provided, called before processing a click. Return true to block the click entirely. */
   shouldBlockClick?: () => boolean;
+  /** Called after picking elements while a comment draft composer is open in comment mode. */
+  onCommentDraftSelection?: () => void;
   onDoubleClick?: (element: Element) => void;
   onResize?: (element: Element, property: "width" | "height", value: string) => void;
   /** Called during resize drag for live preview (updates stylesheet without recording changes). */

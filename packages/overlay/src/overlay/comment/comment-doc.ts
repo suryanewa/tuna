@@ -79,8 +79,7 @@ export function docToPlainText(doc: CommentDoc): string {
   let raw = "";
   for (const part of children) {
     if (part.type === "mention") {
-      if (raw.length > 0 && !/\s$/.test(raw)) raw += " ";
-      raw += `@${part.mention.label} `;
+      raw += `@${part.mention.label}`;
     } else {
       raw += part.text;
     }
@@ -129,7 +128,7 @@ export function lexicalPartsToDoc(parts: CommentContentPart[]): CommentDoc {
   return partsToDoc(parts);
 }
 
-/** One inline element mention. Its visual separator is owned by the mention token. */
+/** One inline element mention. */
 export function buildMentionInsertionParts(
   mention: { name: string; color: string; selector: string },
 ): CommentContentPart[] {
@@ -145,7 +144,7 @@ export function buildMentionInsertionParts(
   ];
 }
 
-/** Batch inline insertions. Each mention owns its visible separator. */
+/** Batch inline insertions. */
 export function buildInlineMentionInsertionsParts(
   mentions: Array<{ name: string; color: string; selector: string }>,
 ): CommentContentPart[] {

@@ -106,10 +106,10 @@ describe("comment-doc transforms", () => {
       { type: "mention", mention: { selector: ".label", label: "Label", color: "#222" } },
       { type: "text", text: "align" },
     ]);
-    expect(docToPlainText(doc)).toBe("@Button @Label align");
+    expect(docToPlainText(doc)).toBe("@Button@Labelalign");
   });
 
-  it("buildMentionInsertionParts keeps separators inside the mention token", () => {
+  it("buildMentionInsertionParts returns a single mention part", () => {
     expect(buildMentionInsertionParts({ name: "Button", color: "#111", selector: ".btn" })).toEqual([
       { type: "mention", mention: { name: "Button", color: "#111", selector: ".btn" } },
     ]);
@@ -122,7 +122,7 @@ describe("comment-doc transforms", () => {
       { type: "text", text: "hello" },
       { type: "mention", mention: { selector: ".btn", label: "Button", color: "#111" } },
     ]);
-    expect(docToPlainText(updated)).toBe("hello @Button");
+    expect(docToPlainText(updated)).toBe("hello@Button");
   });
 
   it("docToTargets prunes to doc mention order", () => {
@@ -144,7 +144,7 @@ describe("comment-doc transforms", () => {
 
   it("createDocFromTargets uses span count", () => {
     const doc = createDocFromTargets(targets, 2, "align");
-    expect(docToPlainText(doc)).toBe("@Button @Label align");
+    expect(docToPlainText(doc)).toBe("@Button@Labelalign");
   });
 
   it("applyTextTransaction appends to trailing text", () => {
@@ -212,7 +212,7 @@ describe("CommentStore dual-write", () => {
       },
     });
     expect(comment.content).toEqual(content);
-    expect(comment.text).toBe("@Button fix spacing");
+    expect(comment.text).toBe("@Buttonfix spacing");
   });
 
   it("updateContent patches content text and targets atomically", () => {
@@ -234,7 +234,7 @@ describe("CommentStore dual-write", () => {
     const updated = store.updateContent(1, content, [targets[0]]);
     expect(updated).toBe(true);
     const comment = store.get(1);
-    expect(comment?.text).toBe("@Button edited");
+    expect(comment?.text).toBe("@Buttonedited");
     expect(comment?.content).toEqual(content);
     expect(comment?.elementInfo?.selectedElements).toEqual([targets[0]]);
   });

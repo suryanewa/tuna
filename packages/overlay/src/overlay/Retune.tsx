@@ -377,6 +377,8 @@ function RetuneInner(props: RetuneConfig) {
     handleSelectionComment,
     handleCommentSelect,
     syncCommentDraftFromDoc,
+    registerCommentComposerFocus,
+    focusCommentComposer,
   } = useCommentMode({
     active,
     mode,
@@ -390,6 +392,8 @@ function RetuneInner(props: RetuneConfig) {
     overlayRootRef: mountRef,
     enrichCommentDraft,
   });
+  const focusCommentComposerRef = useRef(focusCommentComposer);
+  focusCommentComposerRef.current = focusCommentComposer;
 
   // Initialize on mount
   useEffect(() => {
@@ -699,6 +703,9 @@ function RetuneInner(props: RetuneConfig) {
       onHover: () => {},
       shouldBlockClick: () => {
         return shouldBlockForPopoverRef.current();
+      },
+      onCommentDraftSelection: () => {
+        focusCommentComposerRef.current();
       },
       onSelect: (element, meta) => {
         const selectedEls = meta?.selectedElements ?? [element];
@@ -3866,6 +3873,7 @@ function RetuneInner(props: RetuneConfig) {
           elementInfo={commentDraft.elementInfo}
           spanMentionCount={commentDraft.spanMentionCount}
           primarySelector={commentDraft.selector}
+          registerCommentComposerFocus={registerCommentComposerFocus}
           onDocChange={handleCommentDocChange}
           onSubmit={(doc) => {
             const store = commentStoreRef.current;

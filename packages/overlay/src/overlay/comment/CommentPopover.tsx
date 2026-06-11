@@ -31,6 +31,50 @@ const COLLAPSED_CHROME_PX = 76;
 const COLLAPSED_CONTENT_MAX_PX = COLLAPSED_POPOVER_WIDTH - COLLAPSED_CHROME_PX;
 const COLLAPSED_MEASURER_STYLE =
   "position:absolute;left:-9999px;top:0;visibility:hidden;white-space:nowrap;font-size:13px;font-weight:400;line-height:1.4;letter-spacing:-0.005em;font-family:InterVariable,Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;";
+const POINTER_CLICK_MOVE_THRESHOLD_PX = 3;
+
+/** Only activate on pointer-up when pointer-down started on the same control (not drag-release). */
+function usePointerClickHandlers(onAction: () => void) {
+  const pressedRef = useRef(false);
+  const originRef = useRef<{ x: number; y: number } | null>(null);
+  const onActionRef = useRef(onAction);
+  onActionRef.current = onAction;
+
+  const onPointerDown = useCallback<PointerEventHandler<HTMLButtonElement>>((e) => {
+    if (e.button !== 0) return;
+    pressedRef.current = true;
+    originRef.current = { x: e.clientX, y: e.clientY };
+    e.stopPropagation();
+  }, []);
+
+  const onPointerUp = useCallback<PointerEventHandler<HTMLButtonElement>>((e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const origin = originRef.current;
+    const pressed = pressedRef.current;
+    pressedRef.current = false;
+    originRef.current = null;
+    if (!pressed || !origin) return;
+    if (Math.hypot(e.clientX - origin.x, e.clientY - origin.y) > POINTER_CLICK_MOVE_THRESHOLD_PX) return;
+    onActionRef.current();
+  }, []);
+
+  const onPointerCancel = useCallback(() => {
+    pressedRef.current = false;
+    originRef.current = null;
+  }, []);
+
+  return { onPointerDown, onPointerUp, onPointerCancel };
+}
+
+function isPopoverButtonTarget(target: EventTarget | null): boolean {
+  return target instanceof Element && target.closest("button") != null;
+}
+
+function isCloseButtonTarget(target: EventTarget | null): boolean {
+  return target instanceof Element && target.closest(".retune-comment-close") != null;
+}
 
 function collapsedContentWouldOverflow(text: string): boolean {
   if (!text.trim() || typeof document === "undefined") return false;
@@ -54,6 +98,7 @@ export function CommentPopover({
   elementInfo,
   spanMentionCount,
   primarySelector,
+  registerCommentComposerFocus,
 }: {
   position: { x: number; y: number };
   initialText: string;
@@ -67,6 +112,7 @@ export function CommentPopover({
   spanMentionCount?: number;
   /** Selector for single-element drafts without selectedElements. */
   primarySelector?: string;
+  registerCommentComposerFocus?: (focus: () => void) => void;
 }) {
   const targets = useMemo(
     () => getCommentElementTargets(elementInfo, primarySelector),
@@ -91,8 +137,11 @@ export function CommentPopover({
   const editorRef = useRef<CommentEditorApi>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const inputWrapRef = useRef<HTMLDivElement>(null);
+  const closePressRef = useRef<{ x: number; y: number } | null>(null);
+  const closeDismissHandledRef = useRef(false);
   const dictationSnapshotRef = useRef<CommentDoc>(cloneDoc(seedDoc));
   const isEdit = !!onDelete;
+  const mentionSelectorsRef = useRef("");
 
   const contentParts = useMemo(() => {
     if (!isEdit) return undefined;
@@ -125,6 +174,21 @@ export function CommentPopover({
       selector: primarySelector ?? "",
     }];
   }, [contentParts, elementInfo, primarySelector, spanMentionCount]);
+
+  useEffect(() => {
+    registerCommentComposerFocus?.(() => {
+      editorRef.current?.focus();
+    });
+  }, [registerCommentComposerFocus]);
+
+  useEffect(() => {
+    const signature = mentions.map((mention) => mention.selector).join("\0");
+    const previous = mentionSelectorsRef.current;
+    const grew = signature.length > previous.length && signature.startsWith(previous);
+    mentionSelectorsRef.current = signature;
+    if (!grew || isEdit) return;
+    editorRef.current?.focus();
+  }, [isEdit, mentions]);
 
   const handleEditorChange = useCallback((nextDoc: CommentDoc) => {
     setDoc(nextDoc);
@@ -181,6 +245,12 @@ export function CommentPopover({
     onCancel();
   }, [cancelDictation, isDictating, onCancel]);
 
+  const runCloseDismiss = useCallback(() => {
+    if (closeDismissHandledRef.current) return;
+    closeDismissHandledRef.current = true;
+    handleDismiss();
+  }, [handleDismiss]);
+
   useEffect(() => {
     if (!isDictating) {
       setDictationSeconds(0);
@@ -211,10 +281,10 @@ export function CommentPopover({
   const collapsedContentText = useMemo(() => {
     if (contentParts) {
       return contentParts
-        .map((part) => (part.type === "mention" ? `@${part.mention.name} ` : part.text))
+        .map((part) => (part.type === "mention" ? `@${part.mention.name}` : part.text))
         .join("");
     }
-    return mentions.map((m) => `@${m.name} `).join("");
+    return mentions.map((m) => `@${m.name}`).join("");
   }, [contentParts, mentions]);
 
   // When pre-selected elements are too wide to fit the collapsed pill on one
@@ -280,14 +350,62 @@ export function CommentPopover({
   };
 
   const plainText = docToPlainText(doc);
+  const deleteClick = usePointerClickHandlers(() => onDelete?.());
+  const dictationCancelClick = usePointerClickHandlers(handleCancelDictation);
+  const dictationConfirmClick = usePointerClickHandlers(() => {
+    confirmDictation();
+    requestAnimationFrame(() => editorRef.current?.focus());
+  });
+  const collapsedDictationClick = usePointerClickHandlers(() => {
+    if (isDictating) {
+      confirmDictation();
+      requestAnimationFrame(() => editorRef.current?.focus());
+    } else {
+      handleStartDictation();
+    }
+  });
+  const expandedDictationClick = usePointerClickHandlers(() => {
+    if (isDictating) {
+      confirmDictation();
+      requestAnimationFrame(() => editorRef.current?.focus());
+    } else {
+      handleStartDictation();
+    }
+  });
+  const sendClick = usePointerClickHandlers(handleSubmit);
 
   return (
     <div
       ref={popoverRef}
       className={`retune-comment-popover${isExpanded ? " has-content" : ""}`}
       style={style}
-      onPointerDownCapture={(e) => e.stopPropagation()}
-      onClickCapture={(e) => e.stopPropagation()}
+      onPointerDownCapture={(e) => {
+        if (e.button === 0 && isCloseButtonTarget(e.target)) {
+          closePressRef.current = { x: e.clientX, y: e.clientY };
+          return;
+        }
+        closePressRef.current = null;
+        if (isPopoverButtonTarget(e.target)) return;
+        e.stopPropagation();
+      }}
+      onPointerUpCapture={(e) => {
+        if (e.button !== 0) return;
+        const press = closePressRef.current;
+        if (!press) return;
+        if (!isCloseButtonTarget(e.target)) return;
+        closePressRef.current = null;
+        if (Math.hypot(e.clientX - press.x, e.clientY - press.y) > POINTER_CLICK_MOVE_THRESHOLD_PX) return;
+        e.preventDefault();
+        e.stopPropagation();
+        runCloseDismiss();
+      }}
+      onPointerCancelCapture={() => {
+        closePressRef.current = null;
+      }}
+      onClickCapture={(e) => {
+        if (isPopoverButtonTarget(e.target)) return;
+        e.stopPropagation();
+      }}
       onPointerDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
@@ -297,10 +415,11 @@ export function CommentPopover({
           className="retune-comment-close"
           aria-label="Close"
           title="Close"
-          onPointerUp={(e) => {
+          onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            handleDismiss();
+            closePressRef.current = null;
+            runCloseDismiss();
           }}
         >
           <IconCrossMedium size={14} />
@@ -338,16 +457,7 @@ export function CommentPopover({
               className={`retune-comment-circular-btn dictate-blue-circle${isTranscribing ? " transcribing" : isDictating ? " listening" : ""}`}
               isDictating={isDictating}
               title={dictationTitle}
-              onPointerUp={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (isDictating) {
-                  confirmDictation();
-                  requestAnimationFrame(() => editorRef.current?.focus());
-                } else {
-                  handleStartDictation();
-                }
-              }}
+              {...collapsedDictationClick}
             />
           </div>
         )}
@@ -360,11 +470,7 @@ export function CommentPopover({
               <button
                 type="button"
                 className="retune-comment-circular-btn delete"
-                onPointerUp={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onDelete?.();
-                }}
+                {...deleteClick}
                 title="Delete comment"
               >
                 <TrashIcon />
@@ -392,11 +498,7 @@ export function CommentPopover({
                 <button
                   type="button"
                   className="retune-comment-circular-btn dictate-cancel"
-                  onPointerUp={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleCancelDictation();
-                  }}
+                  {...dictationCancelClick}
                   title="Cancel dictation"
                 >
                   <XIcon />
@@ -404,12 +506,7 @@ export function CommentPopover({
                 <button
                   type="button"
                   className="retune-comment-circular-btn dictate-confirm"
-                  onPointerUp={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    confirmDictation();
-                    requestAnimationFrame(() => editorRef.current?.focus());
-                  }}
+                  {...dictationConfirmClick}
                   title="Confirm dictation"
                 >
                   <CheckIcon />
@@ -421,21 +518,12 @@ export function CommentPopover({
                   className={`retune-comment-circular-btn dictate-icon-only${isTranscribing ? " transcribing" : isDictating ? " listening" : ""}`}
                   isDictating={isDictating}
                   title={dictationTitle}
-                  onPointerUp={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (isDictating) {
-                      confirmDictation();
-                      requestAnimationFrame(() => editorRef.current?.focus());
-                    } else {
-                      handleStartDictation();
-                    }
-                  }}
+                  {...expandedDictationClick}
                 />
 
                 <button
                   className="retune-comment-circular-btn send"
-                  onPointerUp={handleSubmit}
+                  {...sendClick}
                   disabled={!plainText.trim()}
                   title="Send comment"
                 >
@@ -455,18 +543,24 @@ function DictationButton({
   className,
   isDictating,
   title,
+  onPointerDown,
   onPointerUp,
+  onPointerCancel,
 }: {
   className: string;
   isDictating: boolean;
   title: string;
+  onPointerDown: PointerEventHandler<HTMLButtonElement>;
   onPointerUp: PointerEventHandler<HTMLButtonElement>;
+  onPointerCancel: () => void;
 }) {
   return (
     <button
       type="button"
       className={className}
+      onPointerDown={onPointerDown}
       onPointerUp={onPointerUp}
+      onPointerCancel={onPointerCancel}
       title={title}
       aria-pressed={isDictating}
       aria-label={title}

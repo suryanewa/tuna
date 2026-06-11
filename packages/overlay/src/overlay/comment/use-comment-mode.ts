@@ -16,6 +16,14 @@ import {
 } from "./comment-draft";
 import { docToMentionSelectors, docToPlainText, type CommentDoc } from "./comment-doc";
 
+function scheduleCommentComposerFocus(focus: () => void): void {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      setTimeout(focus, 0);
+    });
+  });
+}
+
 function colorByElementFromMeta(meta?: SelectEventMeta): Map<Element, string> {
   const colors = new Map<Element, string>();
   if (!meta?.selectionColors) return colors;
@@ -92,6 +100,7 @@ export function useCommentMode({
   const popoverOpenRef = useRef(false);
   const popoverTextRef = useRef("");
   const popoverInitialTextRef = useRef("");
+  const commentComposerFocusRef = useRef<() => void>(() => {});
   const modeRef = useRef(mode);
   modeRef.current = mode;
 
@@ -103,6 +112,14 @@ export function useCommentMode({
     popoverOpenRef.current = true;
     popoverTextRef.current = initialText;
     popoverInitialTextRef.current = initialText;
+  }, []);
+
+  const registerCommentComposerFocus = useCallback((focus: () => void) => {
+    commentComposerFocusRef.current = focus;
+  }, []);
+
+  const focusCommentComposer = useCallback(() => {
+    scheduleCommentComposerFocus(() => commentComposerFocusRef.current());
   }, []);
 
   const openExistingComment = useCallback((id: number, text: string) => {
@@ -179,7 +196,8 @@ export function useCommentMode({
       multiInspected.map((t) => t.element),
       selectedElementRef.current?.element,
     );
-  }, [pickerRef, selectedElementRef, selectedElementsRef, setSelectedElement, setSelectedElements]);
+    focusCommentComposer();
+  }, [focusCommentComposer, pickerRef, selectedElementRef, selectedElementsRef, setSelectedElement, setSelectedElements]);
 
   const removeElementsFromCommentDraft = useCallback((elementsToRemove: Element[]) => {
     const draft = commentDraftRef.current;
@@ -523,5 +541,7 @@ export function useCommentMode({
     handleCommentSelect,
     syncCommentDraftFromDoc,
     getDraftElementTargets: getCurrentDraftElementTargets,
+    registerCommentComposerFocus,
+    focusCommentComposer,
   };
 }

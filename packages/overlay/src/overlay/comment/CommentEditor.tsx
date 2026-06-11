@@ -69,6 +69,24 @@ let reinforcingMarginCaret = false;
 let latestEditorPointerForInput: { x: number; y: number } | null = null;
 let latestEditorPointerDown: { x: number; y: number } | null = null;
 const CARET_ANCHOR_TEXT = "\u200b";
+
+/** Refocus after page clicks — waits for React commit + Lexical mention insert. */
+export function scheduleCommentEditorFocus(editor: LexicalEditor | null | undefined): void {
+  if (!editor) return;
+  const applyFocus = () => {
+    const root = editor.getRootElement();
+    if (root instanceof HTMLElement) {
+      root.focus({ preventScroll: true });
+      return;
+    }
+    editor.focus();
+  };
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      setTimeout(applyFocus, 0);
+    });
+  });
+}
 const POINTER_DRAG_SELECTION_THRESHOLD_PX = 3;
 const CARET_NAV_KEYS = new Set([
   "ArrowLeft",
@@ -1212,7 +1230,7 @@ function reinforceRowMarginDomCaret(
   y: number,
 ): void {
   let action: RowMarginDomCaretAction | null = null;
-  editor.getEditorState().read(() => {
+  editor.update(() => {
     const trailing = findTrailingRowGapGeometry(rootEl, x, y);
     if (trailing) {
       const target = resolveRowGeometryTarget(editor, trailing);
@@ -1501,7 +1519,7 @@ function findAdjacentMentionAcrossWhitespace(
   let cursor: LexicalNode | null = direction === "previous"
     ? node.getPreviousSibling()
     : node.getNextSibling();
-  while ($isTextNode(cursor) && !$isMentionNode(cursor) && isEditorTextEmpty(cursor.getTextContent())) {
+  while ($isTextNode(cursor) && !$isMentionNode(cursor) && isInvisibleEditorSpacerText(cursor.getTextContent())) {
     cursor = direction === "previous" ? cursor.getPreviousSibling() : cursor.getNextSibling();
   }
   return $isMentionNode(cursor) ? cursor : null;
@@ -1593,6 +1611,16 @@ function isCaretAnchorText(text: string): boolean {
   return text === CARET_ANCHOR_TEXT;
 }
 
+/** Zero-width / empty editor placeholders — not user-typed spaces. */
+function isInvisibleEditorSpacerText(text: string): boolean {
+  const withoutAnchors = text.replace(/\u200b/g, "");
+  return withoutAnchors.length === 0;
+}
+
+function isInvisibleEditorSpacerNode(node: LexicalNode | null | undefined): node is TextNode {
+  return $isTextNode(node) && !$isMentionNode(node) && isInvisibleEditorSpacerText(node.getTextContent());
+}
+
 function replaceCaretAnchorWithText(node: TextNode, text: string): boolean {
   if (!isCaretAnchorText(node.getTextContent())) return false;
   node.setTextContent(text);
@@ -1659,7 +1687,7 @@ function createContentNodesFromParts(parts: CommentContentPart[]): LexicalNode[]
     } else {
       const previous = parts[index - 1];
       const next = parts[index + 1];
-      const isLegacyMentionSpacer = part.text.trim() === ""
+      const isLegacyMentionSpacer = isInvisibleEditorSpacerText(part.text)
         && (previous?.type === "mention" || next?.type === "mention");
       if (isLegacyMentionSpacer) continue;
       nodes.push($createTextNode(part.text));
@@ -1672,28 +1700,16 @@ function createContentNodesFromParts(parts: CommentContentPart[]): LexicalNode[]
   return nodes;
 }
 
-function isWhitespaceOnlyTextNode(node: LexicalNode | null | undefined): node is TextNode {
-  return $isTextNode(node) && !$isMentionNode(node) && isEditorTextEmpty(node.getTextContent());
-}
-
 function normalizeMentionSpacing() {
   const root = $getRoot();
   for (const node of root.getAllTextNodes()) {
     if (!$isMentionNode(node)) continue;
     const previous = node.getPreviousSibling();
-    if (
-      isWhitespaceOnlyTextNode(previous)
-      && previous.getTextContent().length > 0
-      && !isCaretAnchorText(previous.getTextContent())
-    ) {
+    if (isInvisibleEditorSpacerNode(previous)) {
       previous.remove();
     }
     const next = node.getNextSibling();
-    if (
-      isWhitespaceOnlyTextNode(next)
-      && next.getTextContent().length > 0
-      && !isCaretAnchorText(next.getTextContent())
-    ) {
+    if (isInvisibleEditorSpacerNode(next)) {
       next.remove();
     }
   }
@@ -1719,11 +1735,7 @@ function normalizeSpacingAfterMentionRemoval() {
   if ($isMentionNode(firstContent)) {
     for (const node of nodes) {
       if (node === firstContent) break;
-      if (
-        isWhitespaceOnlyTextNode(node)
-        && node.getTextContent().length > 0
-        && !isCaretAnchorText(node.getTextContent())
-      ) {
+      if (isInvisibleEditorSpacerNode(node)) {
         node.remove();
       }
     }
@@ -1731,11 +1743,7 @@ function normalizeSpacingAfterMentionRemoval() {
 
   nodes = rootTextNodes();
   for (const node of nodes) {
-    if (
-      isWhitespaceOnlyTextNode(node)
-      && node.getTextContent().length > 0
-      && !isCaretAnchorText(node.getTextContent())
-    ) {
+    if (isInvisibleEditorSpacerNode(node)) {
       node.remove();
     }
   }
@@ -1781,13 +1789,39 @@ function resetEditorContentFromParts(editor: LexicalEditor, parts: CommentConten
   });
 }
 
+function createInlineInsertionNodes(parts: CommentContentPart[]): LexicalNode[] {
+  return createContentNodesFromParts(parts).filter((node) => {
+    if ($isTextNode(node) && !$isMentionNode(node) && isInvisibleEditorSpacerText(node.getTextContent())) {
+      return false;
+    }
+    return true;
+  });
+}
+
+function $placeCaretAfterInsertedMentions(selectors: string[]): void {
+  const selector = selectors[selectors.length - 1];
+  if (selector) {
+    const mention = findMentionNodeBySelector(selector);
+    if (mention) {
+      $selectTextNodeStart($getOrCreateEditableTextSibling(mention, "next"));
+      return;
+    }
+  }
+  const root = $getRoot();
+  const paragraph = root.getFirstChild();
+  if ($isElementNode(paragraph)) {
+    paragraph.selectEnd();
+  }
+}
+
 function insertMentionsAtSelection(editor: LexicalEditor, mentions: CommentMention[]) {
   if (mentions.length === 0) return;
   const insertionParts = mentions.length === 1
     ? buildMentionInsertionParts(mentions[0]!)
     : buildInlineMentionInsertionsParts(mentions);
+  const insertedSelectors = mentions.map((mention) => mention.selector);
   editor.update(() => {
-    const nodes = createContentNodesFromParts(insertionParts);
+    const nodes = createInlineInsertionNodes(insertionParts);
     const selection = $getSelection();
     if ($isRangeSelection(selection)) {
       $insertNodes(nodes);
@@ -1796,11 +1830,12 @@ function insertMentionsAtSelection(editor: LexicalEditor, mentions: CommentMenti
       const paragraph = root.getFirstChild();
       if ($isElementNode(paragraph)) {
         paragraph.append(...nodes);
-        paragraph.selectEnd();
       }
     }
     normalizeMentionSpacing();
+    $placeCaretAfterInsertedMentions(insertedSelectors);
   });
+  scheduleCommentEditorFocus(editor);
 }
 
 function MarginCaretOverlay() {
@@ -1844,13 +1879,13 @@ function CommentEditorPlugins({
   const restoreFromParts = !!contentParts;
 
   useEffect(() => {
-    const isWhitespaceTextNode = (node: LexicalNode | null | undefined): node is TextNode =>
-      $isTextNode(node) && !$isMentionNode(node) && isEditorTextEmpty(node.getTextContent());
+    const isInvisibleSpacerTextNode = (node: LexicalNode | null | undefined): node is TextNode =>
+      isInvisibleEditorSpacerNode(node);
 
     const findMentionAcrossWhitespace = (node: LexicalNode, direction: "previous" | "next") => {
       const skippedWhitespace: TextNode[] = [];
       let cursor = direction === "previous" ? node.getPreviousSibling() : node.getNextSibling();
-      while (isWhitespaceTextNode(cursor)) {
+      while (isInvisibleSpacerTextNode(cursor)) {
         skippedWhitespace.push(cursor);
         cursor = direction === "previous" ? cursor.getPreviousSibling() : cursor.getNextSibling();
       }
@@ -1862,7 +1897,9 @@ function CommentEditorPlugins({
     };
 
     const normalizeSpacer = (node: LexicalNode | null | undefined) => {
-      if (!isWhitespaceTextNode(node)) return null;
+      if (!$isTextNode(node) || $isMentionNode(node)) return null;
+      if (!isEditorTextEmpty(node.getTextContent())) return node;
+      if (!isInvisibleEditorSpacerText(node.getTextContent())) return node;
       if (node.getTextContent().length > 0 && !isCaretAnchorText(node.getTextContent())) {
         node.setTextContent(CARET_ANCHOR_TEXT);
       }
@@ -1871,7 +1908,7 @@ function CommentEditorPlugins({
 
     const findMentionAcrossWhitespaceReadOnly = (node: LexicalNode, direction: "previous" | "next") => {
       let cursor = direction === "previous" ? node.getPreviousSibling() : node.getNextSibling();
-      while (isWhitespaceTextNode(cursor)) {
+      while (isInvisibleSpacerTextNode(cursor)) {
         cursor = direction === "previous" ? cursor.getPreviousSibling() : cursor.getNextSibling();
       }
       return $isMentionNode(cursor) ? cursor : null;
@@ -2222,6 +2259,7 @@ function KeyPlugin({
       }
     };
     const commitPointerSelection = (clientX: number, clientY: number, rowMarginClick: boolean) => {
+      let committedDragSelection = false;
       editor.update(() => {
         const pointerUp = { x: clientX, y: clientY };
         if (
@@ -2234,6 +2272,7 @@ function KeyPlugin({
           shouldSyncDomSelectionOnNextInput = false;
           skipDomSelectionSyncOnNextInput = false;
           $applyDomSelectionToLexical(editor);
+          committedDragSelection = true;
           return;
         }
         clearMentionEditPlacementState();
@@ -2241,7 +2280,7 @@ function KeyPlugin({
         $syncSelectionFromDomInteraction(editor, root, clientX, clientY);
         shouldSyncDomSelectionOnNextInput = true;
       });
-      if (rowMarginClick) {
+      if (rowMarginClick && !committedDragSelection) {
         const reinforce = () => {
           reinforceRowMarginDomCaret(editor, root, shellEl(), clientX, clientY);
         };
@@ -2285,6 +2324,11 @@ function KeyPlugin({
     const handleSelectionChange = () => {
       if (!pendingRowMarginPointer || reinforcingMarginCaret) return;
       if (!root.classList.contains(MARGIN_CUSTOM_CARET_ACTIVE_CLASS)) return;
+      if (domHasAnyExpandedSelectionInEditor(root, editor)) {
+        pendingRowMarginPointer = null;
+        clearMarginCustomCaret(editor);
+        return;
+      }
       const { x, y } = pendingRowMarginPointer;
       reinforcingMarginCaret = true;
       try {
@@ -2531,7 +2575,7 @@ export const CommentEditor = forwardRef<CommentEditorApi, CommentEditorProps>(fu
       resetEditorContentFromParts(editor, docToLexicalParts(doc));
     },
     focus() {
-      editorRef.current?.focus();
+      scheduleCommentEditorFocus(editorRef.current);
     },
     placeSelectionAtPoint(x: number, y: number) {
       const editor = editorRef.current;
