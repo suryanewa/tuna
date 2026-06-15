@@ -15,7 +15,7 @@
     "next": "^16.3.0-canary.47",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "retune": "file:../packages/overlay",
+    "tuna": "file:../packages/overlay",
     "typescript": "^5.5.0"
   }
 }

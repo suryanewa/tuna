@@ -34,15 +34,15 @@ export function ScopeSection({
     return (
       <Section label="Selection">
         <Row label="Target">
-          <div className="retune-selector-field">
+          <div className="tuna-selector-field">
             <button
               type="button"
-              className="retune-selector-tag active"
+              className="tuna-selector-tag active"
               tabIndex={-1}
               aria-disabled="true"
             >
-              <span className="retune-selector-tag-name">Multiple elements</span>
-              <span className="retune-selector-tag-count">{selectedCount}</span>
+              <span className="tuna-selector-tag-name">Multiple elements</span>
+              <span className="tuna-selector-tag-count">{selectedCount}</span>
             </button>
           </div>
         </Row>
@@ -172,7 +172,7 @@ export function ScopeSection({
 
         return (
           <Row label="Target">
-            <div className="retune-selector-field" ref={fieldRef}>
+            <div className="tuna-selector-field" ref={fieldRef}>
               {scopeLevels.map((level, index) => {
                 const isActive = index === activeLevelIndex;
                 const isElementLevel = level.selector === null;
@@ -182,10 +182,10 @@ export function ScopeSection({
                 return (
                   <Fragment key={level.selector ?? "__element"}>
                     {isElementLevel && scopeLevels.length > 1 && (
-                      <span className="retune-selector-divider" />
+                      <span className="tuna-selector-divider" />
                     )}
                     <button
-                      className={`retune-selector-tag${isActive ? " active" : ""}${isIncluded ? " included" : ""}`}
+                      className={`tuna-selector-tag${isActive ? " active" : ""}${isIncluded ? " included" : ""}`}
                       data-level-index={index}
                       onClick={() => onScopeLevelChange(index)}
                       onPointerEnter={() => onScopeLevelHover?.(index)}
@@ -193,23 +193,23 @@ export function ScopeSection({
                     >
                       {level.label.length > 24 ? (
                         <Tooltip content={level.label} side="bottom" delay={300}>
-                          <span className="retune-selector-tag-name">
+                          <span className="tuna-selector-tag-name">
                             {middleTruncate(level.label, 24)}
                           </span>
                         </Tooltip>
                       ) : (
-                        <span className="retune-selector-tag-name">
+                        <span className="tuna-selector-tag-name">
                           {level.label}
                         </span>
                       )}
                       {level.count > 1 && (
                         <Tooltip content={`${level.count} elements match this selector`} side="bottom" delay={300}>
-                          <span className="retune-selector-tag-count">{level.count}</span>
+                          <span className="tuna-selector-tag-count">{level.count}</span>
                         </Tooltip>
                       )}
                     </button>
                     {showBridge && (
-                      <span className="retune-selector-bridge filled" />
+                      <span className="tuna-selector-bridge filled" />
                     )}
                   </Fragment>
                 );
@@ -220,7 +220,7 @@ export function ScopeSection({
       })()}
       {onForcedStateChange && (
         <Row label="Trigger">
-          <div className="retune-row">
+          <div className="tuna-row">
             <SelectInput
               prop="__state"
               value={forcedState ? ({ ":hover": "Hover", ":focus": "Focus", ":active": "Active" } as Record<string, string>)[forcedState] ?? "None" : "None"}

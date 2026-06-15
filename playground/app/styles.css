@@ -598,7 +598,7 @@ p { text-wrap: pretty; }
   max-width: 800px;
   display: flex;
   flex-direction: column;
-  background: url('https://gefwnmizrwwjultadzml.supabase.co/storage/v1/object/public/Retune/meadow_og.webp') center / cover no-repeat;
+  background: url('https://gefwnmizrwwjultadzml.supabase.co/storage/v1/object/public/Tuna/meadow_og.webp') center / cover no-repeat;
   overflow: clip;
   overflow-clip-margin: 30px;
   position: relative;
@@ -1500,9 +1500,9 @@ p { text-wrap: pretty; }
   pointer-events: none;
 }
 
-/* ── Animated Retune demo ── */
+/* ── Animated Tuna demo ── */
 /*
-   Scale: 0.6× of real Retune (44px → 26px)
+   Scale: 0.6× of real Tuna (44px → 26px)
    ┌─────────────────┬────────┬────────┐
    │ Property        │ Real   │ Mock   │
    ├─────────────────┼────────┼────────┤
@@ -1569,7 +1569,7 @@ p { text-wrap: pretty; }
 }
 
 /* Collapse button: 26×26 circle with 12px icon
-   Uses position:absolute so it doesn't affect layout when hidden (like real Retune) */
+   Uses position:absolute so it doesn't affect layout when hidden (like real Tuna) */
 .mock-collapse-btn {
   position: absolute;
   inset: 0;
@@ -1797,7 +1797,7 @@ p { text-wrap: pretty; }
 }
 
 /* Panel appears after selection */
-/* Retune mock — light mode (default) */
+/* Tuna mock — light mode (default) */
 .mock-panel, .mock-toolbar {
   --rt-surface: #ffffff;
   --rt-text: #1c1917;
@@ -1808,7 +1808,7 @@ p { text-wrap: pretty; }
   --rt-shadow: 0 2px 12px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04);
   --rt-selection: color-mix(in srgb, #0D99FF 30%, transparent);
 }
-/* Retune mock — dark mode */
+/* Tuna mock — dark mode */
 :root[data-theme="dark"] .mock-panel,
 :root[data-theme="dark"] .mock-toolbar {
   --rt-surface: #1a1918;
@@ -1839,12 +1839,12 @@ p { text-wrap: pretty; }
 }
 
 @keyframes mock-panel-toggle {
-  /* Enter: translateY(12px) → 0, matching real Retune panel-in */
+  /* Enter: translateY(12px) → 0, matching real Tuna panel-in */
   0%, 27% { opacity: 0; transform: translateY(12px); }
   29%     { opacity: 1; transform: translateY(0); }
   /* Visible — stays until terminal is fully docked at 92.1% */
   95.5%   { opacity: 1; transform: translateY(0); }
-  /* Exit: 0 → translateY(12px), matching real Retune panel-out */
+  /* Exit: 0 → translateY(12px), matching real Tuna panel-out */
   97%     { opacity: 0; transform: translateY(12px); }
   100%    { opacity: 0; transform: translateY(12px); }
 }
@@ -2027,7 +2027,7 @@ p { text-wrap: pretty; }
   padding: 0 5px 8px 10px;
 }
 
-/* Input rows — match retune-row */
+/* Input rows — match tuna-row */
 .mock-input-row {
   display: flex;
   gap: 4px;
@@ -3335,7 +3335,7 @@ p { text-wrap: pretty; }
 
 [data-theme="dark"] {
   /* Hero visual: dark wallpaper — user will provide URL, placeholder for now */
-  .desktop-bg { background-image: url('https://gefwnmizrwwjultadzml.supabase.co/storage/v1/object/public/Retune/meadow_night.webp'); }
+  .desktop-bg { background-image: url('https://gefwnmizrwwjultadzml.supabase.co/storage/v1/object/public/Tuna/meadow_night.webp'); }
 
   .layout,
   .sidebar {

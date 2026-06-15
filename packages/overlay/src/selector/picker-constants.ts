@@ -13,6 +13,6 @@ export const MARQUEE_SAMPLE_STEP = 16;
 export const DRAW_DRAG_THRESHOLD = 3;
 export const DRAW_MIN_POINTS = 3;
 export const DRAW_FILL_ALPHA = "0.08";
-export const DRAW_COLOR_ATTR = "data-retune-draw-color";
+export const DRAW_COLOR_ATTR = "data-tuna-draw-color";
 export const HOVER_TITLE_OFFSET_X = 12;
 export const HOVER_TITLE_OFFSET_Y = 16;

@@ -3,7 +3,7 @@
  *
  * A full-viewport capture layer in the shadow root receives pointer events
  * so page elements never get mousedown (:active, focus). Hover/selection use
- * document.elementsFromPoint() at the cursor. Retune UI stays clickable above
+ * document.elementsFromPoint() at the cursor. Tuna UI stays clickable above
  * the capture layer via pointer-events:auto.
  *
  * Selection persists until a new element is selected or picker is deactivated.
@@ -75,7 +75,7 @@ export function createPicker(
 ) {
   // Full-viewport layer — intercepts pointer events before they reach the page.
   const captureLayer = document.createElement("div");
-  captureLayer.setAttribute("data-retune-capture", "");
+  captureLayer.setAttribute("data-tuna-capture", "");
   captureLayer.style.cssText = `
     position: fixed;
     inset: 0;
@@ -88,7 +88,7 @@ export function createPicker(
 
   // Marquee selection box (drag replace, shift+drag add, alt+drag remove)
   const marqueeBox = document.createElement("div");
-  marqueeBox.setAttribute("data-retune-marquee", "");
+  marqueeBox.setAttribute("data-tuna-marquee", "");
   marqueeBox.style.cssText = `
     position: fixed;
     pointer-events: none;
@@ -100,7 +100,7 @@ export function createPicker(
   shadowRoot.appendChild(marqueeBox);
 
   const drawingSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  drawingSvg.setAttribute("data-retune-drawing-layer", "");
+  drawingSvg.setAttribute("data-tuna-drawing-layer", "");
   drawingSvg.style.cssText = `
     position: fixed;
     inset: 0;
@@ -115,27 +115,27 @@ export function createPicker(
 
   // Hover highlight
   const highlight = document.createElement("div");
-  highlight.setAttribute("data-retune-highlight", "");
+  highlight.setAttribute("data-tuna-highlight", "");
   shadowRoot.appendChild(highlight);
 
   const label = document.createElement("div");
-  label.setAttribute("data-retune-label", "");
+  label.setAttribute("data-tuna-label", "");
   shadowRoot.appendChild(label);
 
   // Selection highlight (persistent)
   const selection = document.createElement("div");
-  selection.setAttribute("data-retune-selection", "");
+  selection.setAttribute("data-tuna-selection", "");
   shadowRoot.appendChild(selection);
 
   const selectionLabel = document.createElement("div");
-  selectionLabel.setAttribute("data-retune-selection-label", "");
+  selectionLabel.setAttribute("data-tuna-selection-label", "");
   shadowRoot.appendChild(selectionLabel);
 
   // Additional selection boxes for shift multi-select
   const multiSelectPool: HTMLDivElement[] = [];
   for (let i = 0; i < MULTI_SELECT_POOL_SIZE; i++) {
     const box = document.createElement("div");
-    box.setAttribute("data-retune-multi-selection", "");
+    box.setAttribute("data-tuna-multi-selection", "");
     box.style.cssText = `
       position: fixed;
       pointer-events: none;
@@ -159,7 +159,7 @@ export function createPicker(
 
   // Parent indicator (dotted outline, no fill — shown during fill snap)
   const parentIndicator = document.createElement("div");
-  parentIndicator.setAttribute("data-retune-parent-indicator", "");
+  parentIndicator.setAttribute("data-tuna-parent-indicator", "");
   parentIndicator.style.cssText = `
     position:fixed;display:none;pointer-events:none;z-index:2147483644;
     border:1px dotted #0D99FF;background:none;border-radius:0;
@@ -181,7 +181,7 @@ export function createPicker(
   function showOutlinePool(parent: Element, includeChild: (child: Element) => boolean) {
     const children = Array.from(parent.children).filter((child) => {
       if (!includeChild(child)) return false;
-      if (child.hasAttribute("data-retune-host")) return false;
+      if (child.hasAttribute("data-tuna-host")) return false;
       const cs = getComputedStyle(child);
       if (cs.display === "none" || cs.visibility === "hidden") return false;
       return true;
@@ -248,7 +248,7 @@ export function createPicker(
 
     activeScopeElements = elements.filter(el => {
       if (excluded.has(el)) return false;
-      if (el.closest("[data-retune-host]")) return false;
+      if (el.closest("[data-tuna-host]")) return false;
       const cs = getComputedStyle(el);
       if (cs.display === "none" || cs.visibility === "hidden") return false;
       return true;
@@ -527,10 +527,10 @@ export function createPicker(
   const snapGuidePool: Array<{ line: HTMLDivElement; label: HTMLDivElement }> = [];
   for (let i = 0; i < 16; i++) {
     const line = document.createElement("div");
-    line.className = "retune-snap-guide";
+    line.className = "tuna-snap-guide";
     shadowRoot.appendChild(line);
     const label = document.createElement("div");
-    label.className = "retune-snap-label";
+    label.className = "tuna-snap-label";
     shadowRoot.appendChild(label);
     snapGuidePool.push({ line, label });
   }
@@ -893,7 +893,7 @@ export function createPicker(
         line.style.cssText = `
           position:fixed;pointer-events:none;z-index:2147483645;background:none;
           top:0;left:${guide.pos}px;width:0;height:100vh;
-          border-left:1px solid var(--retune-red);
+          border-left:1px solid var(--tuna-red);
         `;
         line.classList.add("visible");
         const cx = guide.pos + 0.5;
@@ -916,7 +916,7 @@ export function createPicker(
         line.style.cssText = `
           position:fixed;pointer-events:none;z-index:2147483645;background:none;
           top:${guide.pos}px;left:0;width:100vw;height:0;
-          border-top:1px solid var(--retune-red);
+          border-top:1px solid var(--tuna-red);
         `;
         line.classList.add("visible");
         const cy = guide.pos + 0.5;
@@ -989,7 +989,7 @@ export function createPicker(
     // Other elements: unlocked by default, Shift to lock
     const isCorner = axes.dx !== 0 && axes.dy !== 0;
     const isMediaElement = selectedElement && /^(IMG|VIDEO|PICTURE|CANVAS)$/i.test(selectedElement.tagName);
-    const panelLocked = selectedElement?.hasAttribute("data-retune-aspect-locked");
+    const panelLocked = selectedElement?.hasAttribute("data-tuna-aspect-locked");
     const defaultLocked = isMediaElement || panelLocked;
     const shouldLock = resizeDrag.startWidth > 0 && resizeDrag.startHeight > 0
       && (defaultLocked ? !e.shiftKey : (isCorner && e.shiftKey));
@@ -1508,7 +1508,7 @@ export function createPicker(
     let hl = dragState.reparentHighlight;
     if (!hl) {
       hl = document.createElement("div");
-      hl.setAttribute("data-retune-drag-ghost", "");
+      hl.setAttribute("data-tuna-drag-ghost", "");
       hl.style.cssText = `
         position:fixed;pointer-events:none;z-index:2147483646;
         border:1px solid #0D99FF;
@@ -1525,10 +1525,10 @@ export function createPicker(
     hl.style.display = "block";
 
     // Drop indicator line inside the container
-    let line = hl.querySelector("[data-retune-reparent-line]") as HTMLDivElement | null;
+    let line = hl.querySelector("[data-tuna-reparent-line]") as HTMLDivElement | null;
     if (!line) {
       line = document.createElement("div");
-      line.setAttribute("data-retune-reparent-line", "");
+      line.setAttribute("data-tuna-reparent-line", "");
       line.style.cssText = `position:absolute;background:#0D99FF;pointer-events:none;border-radius:1px;`;
       hl.appendChild(line);
     }
@@ -1622,7 +1622,7 @@ export function createPicker(
 
       // Create ghost in the DOCUMENT (not shadow DOM) so page CSS applies to the clone
       const ghost = document.createElement("div");
-      ghost.setAttribute("data-retune-drag-ghost", "");
+      ghost.setAttribute("data-tuna-drag-ghost", "");
       ghost.style.cssText = `
         position:fixed;pointer-events:none;z-index:2147483647;
         width:${origRect.width}px;height:${origRect.height}px;
@@ -2110,7 +2110,7 @@ export function createPicker(
       position:fixed;pointer-events:none;display:block;
       top:${y}px;left:${x}px;
       width:${horizontal ? size : 0}px;height:${horizontal ? 0 : size}px;
-      border-${horizontal ? "top" : "left"}:1px ${dashed ? "dashed" : "solid"} var(--retune-red);
+      border-${horizontal ? "top" : "left"}:1px ${dashed ? "dashed" : "solid"} var(--tuna-red);
     `;
   }
 
@@ -2354,7 +2354,7 @@ export function createPicker(
 
   function createCommentDraftBox(): HTMLDivElement {
     const box = document.createElement("div");
-    box.setAttribute("data-retune-comment-selection", "");
+    box.setAttribute("data-tuna-comment-selection", "");
     box.style.cssText = `
       position: fixed;
       pointer-events: none;
@@ -2818,7 +2818,7 @@ export function createPicker(
 
   // Filter out our own overlay elements
   function isOverlayElement(el: Element): boolean {
-    return !!el.closest("[data-retune-host]") || !!el.closest("[data-retune-drag-ghost]");
+    return !!el.closest("[data-tuna-host]") || !!el.closest("[data-tuna-drag-ghost]");
   }
 
   // Void/empty elements that aren't useful to select — bubble to parent
@@ -2877,7 +2877,7 @@ export function createPicker(
     const hoverShadowHit = shadowRoot.elementFromPoint(e.clientX, e.clientY);
     if (hoverShadowHit && hoverShadowHit.getRootNode() === shadowRoot) {
       if (!isPickerChromeElement(hoverShadowHit)) {
-        // Cursor is over Retune UI (toolbar, panel) — clear hover highlight
+        // Cursor is over Tuna UI (toolbar, panel) — clear hover highlight
         if (hoveredElement) {
           hoveredElement = null;
           hideHighlight();
@@ -2916,7 +2916,7 @@ export function createPicker(
     }
   }
 
-  /** Topmost page element at a point, excluding Retune overlay nodes. */
+  /** Topmost page element at a point, excluding Tuna overlay nodes. */
   function pageElementAtPoint(x: number, y: number): Element | null {
     return buildElementStack(x, y)[0] ?? null;
   }
@@ -2948,7 +2948,7 @@ export function createPicker(
       || siblingOutlinePool.includes(el as HTMLDivElement);
   }
 
-  function isRetuneOverlayEvent(e: Event): boolean {
+  function isTunaOverlayEvent(e: Event): boolean {
     const { clientX, clientY } = e as MouseEvent;
     const shadowHit = shadowRoot.elementFromPoint(clientX, clientY);
     if (!shadowHit || shadowHit.getRootNode() !== shadowRoot) return false;
@@ -2963,7 +2963,7 @@ export function createPicker(
   /** Block pointer/mouse down from reaching page elements (prevents :active and focus). */
   function blockPagePointerDown(e: Event) {
     if (!active) return;
-    if (isRetuneOverlayEvent(e)) return;
+    if (isTunaOverlayEvent(e)) return;
     if (suspended) {
       // Keep native pointer defaults so contenteditable can place the caret,
       // but stop app-level press handlers from firing while text edit owns input.
@@ -2975,15 +2975,15 @@ export function createPicker(
     e.stopImmediatePropagation();
   }
 
-  function isRetuneFocusedElement(focused: Element): boolean {
+  function isTunaFocusedElement(focused: Element): boolean {
     if (focused instanceof HTMLElement) {
-      if (focused.hasAttribute("data-retune-host")) return true;
-      if (focused.closest("[data-retune-host]")) return true;
+      if (focused.hasAttribute("data-tuna-host")) return true;
+      if (focused.closest("[data-tuna-host]")) return true;
     }
     const root = focused.getRootNode();
     if (root instanceof ShadowRoot) {
       const host = root.host;
-      if (host instanceof HTMLElement && host.hasAttribute("data-retune-host")) return true;
+      if (host instanceof HTMLElement && host.hasAttribute("data-tuna-host")) return true;
     }
     return false;
   }
@@ -2994,7 +2994,7 @@ export function createPicker(
       focused instanceof HTMLElement
       && focused !== document.body
       && focused !== document.documentElement
-      && !isRetuneFocusedElement(focused)
+      && !isTunaFocusedElement(focused)
     ) {
       focused.blur();
     }
@@ -3257,7 +3257,7 @@ export function createPicker(
 
   function startDrawPath(e: PointerEvent) {
     if (!active || !drawMode || suspended || commentDraftActive) return;
-    if (isRetuneOverlayEvent(e)) return;
+    if (isTunaOverlayEvent(e)) return;
     if (callbacks.shouldBlockClick?.()) return;
     if (!e.composedPath().includes(captureLayer)) return;
 
@@ -3502,10 +3502,10 @@ export function createPicker(
     if (!active || commentMode || drawMode || suspended) return;
     if (commentDraftActive) return;
     if (propertyEditMode) return;
-    if (isRetuneOverlayEvent(e)) return;
+    if (isTunaOverlayEvent(e)) return;
     if (callbacks.shouldBlockClick?.()) return;
     // Document listeners see a Shadow DOM-retargeted host as e.target, so use
-    // the composed path to distinguish the page capture layer from Retune UI.
+    // the composed path to distinguish the page capture layer from Tuna UI.
     if (!e.composedPath().includes(captureLayer)) return;
 
     marqueeDrag = {
@@ -3522,7 +3522,7 @@ export function createPicker(
     if (!active) return;
 
     if (drawMode && !commentDraftActive) {
-      if (isRetuneOverlayEvent(e)) return;
+      if (isTunaOverlayEvent(e)) return;
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
@@ -3534,7 +3534,7 @@ export function createPicker(
       return;
     }
 
-    if (isRetuneOverlayEvent(e)) return;
+    if (isTunaOverlayEvent(e)) return;
 
     if (suspended) {
       const target = e.target instanceof Element ? e.target : null;
@@ -3625,7 +3625,7 @@ export function createPicker(
 
   function handleDblClick(e: MouseEvent) {
     if (!active || !selectedElement) return;
-    if (isRetuneOverlayEvent(e)) return;
+    if (isTunaOverlayEvent(e)) return;
     if (suspended) return;
     e.preventDefault();
     e.stopPropagation();
@@ -3668,9 +3668,9 @@ export function createPicker(
     }
 
     if (e.key === "Escape") {
-      if (shadowRoot.querySelector(".retune-floating-dialog")) return;
-      if (shadowRoot.querySelector(".retune-comment-popover")) return;
-      if (commentMode) return; // In comment mode, Escape exits comment mode (handled by Retune.tsx)
+      if (shadowRoot.querySelector(".tuna-floating-dialog")) return;
+      if (shadowRoot.querySelector(".tuna-comment-popover")) return;
+      if (commentMode) return; // In comment mode, Escape exits comment mode (handled by Tuna.tsx)
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
@@ -3710,9 +3710,9 @@ export function createPicker(
     }
   }
 
-  // Global cursor + selection overrides when Retune is active
+  // Global cursor + selection overrides when Tuna is active
   const cursorStyle = document.createElement("style");
-  cursorStyle.setAttribute("data-retune-cursor", "");
+  cursorStyle.setAttribute("data-tuna-cursor", "");
 
   // Select-mode cursor — matches toolbar IconCursor1, sized to the comment cursor footprint (~17px in 32px canvas)
   const SELECT_CURSOR_SCALE = 17 / 24;
@@ -3725,20 +3725,20 @@ export function createPicker(
   const ACTIVE_PAGE_STYLES = `
     * { cursor: ${selectCursorUrl} !important; user-select: none !important; -webkit-user-select: none !important; }
     *:focus, *:focus-visible { outline: none !important; }
-    html[data-retune-active] *:active {
+    html[data-tuna-active] *:active {
       transform: none !important;
     }
   `;
   const DRAW_PAGE_STYLES = `
     * { cursor: crosshair !important; user-select: none !important; -webkit-user-select: none !important; }
     *:focus, *:focus-visible { outline: none !important; }
-    html[data-retune-active] *:active {
+    html[data-tuna-active] *:active {
       transform: none !important;
     }
   `;
   const SUSPENDED_PAGE_STYLES = `
     * { user-select: none !important; -webkit-user-select: none !important; }
-    html[data-retune-suspended] *:active {
+    html[data-tuna-suspended] *:active {
       transform: none !important;
     }
     [contenteditable="true"] {
@@ -3751,7 +3751,7 @@ export function createPicker(
   function activate() {
     if (active) return;
     active = true;
-    document.documentElement.setAttribute("data-retune-active", "");
+    document.documentElement.setAttribute("data-tuna-active", "");
     cursorStyle.textContent = ACTIVE_PAGE_STYLES;
     document.head.appendChild(cursorStyle);
     captureLayer.style.display = "block";
@@ -3789,8 +3789,8 @@ export function createPicker(
     drawDrag = null;
     hideMarqueeBox();
     removeDrawnPaths();
-    document.documentElement.removeAttribute("data-retune-active");
-    document.documentElement.removeAttribute("data-retune-suspended");
+    document.documentElement.removeAttribute("data-tuna-active");
+    document.documentElement.removeAttribute("data-tuna-suspended");
     cursorStyle.textContent = "";
     cursorStyle.remove();
     captureLayer.style.display = "none";
@@ -3907,7 +3907,7 @@ export function createPicker(
 
   function suspend() {
     suspended = true;
-    document.documentElement.setAttribute("data-retune-suspended", "");
+    document.documentElement.setAttribute("data-tuna-suspended", "");
     captureLayer.style.display = "none";
     hideHighlight();
     // Keep selection border visible but hide handles, badge, parent indicator
@@ -3923,7 +3923,7 @@ export function createPicker(
   }
   function resume() {
     suspended = false;
-    document.documentElement.removeAttribute("data-retune-suspended");
+    document.documentElement.removeAttribute("data-tuna-suspended");
     cursorStyle.textContent = ACTIVE_PAGE_STYLES;
     captureLayer.style.display = "block";
     if (selectedElement) showSelection();

@@ -274,7 +274,7 @@ describe("formatElementInfo", () => {
 
   it("includes core identification fields", () => {
     const output = formatElementInfo(makeInspectedElement());
-    expect(output).toContain("Selected element from Retune:");
+    expect(output).toContain("Selected element from Tuna:");
     expect(output).toContain('Element: <button> "Get Started"');
     expect(output).toContain("Component: HeroSection → Button");
     expect(output).toContain("Source: `src/components/HeroSection.tsx:42:10`");
@@ -303,7 +303,7 @@ describe("formatElementInfo", () => {
 function makeDrawingTarget(overrides: Partial<CommentElementTarget> = {}): CommentElementTarget {
   return {
     tagName: "drawing",
-    selector: "retune-drawing:1",
+    selector: "tuna-drawing:1",
     componentName: "Drawing 1",
     componentPath: [],
     classes: [],
@@ -328,7 +328,7 @@ function makeVisualSnapshot(): VisualSnapshot {
     viewport: { width: 1440, height: 900 },
     scroll: { x: 0, y: 240 },
     selectedSelectors: [".hero .btn-primary"],
-    drawingSelectors: ["retune-drawing:1"],
+    drawingSelectors: ["tuna-drawing:1"],
     elements: [
       {
         tagName: "button",
@@ -362,13 +362,13 @@ describe("visual prompt formatting", () => {
       ],
     }], { visualSnapshot: makeVisualSnapshot() });
 
-    expect(output).toContain("Drawn annotations from Retune:");
+    expect(output).toContain("Drawn annotations from Tuna:");
     expect(output).toContain("Viewport: 1440×900");
     expect(output).toContain("Page-state snapshot:");
     expect(output).toContain("Selected selectors: `.hero .btn-primary`");
     expect(output).toContain("Visible context:");
     expect(output).toContain("`Drawing 1`");
-    expect(output).toContain("selector `retune-drawing:1`");
+    expect(output).toContain("selector `tuna-drawing:1`");
     expect(output).toContain("viewport bounds (10, 10) 110×70px");
     expect(output).toContain("page bounds (10, 250) 110×70px");
     expect(output).toContain("path `M 10 10 L 120 10 L 120 80 Z`");
@@ -390,6 +390,6 @@ describe("visual prompt formatting", () => {
     expect(output).toContain("## Element 1");
     expect(output).toContain('Element: <button> "Get Started"');
     expect(output).toContain("## Drawing Annotations");
-    expect(output).toContain("retune-drawing:1");
+    expect(output).toContain("tuna-drawing:1");
   });
 });

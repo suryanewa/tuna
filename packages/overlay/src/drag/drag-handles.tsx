@@ -100,7 +100,7 @@ export function DragHandles({
 
     // Create an invisible drag zone over the selected element
     const zone = document.createElement("div");
-    zone.setAttribute("data-retune-drag-zone", "");
+    zone.setAttribute("data-tuna-drag-zone", "");
     zone.style.cssText = `
       position: fixed;
       z-index: 2147483646;

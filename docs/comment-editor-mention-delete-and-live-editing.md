@@ -18,7 +18,7 @@ Four workstreams ran in parallel:
 1. **Wrong mention deletion** — clicking in front of the second inline mention and pressing Backspace/Delete removed the first mention instead.
 2. **Live mention editing** — shift-click to add and alt-click to remove mentions while the comment popover stays open.
 3. **Mention presentation** — titles showed framework wrapper names (`InnerScrollAndFocusHandlerOld`) instead of user-facing component names (`TryItButton`); selection colors drifted after alt-deselect.
-4. **Engineering hygiene** — overlay typecheck script + CI workflow, TypeScript fixes, picker module extraction, Retune component splits.
+4. **Engineering hygiene** — overlay typecheck script + CI workflow, TypeScript fixes, picker module extraction, Tuna component splits.
 
 ---
 
@@ -49,7 +49,7 @@ The wrong-mention-delete bug exposed a **fourth input layer** on top of the thre
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**Key insight:** In Retune's Shadow DOM comment popover, a click that *looks* like it placed the caret "in front of" a mention often **does not update Lexical's selection**. The DOM event target may be outside the `contenteditable` subtree even when the click coordinates fall inside the editor's bounding box. Lexical then keeps a **stale caret** — frequently at the spacer after the first mention — and the delete handler removes the **previous** mention.
+**Key insight:** In Tuna's Shadow DOM comment popover, a click that *looks* like it placed the caret "in front of" a mention often **does not update Lexical's selection**. The DOM event target may be outside the `contenteditable` subtree even when the click coordinates fall inside the editor's bounding box. Lexical then keeps a **stale caret** — frequently at the spacer after the first mention — and the delete handler removes the **previous** mention.
 
 The fix treats **pointer geometry as first-class delete intent**, not just Lexical selection.
 
@@ -345,11 +345,11 @@ Extract new picker concerns into focused modules rather than growing `picker.ts`
 
 ---
 
-## Issue 18: Retune Component Extraction
+## Issue 18: Tuna Component Extraction
 
 ### Symptom (review finding)
 
-`Retune.tsx` was ~4k lines — toolbar, scope levels, comment markers, and logo inline.
+`Tuna.tsx` was ~4k lines — toolbar, scope levels, comment markers, and logo inline.
 
 ### Fix
 
@@ -358,13 +358,13 @@ Extracted:
 | File | Role |
 |---|---|
 | `AnimatedPanel.tsx` | Shared panel animation wrapper |
-| `RetuneLogo.tsx` | Toolbar logo / collapse button |
+| `TunaLogo.tsx` | Toolbar logo / collapse button |
 | `CommentMarkers.tsx` | Saved comment markers on page |
 | `scope-levels.ts` | Cascade scope level UI logic |
 
 ### Prevention
 
-New overlay UI surfaces should land in focused components under `packages/overlay/src/overlay/`, not inline in `Retune.tsx`.
+New overlay UI surfaces should land in focused components under `packages/overlay/src/overlay/`, not inline in `Tuna.tsx`.
 
 ---
 

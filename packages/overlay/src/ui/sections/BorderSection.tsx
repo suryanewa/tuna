@@ -76,9 +76,9 @@ export function BorderSection({
       label="Border"
       action={
         hasBorder ? (
-          <Tooltip content="Remove border" side="top"><button className="retune-section-action" onClick={handleRemoveBorder}><Minus /></button></Tooltip>
+          <Tooltip content="Remove border" side="top"><button className="tuna-section-action" onClick={handleRemoveBorder}><Minus /></button></Tooltip>
         ) : (
-          <Tooltip content="Add border" side="top"><button className="retune-section-action" onClick={handleAddBorder}><Plus /></button></Tooltip>
+          <Tooltip content="Add border" side="top"><button className="tuna-section-action" onClick={handleAddBorder}><Plus /></button></Tooltip>
         )
       }
     >
@@ -91,8 +91,8 @@ export function BorderSection({
           </Row>
           {borderExpanded ? (
             <>
-              <div className="retune-section-row">
-                <div className="retune-row">
+              <div className="tuna-section-row">
+                <div className="tuna-row">
                   <Field label="Top">
                     <NumberInput prop="borderTopWidth" value={s.borderTopWidth} onChange={(p, v) => {
                       onPropertyChange(p, v);
@@ -106,14 +106,14 @@ export function BorderSection({
                     }} min={0} {...changeProps("borderRightWidth")} />
                   </Field>
                   <Tooltip content="Collapse to shorthand" side="top">
-                    <button className="retune-split-btn active" onClick={() => setBorderExpanded(false)}>
+                    <button className="tuna-split-btn active" onClick={() => setBorderExpanded(false)}>
                       <AlPaddingSides />
                     </button>
                   </Tooltip>
                 </div>
               </div>
-              <div className="retune-section-row">
-                <div className="retune-row">
+              <div className="tuna-section-row">
+                <div className="tuna-row">
                   <Field label="Bottom">
                     <NumberInput prop="borderBottomWidth" value={s.borderBottomWidth} onChange={(p, v) => {
                       onPropertyChange(p, v);
@@ -131,7 +131,7 @@ export function BorderSection({
             </>
           ) : (
             <Row label="Width">
-              <div className="retune-row">
+              <div className="tuna-row">
                 <ShorthandInput
                   props={["borderTopWidth", "borderRightWidth", "borderBottomWidth", "borderLeftWidth"]}
                   values={[s.borderTopWidth, s.borderRightWidth, s.borderBottomWidth, s.borderLeftWidth]}
@@ -141,7 +141,7 @@ export function BorderSection({
                   {...shorthandChangeProps(["borderTopWidth", "borderRightWidth", "borderBottomWidth", "borderLeftWidth"])}
                 />
                 <Tooltip content="Edit individual sides" side="top">
-                  <button className="retune-split-btn" onClick={() => setBorderExpanded(true)}>
+                  <button className="tuna-split-btn" onClick={() => setBorderExpanded(true)}>
                     <AlPaddingSides />
                   </button>
                 </Tooltip>

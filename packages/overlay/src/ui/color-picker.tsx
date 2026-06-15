@@ -160,7 +160,7 @@ export function ColorPicker({
     const list = tokenListRef.current;
     if (!list) return;
     requestAnimationFrame(() => {
-      const active = list.querySelector(".retune-variable-dialog-item-active");
+      const active = list.querySelector(".tuna-variable-dialog-item-active");
       if (active) active.scrollIntoView({ block: "center" });
     });
   }, [activeTab]);
@@ -475,7 +475,7 @@ export function ColorPicker({
     <Tooltip content={currentVariable ? "Unlink variable" : "No variable linked"} side="bottom" delay={300}>
       <button
         type="button"
-        className="retune-floating-dialog-close"
+        className="tuna-floating-dialog-close"
         data-dialog-action={isUnlinkDisabled ? undefined : "unlink"}
         style={isUnlinkDisabled ? { opacity: 0.3, cursor: "default" } : undefined}
       >
@@ -489,46 +489,46 @@ export function ColorPicker({
   const pickerContent = (
     <>
       {/* SV Picker */}
-      <div className="retune-cp-sv-wrap">
+      <div className="tuna-cp-sv-wrap">
       <div
         ref={svRef}
-        className="retune-cp-sv"
+        className="tuna-cp-sv"
         style={{ backgroundColor: `hsl(${hsva.h}, 100%, 50%)` }}
         onPointerDown={handleSVPointerDown}
       >
-        <div className="retune-cp-sv-white" />
-        <div className="retune-cp-sv-black" />
+        <div className="tuna-cp-sv-white" />
+        <div className="tuna-cp-sv-black" />
         <div
-          className="retune-cp-handle"
+          className="tuna-cp-handle"
           style={{ left: `${handleLeft}%`, top: `${handleTop}%` }}
         >
-          <div className="retune-cp-handle-inner" style={{ backgroundColor: currentHex }} />
+          <div className="tuna-cp-handle-inner" style={{ backgroundColor: currentHex }} />
         </div>
       </div>
       </div>
 
       {/* Sliders */}
-      <div className="retune-cp-sliders">
+      <div className="tuna-cp-sliders">
         {hasEyeDropper && (
           <Tooltip content="Pick color from screen" side="bottom" delay={300}>
-            <button type="button" className="retune-cp-eyedropper" onClick={handleEyeDropper}>
+            <button type="button" className="tuna-cp-eyedropper" onClick={handleEyeDropper}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                 <path d="M14.5156 5.76709C15.5386 4.73901 17.203 4.7367 18.2285 5.76221C19.25 6.78399 19.2513 8.43996 18.2324 9.46436L16.6602 11.0435C17.0848 11.771 16.9869 12.7196 16.3633 13.3433L16.3438 13.3638C15.6018 14.1055 14.3982 14.1054 13.6562 13.3638L13.5 13.2075L8.43945 18.2642C7.97069 18.7324 7.33447 18.9956 6.67188 18.9956L5.50391 18.9946C5.22841 18.9944 5.00451 18.7712 5.00391 18.4956L5.00195 17.3315C5.00057 16.6668 5.26346 16.0282 5.7334 15.5581L10.792 10.4995L10.6367 10.3433C9.89467 9.60127 9.8947 8.39778 10.6367 7.65576L10.6562 7.63623C11.2789 7.01362 12.2251 6.91514 12.9521 7.3374L14.5156 5.76709ZM6.44043 16.2661C6.15876 16.5481 6.00112 16.931 6.00195 17.3296L6.00391 17.9937L6.67188 17.9956C7.06948 17.9956 7.45115 17.8372 7.73242 17.5562L12.793 12.5005L11.499 11.2065L6.44043 16.2661ZM17.5205 6.46924C16.8863 5.8355 15.8572 5.83673 15.2246 6.47217L13.3545 8.35205L13.001 8.70752L12.6367 8.34326C12.2852 7.99183 11.7147 7.99181 11.3633 8.34326L11.3438 8.36279C10.9923 8.71427 10.9923 9.28476 11.3438 9.63623L14.3633 12.6558C14.7147 13.0073 15.2852 13.0072 15.6367 12.6558L15.6562 12.6362C16.0077 12.2848 16.0077 11.7143 15.6562 11.3628L15.2939 11.0005L15.6455 10.647L17.5234 8.75928C18.1538 8.12571 18.1523 7.10128 17.5205 6.46924Z" fill="currentColor" />
               </svg>
             </button>
           </Tooltip>
         )}
-        <div className="retune-cp-slider-tracks">
-          <div ref={hueRef} className="retune-cp-hue" onPointerDown={handleHuePointerDown}>
-            <div className="retune-cp-handle" style={{ left: `${(hsva.h / 360) * 100}%`, top: "50%" }}>
-              <div className="retune-cp-handle-inner" style={{ backgroundColor: `hsl(${hsva.h}, 100%, 50%)` }} />
+        <div className="tuna-cp-slider-tracks">
+          <div ref={hueRef} className="tuna-cp-hue" onPointerDown={handleHuePointerDown}>
+            <div className="tuna-cp-handle" style={{ left: `${(hsva.h / 360) * 100}%`, top: "50%" }}>
+              <div className="tuna-cp-handle-inner" style={{ backgroundColor: `hsl(${hsva.h}, 100%, 50%)` }} />
             </div>
           </div>
-          <div ref={alphaSliderRef} className="retune-cp-alpha" onPointerDown={handleAlphaPointerDown}>
-            <div className="retune-cp-alpha-checker" />
-            <div className="retune-cp-alpha-gradient" style={{ background: `linear-gradient(to right, transparent, ${currentHex})` }} />
-            <div className="retune-cp-handle" style={{ left: `${localAlpha}%`, top: "50%" }}>
-              <div className="retune-cp-handle-inner" style={{ backgroundColor: localAlpha < 100
+          <div ref={alphaSliderRef} className="tuna-cp-alpha" onPointerDown={handleAlphaPointerDown}>
+            <div className="tuna-cp-alpha-checker" />
+            <div className="tuna-cp-alpha-gradient" style={{ background: `linear-gradient(to right, transparent, ${currentHex})` }} />
+            <div className="tuna-cp-handle" style={{ left: `${localAlpha}%`, top: "50%" }}>
+              <div className="tuna-cp-handle-inner" style={{ backgroundColor: localAlpha < 100
                 ? `rgba(${hsvToRgb(hsva.h, hsva.s, hsva.v).r}, ${hsvToRgb(hsva.h, hsva.s, hsva.v).g}, ${hsvToRgb(hsva.h, hsva.s, hsva.v).b}, ${localAlpha / 100})`
                 : currentHex
               }} />
@@ -538,22 +538,22 @@ export function ColorPicker({
       </div>
 
       {/* Inputs */}
-      <div className="retune-cp-inputs">
-        <div className="retune-cp-input-group">
-          <label className="retune-cp-label">Hex</label>
-          <input className="retune-cp-input" value={hexInput} onChange={(e) => setHexInput(e.target.value)} onFocus={(e) => { focusedRef.current = "hex"; e.target.select(); }} onBlur={commitHex} onKeyDown={handleInputKeyDown(commitHex)} spellCheck={false} />
+      <div className="tuna-cp-inputs">
+        <div className="tuna-cp-input-group">
+          <label className="tuna-cp-label">Hex</label>
+          <input className="tuna-cp-input" value={hexInput} onChange={(e) => setHexInput(e.target.value)} onFocus={(e) => { focusedRef.current = "hex"; e.target.select(); }} onBlur={commitHex} onKeyDown={handleInputKeyDown(commitHex)} spellCheck={false} />
         </div>
-        <div className="retune-cp-input-group">
-          <label className="retune-cp-label">R</label>
-          <input className="retune-cp-input" inputMode="numeric" value={rgbInputs.r} onChange={(e) => setRgbInputs(prev => ({ ...prev, r: e.target.value }))} onFocus={(e) => { focusedRef.current = "r"; e.target.select(); }} onBlur={commitRgb} onKeyDown={handleInputKeyDown(commitRgb)} />
+        <div className="tuna-cp-input-group">
+          <label className="tuna-cp-label">R</label>
+          <input className="tuna-cp-input" inputMode="numeric" value={rgbInputs.r} onChange={(e) => setRgbInputs(prev => ({ ...prev, r: e.target.value }))} onFocus={(e) => { focusedRef.current = "r"; e.target.select(); }} onBlur={commitRgb} onKeyDown={handleInputKeyDown(commitRgb)} />
         </div>
-        <div className="retune-cp-input-group">
-          <label className="retune-cp-label">G</label>
-          <input className="retune-cp-input" inputMode="numeric" value={rgbInputs.g} onChange={(e) => setRgbInputs(prev => ({ ...prev, g: e.target.value }))} onFocus={(e) => { focusedRef.current = "g"; e.target.select(); }} onBlur={commitRgb} onKeyDown={handleInputKeyDown(commitRgb)} />
+        <div className="tuna-cp-input-group">
+          <label className="tuna-cp-label">G</label>
+          <input className="tuna-cp-input" inputMode="numeric" value={rgbInputs.g} onChange={(e) => setRgbInputs(prev => ({ ...prev, g: e.target.value }))} onFocus={(e) => { focusedRef.current = "g"; e.target.select(); }} onBlur={commitRgb} onKeyDown={handleInputKeyDown(commitRgb)} />
         </div>
-        <div className="retune-cp-input-group">
-          <label className="retune-cp-label">B</label>
-          <input className="retune-cp-input" inputMode="numeric" value={rgbInputs.b} onChange={(e) => setRgbInputs(prev => ({ ...prev, b: e.target.value }))} onFocus={(e) => { focusedRef.current = "b"; e.target.select(); }} onBlur={commitRgb} onKeyDown={handleInputKeyDown(commitRgb)} />
+        <div className="tuna-cp-input-group">
+          <label className="tuna-cp-label">B</label>
+          <input className="tuna-cp-input" inputMode="numeric" value={rgbInputs.b} onChange={(e) => setRgbInputs(prev => ({ ...prev, b: e.target.value }))} onFocus={(e) => { focusedRef.current = "b"; e.target.select(); }} onBlur={commitRgb} onKeyDown={handleInputKeyDown(commitRgb)} />
         </div>
       </div>
     </>
@@ -603,29 +603,29 @@ export function ColorPicker({
       return (
         <div
           key={v.className}
-          className={`retune-variable-dialog-item${isActive ? " retune-variable-dialog-item-active" : ""}${isHighlighted ? " retune-variable-dialog-item-highlighted" : ""}`}
+          className={`tuna-variable-dialog-item${isActive ? " tuna-variable-dialog-item-active" : ""}${isHighlighted ? " tuna-variable-dialog-item-highlighted" : ""}`}
           data-token-index={idx}
         >
           <span
-            className="retune-variable-dialog-swatch"
+            className="tuna-variable-dialog-swatch"
             style={{ backgroundColor: getSwatchColor(v) || "transparent" }}
           />
-          <span className="retune-variable-dialog-name">{getDisplayName(v.className)}</span>
+          <span className="tuna-variable-dialog-name">{getDisplayName(v.className)}</span>
         </div>
       );
     };
 
     return (
-      <div ref={tokenListRef} className="retune-variable-dialog-list">
+      <div ref={tokenListRef} className="tuna-variable-dialog-list">
         {filteredVariables.length === 0 && (
-          <div className="retune-variable-dialog-empty">No variables found</div>
+          <div className="tuna-variable-dialog-empty">No variables found</div>
         )}
         {/* Standalone items first (no group header) */}
         {standalone.map(renderItem)}
         {/* Ramp groups with headers */}
         {ramps.map(([groupName, items]) => (
           <div key={groupName}>
-            <div className="retune-variable-dialog-group-title">
+            <div className="tuna-variable-dialog-group-title">
               {groupName.replace(/-/g, " ")}
             </div>
             {items.map(renderItem)}

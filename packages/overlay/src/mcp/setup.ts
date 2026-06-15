@@ -1,11 +1,11 @@
 /**
- * Retune setup — auto-configure MCP server and install skill for detected AI tools.
+ * Tuna setup — auto-configure MCP server and install skill for detected AI tools.
  *
- * Usage: npx retune setup
+ * Usage: npx tuna setup
  *
  * Detects Claude Code and Cursor, then:
  * 1. Configures MCP server in the tool's settings
- * 2. Installs the Retune skill for resolution guidance
+ * 2. Installs the Tuna skill for resolution guidance
  */
 
 import { existsSync, mkdirSync, copyFileSync, readFileSync, writeFileSync, readdirSync, statSync } from "fs";
@@ -23,11 +23,11 @@ interface SetupResult {
 }
 
 function log(msg: string) {
-  console.log(`[retune] ${msg}`);
+  console.log(`[tuna] ${msg}`);
 }
 
 function warn(msg: string) {
-  console.warn(`[retune] ⚠ ${msg}`);
+  console.warn(`[tuna] ⚠ ${msg}`);
 }
 
 /** Find the skill directory (bundled with the npm package) */
@@ -45,7 +45,7 @@ function findSkillSource(): string | null {
 
 /** Install skill for Claude Code */
 function installClaudeCodeSkill(skillSource: string): boolean {
-  const skillDir = join(homedir(), ".claude", "skills", "retune-visual-changes");
+  const skillDir = join(homedir(), ".claude", "skills", "tuna-visual-changes");
   const targetFile = join(skillDir, "SKILL.md");
   const sourceFile = join(skillSource, "SKILL.md");
 
@@ -62,7 +62,7 @@ function installClaudeCodeSkill(skillSource: string): boolean {
 
 /** Install skill for Cursor */
 function installCursorSkill(skillSource: string): boolean {
-  const skillDir = join(homedir(), ".cursor", "skills", "retune-visual-changes");
+  const skillDir = join(homedir(), ".cursor", "skills", "tuna-visual-changes");
   const targetFile = join(skillDir, "SKILL.md");
   const sourceFile = join(skillSource, "SKILL.md");
 
@@ -92,9 +92,9 @@ function setupClaudeCodeMcp(): boolean {
 
     if (!config.mcpServers) config.mcpServers = {};
 
-    config.mcpServers.retune = {
+    config.mcpServers.tuna = {
       command: "npx",
-      args: ["retune"],
+      args: ["tuna"],
     };
 
     writeFileSync(configPath, JSON.stringify(config, null, 2));
@@ -121,9 +121,9 @@ function setupCursorMcp(): boolean {
 
     if (!config.mcpServers) config.mcpServers = {};
 
-    config.mcpServers.retune = {
+    config.mcpServers.tuna = {
       command: "npx",
-      args: ["retune"],
+      args: ["tuna"],
     };
 
     writeFileSync(configPath, JSON.stringify(config, null, 2));
@@ -262,7 +262,7 @@ function generateManifest(): boolean {
   const publicDir = findPublicDir();
   if (!publicDir) return false;
 
-  const manifestPath = join(publicDir, "retune.manifest.json");
+  const manifestPath = join(publicDir, "tuna.manifest.json");
 
   // Check if manifest already exists
   let manifest: Record<string, any> = {};
@@ -298,7 +298,7 @@ function generateManifest(): boolean {
 }
 
 export async function setup() {
-  log("Setting up Retune...\n");
+  log("Setting up Tuna...\n");
 
   const tools = detectTools();
   if (tools.length === 0) {
@@ -358,14 +358,14 @@ export async function setup() {
     console.log("--- Next Step ---\n");
     console.log("The manifest has design tokens but needs component definitions.");
     console.log("Scan the project's React components and add them to the");
-    console.log("\"components\" section of retune.manifest.json.\n");
+    console.log("\"components\" section of tuna.manifest.json.\n");
     console.log("For each component, include:");
     console.log("  - Props with types (string, number, boolean, enum, function)");
     console.log("  - For enum props, list all allowed values");
     console.log("  - For props that map to CSS classes, include class_map");
     console.log("  - For components with useState, include state hooks");
     console.log("");
-    console.log("After updating the manifest, call retune_manifest_loaded");
+    console.log("After updating the manifest, call tuna_manifest_loaded");
     console.log("to notify the overlay.\n");
   }
 }

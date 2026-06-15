@@ -151,7 +151,7 @@ export function TypographySection({
         </Field>
         <div style={{ alignSelf: "flex-end" }}>
           <Tooltip content={typoExpanded ? "Show less" : "More options"} side="top">
-            <button className={`retune-split-btn${typoExpanded ? " active" : ""}`} onClick={() => setTypoExpanded((v) => !v)}>
+            <button className={`tuna-split-btn${typoExpanded ? " active" : ""}`} onClick={() => setTypoExpanded((v) => !v)}>
               <AdjustSmall />
             </button>
           </Tooltip>

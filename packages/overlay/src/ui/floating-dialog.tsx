@@ -130,8 +130,8 @@ export function FloatingDialog({
   }, []);
 
   // Position — center within property panel, collision detection
-  const host = document.querySelector("[data-retune-host]");
-  const parentPanel = host?.shadowRoot?.querySelector(".retune-panel");
+  const host = document.querySelector("[data-tuna-host]");
+  const parentPanel = host?.shadowRoot?.querySelector(".tuna-panel");
   const parentRect = parentPanel?.getBoundingClientRect();
   const panelWidth = parentRect ? parentRect.width - 24 : 240;
   const left = parentRect
@@ -156,11 +156,11 @@ export function FloatingDialog({
   return (
     <div
       ref={panelRef}
-      className={`retune-floating-dialog${className ? ` ${className}` : ""}`}
+      className={`tuna-floating-dialog${className ? ` ${className}` : ""}`}
       style={posStyle}
     >
-      <div className="retune-floating-dialog-header">
-        <div className="retune-floating-dialog-title-area">
+      <div className="tuna-floating-dialog-header">
+        <div className="tuna-floating-dialog-title-area">
           {isTabs ? (
             tabs.map(tab => {
               const isActive = tab.value === activeTab;
@@ -170,8 +170,8 @@ export function FloatingDialog({
                   type="button"
                   className={
                     isSingleTab
-                      ? "retune-floating-dialog-tab retune-floating-dialog-tab-single"
-                      : `retune-floating-dialog-tab${isActive ? " retune-floating-dialog-tab-active" : ""}`
+                      ? "tuna-floating-dialog-tab tuna-floating-dialog-tab-single"
+                      : `tuna-floating-dialog-tab${isActive ? " tuna-floating-dialog-tab-active" : ""}`
                   }
                   onClick={onTabChange ? () => onTabChange(tab.value) : undefined}
                 >
@@ -180,21 +180,21 @@ export function FloatingDialog({
               );
             })
           ) : (
-            <span className="retune-floating-dialog-title">{title}</span>
+            <span className="tuna-floating-dialog-title">{title}</span>
           )}
         </div>
         {headerActions}
-        <button type="button" className="retune-floating-dialog-close" data-dialog-close>
+        <button type="button" className="tuna-floating-dialog-close" data-dialog-close>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
             <path d="M16.6464 6.64645C16.8417 6.45118 17.1582 6.45118 17.3535 6.64645C17.5487 6.84171 17.5487 7.15822 17.3535 7.35348L12.707 12L17.3535 16.6464C17.5487 16.8417 17.5487 17.1582 17.3535 17.3535C17.1582 17.5487 16.8417 17.5487 16.6464 17.3535L12 12.707L7.35348 17.3535C7.15822 17.5487 6.84171 17.5487 6.64645 17.3535C6.45118 17.1582 6.45118 16.8417 6.64645 16.6464L11.2929 12L6.64645 7.35348C6.45123 7.15821 6.4512 6.84169 6.64645 6.64645C6.8417 6.45125 7.15823 6.45125 7.35348 6.64645L12 11.2929L16.6464 6.64645Z" fill="currentColor" />
           </svg>
         </button>
       </div>
       {search && (
-        <div className="retune-floating-dialog-search">
+        <div className="tuna-floating-dialog-search">
           <input
             ref={searchRef}
-            className="retune-floating-dialog-search-input"
+            className="tuna-floating-dialog-search-input"
             placeholder={search.placeholder || "Search"}
             value={search.value}
             onChange={(e) => search.onChange(e.target.value)}
@@ -203,7 +203,7 @@ export function FloatingDialog({
           />
         </div>
       )}
-      <div className="retune-floating-dialog-body">
+      <div className="tuna-floating-dialog-body">
         {children}
       </div>
     </div>

@@ -102,39 +102,39 @@ export function GradientStopBar({
 
   return (
     <div
-      className="retune-gradient-bar-wrap"
+      className="tuna-gradient-bar-wrap"
       onClick={handleBarClick}
       onPointerDown={handlePointerDown}
     >
       {/* Gradient bar */}
-      <div ref={barRef} className="retune-gradient-bar">
+      <div ref={barRef} className="tuna-gradient-bar">
         {/* Checkerboard */}
-        <div className="retune-gradient-bar-checker" />
+        <div className="tuna-gradient-bar-checker" />
         {/* Gradient overlay */}
-        <div className="retune-gradient-bar-fill" style={{ backgroundImage: gradientCss }} />
+        <div className="tuna-gradient-bar-fill" style={{ backgroundImage: gradientCss }} />
       </div>
 
       {/* Stop indicators (visual only — pointer events handled by wrapper) */}
       {stops.map((stop, index) => (
         <div
           key={index}
-          className="retune-gradient-stop-handle"
+          className="tuna-gradient-stop-handle"
           style={{ left: `${stop.position * 100}%`, pointerEvents: "none" }}
         >
-          <div className="retune-gradient-stop-indicator">
+          <div className="tuna-gradient-stop-indicator">
             <div
-              className="retune-gradient-stop-chit"
+              className="tuna-gradient-stop-chit"
               style={{
                 backgroundColor: selectedIndex === index ? "#0d99ff" : "white",
               }}
             >
               <div
-                className="retune-gradient-stop-chit-color"
+                className="tuna-gradient-stop-chit-color"
                 style={{ backgroundColor: stop.color }}
               />
             </div>
             <div
-              className="retune-gradient-stop-caret"
+              className="tuna-gradient-stop-caret"
               style={{
                 backgroundColor: selectedIndex === index ? "#0d99ff" : "white",
               }}

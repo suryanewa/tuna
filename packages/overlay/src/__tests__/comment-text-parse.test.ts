@@ -26,7 +26,7 @@ function mockDrawPath(
   return {
     getAttribute(name: string) {
       if (name === "stroke") return stroke;
-      if (name === "data-retune-draw-color") return drawColor ?? null;
+      if (name === "data-tuna-draw-color") return drawColor ?? null;
       if (name === "d") return "M 10 20 L 40 60 Z";
       if (name === "fill") return "none";
       return null;
@@ -124,9 +124,9 @@ describe("parseCommentTextIntoParts", () => {
     ];
     const parts = parseCommentTextIntoParts("@Drawing 1 @Drawing 2 overlap", drawingTargets);
     expect(parts).toEqual([
-      { type: "mention", mention: { name: "Drawing 1", color: "#845EF7", selector: "retune-drawing:1" } },
+      { type: "mention", mention: { name: "Drawing 1", color: "#845EF7", selector: "tuna-drawing:1" } },
       { type: "text", text: " " },
-      { type: "mention", mention: { name: "Drawing 2", color: "#20C997", selector: "retune-drawing:2" } },
+      { type: "mention", mention: { name: "Drawing 2", color: "#20C997", selector: "tuna-drawing:2" } },
       { type: "text", text: " overlap" },
     ]);
   });
@@ -139,7 +139,7 @@ describe("drawing mention names", () => {
     expect(getDrawingMentionName(2)).toBe("Drawing 2");
     expect(buildDrawingCommentTarget(2, "#FF6B6B")).toEqual({
       tagName: "drawing",
-      selector: "retune-drawing:2",
+      selector: "tuna-drawing:2",
       componentName: "Drawing 2",
       componentPath: [],
       classes: [],
@@ -161,8 +161,8 @@ describe("drawing mention names", () => {
       mentionColor: target.mentionColor,
       componentName: target.componentName,
     }))).toEqual([
-      { selector: "retune-drawing:1", mentionColor: "#0D99FF", componentName: "Drawing 1" },
-      { selector: "retune-drawing:3", mentionColor: "#845EF7", componentName: "Drawing 3" },
+      { selector: "tuna-drawing:1", mentionColor: "#0D99FF", componentName: "Drawing 1" },
+      { selector: "tuna-drawing:3", mentionColor: "#845EF7", componentName: "Drawing 3" },
     ]);
     expect(drawingTargets.every((target) => target.drawing?.pathData)).toBe(true);
   });
@@ -198,14 +198,14 @@ describe("drawing mention names", () => {
     );
 
     expect(buildDrawingTargetsFromPaths([paths[0], paths[2]], paths).map((target) => target.selector)).toEqual([
-      "retune-drawing:1",
-      "retune-drawing:3",
+      "tuna-drawing:1",
+      "tuna-drawing:3",
     ]);
     expect(synced.spanMentionCount).toBe(3);
     expect(synced.elementInfo?.selectedElements?.map((target) => target.selector)).toEqual([
       ".btn",
-      "retune-drawing:1",
-      "retune-drawing:3",
+      "tuna-drawing:1",
+      "tuna-drawing:3",
     ]);
     expect(synced.elementInfo?.selectedElements?.map((target) => target.mentionColor)).toEqual([
       undefined,
@@ -234,7 +234,7 @@ describe("element mention names", () => {
         selector: ".hero-sub",
         componentName: "InnerScrollAndFocusHandlerOld",
         classes: ["hero-sub"],
-        textContent: "Retune lets you select and tweak any element right in the browser.",
+        textContent: "Tuna lets you select and tweak any element right in the browser.",
       },
       {
         tagName: "h1",
@@ -249,7 +249,7 @@ describe("element mention names", () => {
       getMentionNameForTarget(target, duplicateComponentTargets),
     )).toEqual([
       "Try it here",
-      "Retune lets you select and tweak any element...",
+      "Tuna lets you select and tweak any element ri...",
       "The visual layer for vibe coding.",
     ]);
   });
@@ -331,8 +331,8 @@ describe("draw path resolution", () => {
     );
 
     expect(getDraftElementTargets(synced).map((target) => target.selector)).toEqual([
-      "retune-drawing:1",
-      "retune-drawing:3",
+      "tuna-drawing:1",
+      "tuna-drawing:3",
     ]);
     expect(getDraftElementTargets(synced).map((target) => target.mentionColor)).toEqual([
       "#0D99FF",
@@ -370,8 +370,8 @@ describe("draw path resolution", () => {
           classes: [],
           textContent: null,
           selectedElements: [
-            { tagName: "drawing", selector: "retune-drawing:1", componentName: "Drawing 1", componentPath: [], classes: [], textContent: null },
-            { tagName: "drawing", selector: "retune-drawing:2", componentName: "Drawing 2", componentPath: [], classes: [], textContent: null },
+            { tagName: "drawing", selector: "tuna-drawing:1", componentName: "Drawing 1", componentPath: [], classes: [], textContent: null },
+            { tagName: "drawing", selector: "tuna-drawing:2", componentName: "Drawing 2", componentPath: [], classes: [], textContent: null },
           ],
         },
       },
@@ -451,7 +451,7 @@ describe("comment target resolution", () => {
     expect(getDraftElementTargets(synced).map((target) => target.selector)).toEqual([
       ".btn",
       ".label",
-      "retune-drawing:1",
+      "tuna-drawing:1",
     ]);
   });
 

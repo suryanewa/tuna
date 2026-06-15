@@ -3,12 +3,12 @@
  * SKILL.md references, and MCP tool responses.
  */
 
-export const MANIFEST_PROMPT = `Generate a retune.manifest.json file in the project's public directory (so it's served at /retune.manifest.json). This manifest describes the project's React components and design tokens so that Retune's visual editor can show accurate controls.
+export const MANIFEST_PROMPT = `Generate a tuna.manifest.json file in the project's public directory (so it's served at /tuna.manifest.json). This manifest describes the project's React components and design tokens so that Tuna's visual editor can show accurate controls.
 
 Place the file where your framework serves static assets:
-- Next.js: public/retune.manifest.json
-- Vite/CRA: public/retune.manifest.json
-- Remix: public/retune.manifest.json
+- Next.js: public/tuna.manifest.json
+- Vite/CRA: public/tuna.manifest.json
+- Remix: public/tuna.manifest.json
 
 ## Manifest Version
 
@@ -168,7 +168,7 @@ Detect from: tailwind.config.js/ts theme.screens, existing @media queries in CSS
   }
 }`;
 
-export const MANIFEST_COMPONENTS_PROMPT = `Update the existing retune.manifest.json to add or update the "components" section. Do NOT modify the existing "tokens" section. Set "version": 2.
+export const MANIFEST_COMPONENTS_PROMPT = `Update the existing tuna.manifest.json to add or update the "components" section. Do NOT modify the existing "tokens" section. Set "version": 2.
 
 Think like a designer using Figma. Only document components that render visible UI and have props that produce visible changes when modified.
 

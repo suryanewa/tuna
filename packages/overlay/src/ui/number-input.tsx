@@ -197,12 +197,12 @@ export function NumberInput({ label, prop, value, placeholder, onChange, min, ma
   };
 
   return (
-    <div className={`retune-prop${variableMatch ? " retune-prop-variable-applied" : ""}`}>
+    <div className={`tuna-prop${variableMatch ? " tuna-prop-variable-applied" : ""}`}>
       <ChangeIndicator isChanged={isChanged ?? false} onReset={onReset ?? (() => {})} />
       {label && (
         <span
           ref={labelRef}
-          className="retune-prop-label"
+          className="tuna-prop-label"
           onClick={handleInputClick}
           onPointerDown={variableMatch ? undefined : handleLabelPointerDown}
           onPointerMove={variableMatch ? undefined : handleLabelPointerMove}
@@ -213,7 +213,7 @@ export function NumberInput({ label, prop, value, placeholder, onChange, min, ma
       )}
       <input
         ref={inputRef}
-        className="retune-prop-input"
+        className="tuna-prop-input"
         style={label ? undefined : { paddingLeft: 8 }}
         value={localValue}
         placeholder={placeholder || "–"}

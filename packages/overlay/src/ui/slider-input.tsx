@@ -97,7 +97,7 @@ export function SliderInput({
   return (
     <div
       ref={trackRef}
-      className="retune-slider"
+      className="tuna-slider"
       tabIndex={0}
       role="slider"
       aria-valuemin={min}
@@ -111,16 +111,16 @@ export function SliderInput({
       onPointerUp={handlePointerUp}
       onKeyDown={handleKeyDown}
     >
-      <div className="retune-slider-fill" style={{ width: `${fillPercent}%` }} />
+      <div className="tuna-slider-fill" style={{ width: `${fillPercent}%` }} />
       {showDetails && indicators.map((pos, i) => (
-        <div key={i} className="retune-slider-indicator" style={{ left: `${pos * 100}%` }} />
+        <div key={i} className="tuna-slider-indicator" style={{ left: `${pos * 100}%` }} />
       ))}
       {showDetails && (
-        <div className="retune-slider-handle" style={{ left: `max(4px, calc(${fillPercent}% - 4px))` }} />
+        <div className="tuna-slider-handle" style={{ left: `max(4px, calc(${fillPercent}% - 4px))` }} />
       )}
-      <div className="retune-slider-labels">
-        <span className="retune-slider-label">{label}</span>
-        <span className="retune-slider-value">{displayValue}</span>
+      <div className="tuna-slider-labels">
+        <span className="tuna-slider-label">{label}</span>
+        <span className="tuna-slider-value">{displayValue}</span>
       </div>
     </div>
   );

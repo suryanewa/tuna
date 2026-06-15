@@ -12,7 +12,7 @@ import {
 } from "./components";
 import { DOCK_FINDER, DOCK_TERMINAL, DOCK_SAFARI, DOCK_SETTINGS, DOCK_NOTES, DOCK_TRASH } from "./dock-icons";
 
-const retuneVersion = process.env.RETUNE_VERSION ?? "0.0.0";
+const tunaVersion = process.env.TUNA_VERSION ?? "0.0.0";
 
 export default function Home() {
   return (
@@ -20,7 +20,7 @@ export default function Home() {
       <a href="#main-content" className="skip-link">Skip to content</a>
 
       {/* ── Sidebar TOC ── */}
-      <Sidebar version={retuneVersion} />
+      <Sidebar version={tunaVersion} />
 
       {/* ── Main Content ── */}
       <main className="content" id="main-content">
@@ -30,13 +30,13 @@ export default function Home() {
             The visual layer for vibe coding.
           </h1>
           <p className="hero-sub">
-            Retune lets you select and tweak any element right in the browser. Your AI agent writes the code. No more prompting for pixels.
+            Tuna lets you select and tweak any element right in the browser. Your AI agent writes the code. No more prompting for pixels.
           </p>
           <div className="cta-row desktop-only">
             <TryItButton />
             <HeroInstallCopy />
           </div>
-          <p className="mobile-callout">Retune is a desktop tool. Try it on a larger screen to see the live demo.</p>
+          <p className="mobile-callout">Tuna is a desktop tool. Try it on a larger screen to see the live demo.</p>
 
           <HeroCursorPositioner>
             <div className="desktop-bg" aria-hidden="true">
@@ -313,7 +313,7 @@ export default function Home() {
                   </div>
                 </div>
               </div>
-              {/* Retune toolbar — single element that morphs from circle to pill */}
+              {/* Tuna toolbar — single element that morphs from circle to pill */}
               <div className="mock-toolbar">
                 {/* Collapse button — visible when collapsed, shrinks away when expanded */}
                 <div className="mock-collapse-btn">
@@ -346,13 +346,13 @@ export default function Home() {
                   </div>
                 </div>
               </div>
-              {/* Retune panel */}
+              {/* Tuna panel */}
               <div className="mock-panel">
                 <div className="mock-panel-tabs">
                   <div className="mock-panel-tab-pill" />
                   <div className="mock-panel-tab">Elements</div>
                   <div className="mock-panel-tab active">Design</div>
-                  <span className="mock-panel-version">v{retuneVersion}</span>
+                  <span className="mock-panel-version">v{tunaVersion}</span>
                 </div>
                 <div className="mock-panel-scroll">
                 <div className="mock-panel-inner">
@@ -555,7 +555,7 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="mock-terminal-line mock-term-line-2">
-                    <span className="mock-term-marker">⏺</span> <span className="mock-term-tool">retune_get_formatted_changes</span>()
+                    <span className="mock-term-marker">⏺</span> <span className="mock-term-tool">tuna_get_formatted_changes</span>()
                   </div>
                   <div className="mock-terminal-line mock-term-line-3">
                     <span className="mock-term-indent" /><span className="mock-term-dim">⎿</span> padding: <span className="mock-term-dim">8px →</span> 16px, border-radius: <span className="mock-term-dim">0px →</span> 8px
@@ -588,7 +588,7 @@ export default function Home() {
             <div className="step-card">
               <h3 className="step-title">Select an element</h3>
               <p className="step-card-desc">
-                Click anything on your page. Retune identifies the component, its styles, and where it lives in your codebase.
+                Click anything on your page. Tuna identifies the component, its styles, and where it lives in your codebase.
               </p>
             </div>
             <div className="step-card">
@@ -600,7 +600,7 @@ export default function Home() {
             <div className="step-card">
               <h3 className="step-title">Apply with your agent</h3>
               <p className="step-card-desc">
-                Retune connects to Claude Code, Cursor, or any MCP client. Your agent writes the changes to source.
+                Tuna connects to Claude Code, Cursor, or any MCP client. Your agent writes the changes to source.
               </p>
             </div>
           </div>
@@ -614,7 +614,7 @@ export default function Home() {
             styling approach, and exact before/after values your agent can act on immediately.
           </p>
           <div className="output-block">
-            <div className="output-chrome">retune output</div>
+            <div className="output-chrome">tuna output</div>
             <div className="output-body">
               <span className="output-h1">{"# Visual Changes (1 element)"}</span>{"\n\n"}
               <span className="output-h2">{"## `<button>` \"Get Started\""}</span>{"\n\n"}
@@ -642,8 +642,8 @@ export default function Home() {
               <div className="install-step-content">
                 <h3 className="install-step-title">Install the package</h3>
                 <div className="code-block">
-                  <CopyButton text="npm install retune" />
-                  <div className="code-line"><span className="code-comment">$</span> npm install retune</div>
+                  <CopyButton text="npm install tuna" />
+                  <div className="code-line"><span className="code-comment">$</span> npm install tuna</div>
                 </div>
               </div>
             </div>
@@ -652,23 +652,23 @@ export default function Home() {
               <div className="install-step-content">
                 <h3 className="install-step-title">Add to your layout</h3>
                 <div className="code-block">
-                  <CopyButton text={`import { Retune } from "retune"\n\n// Add anywhere in your component tree\n<Retune />`} />
-                  <div className="code-line"><span className="code-keyword">import</span> {"{"} Retune {"}"} <span className="code-keyword">from</span> <span className="code-string">"retune"</span></div>
+                  <CopyButton text={`import { Tuna } from "tuna"\n\n// Add anywhere in your component tree\n<Tuna />`} />
+                  <div className="code-line"><span className="code-keyword">import</span> {"{"} Tuna {"}"} <span className="code-keyword">from</span> <span className="code-string">"tuna"</span></div>
                   <div className="code-line" style={{ height: 8 }} />
                   <div className="code-line"><span className="code-comment">{"// Add anywhere in your component tree"}</span></div>
-                  <div className="code-line">&lt;<span className="code-component">Retune</span> /&gt;</div>
+                  <div className="code-line">&lt;<span className="code-component">Tuna</span> /&gt;</div>
                 </div>
-                <p className="install-note">Automatically hidden in production. Use <code>&lt;Retune force /&gt;</code> for live demos.</p>
+                <p className="install-note">Automatically hidden in production. Use <code>&lt;Tuna force /&gt;</code> for live demos.</p>
               </div>
             </div>
 
             <div className="install-step">
               <div className="install-step-content">
                 <h3 className="install-step-title">Connect your AI tool</h3>
-                <p className="install-step-desc">Auto-detects Claude Code and Cursor. Configures the MCP server and installs the Retune skill that teaches your agent how to resolve design tokens, utility classes, and CSS variables.</p>
+                <p className="install-step-desc">Auto-detects Claude Code and Cursor. Configures the MCP server and installs the Tuna skill that teaches your agent how to resolve design tokens, utility classes, and CSS variables.</p>
                 <div className="code-block">
-                  <CopyButton text="npx retune setup" />
-                  <div className="code-line">npx retune setup</div>
+                  <CopyButton text="npx tuna setup" />
+                  <div className="code-line">npx tuna setup</div>
                 </div>
               </div>
             </div>
@@ -684,10 +684,10 @@ export default function Home() {
           <h2 className="section-heading">FAQ</h2>
           <FaqGroup>
             <FaqItem index={0} question="Does it modify my source code directly?">
-              No. Retune sends a structured diff of your visual changes to your AI coding tool (Claude Code, Cursor, etc.), which makes the actual code changes. You always review and approve before anything is committed.
+              No. Tuna sends a structured diff of your visual changes to your AI coding tool (Claude Code, Cursor, etc.), which makes the actual code changes. You always review and approve before anything is committed.
             </FaqItem>
             <FaqItem index={1} question="Does it ship to production?">
-              No. The <code>&lt;Retune /&gt;</code> component automatically hides itself in production builds. It only activates in development mode unless you explicitly pass the <code>force</code> prop.
+              No. The <code>&lt;Tuna /&gt;</code> component automatically hides itself in production builds. It only activates in development mode unless you explicitly pass the <code>force</code> prop.
             </FaqItem>
             <FaqItem index={2} question="How does it find the right element in my code?">
               It combines CSS selectors, React component hierarchy, class names, and text content to give your AI agent enough context to locate the exact element. No build plugin needed.
@@ -705,7 +705,7 @@ export default function Home() {
               Yes. It traverses the React fiber tree to find the component hierarchy and identifies the nearest component name for the selected element. This context helps your AI agent locate the right file without a build plugin.
             </FaqItem>
             <FaqItem index={7} question="Does it work with SSR and server components?">
-              Yes. Retune is a client-side component that hydrates after page load. It works with Next.js App Router, Pages Router, Remix, and other SSR/SSG frameworks without affecting server rendering.
+              Yes. Tuna is a client-side component that hydrates after page load. It works with Next.js App Router, Pages Router, Remix, and other SSR/SSG frameworks without affecting server rendering.
             </FaqItem>
             <FaqItem index={8} question="Does it affect performance?">
               Minimal impact. It only activates when you enter edit mode, so there's no overhead during normal development. Style analysis runs once per element selection, not continuously.

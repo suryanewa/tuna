@@ -1,4 +1,4 @@
-export interface RetuneConfig {
+export interface TunaConfig {
   /** WebSocket port for MCP server bridge (default: 9223) */
   port?: number;
   /** Hotkey to toggle edit mode (default: "alt+d") */

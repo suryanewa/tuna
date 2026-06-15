@@ -276,13 +276,13 @@ export function AlignmentGrid({ justifyContent, alignItems, flexDirection, onCha
   }, [flow, isSpaceBetween, onChange]);
 
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
-    const cell = (e.target as Element).closest?.(".retune-alignment-cell");
+    const cell = (e.target as Element).closest?.(".tuna-alignment-cell");
     if (isSpaceBetween) {
       // Exit space-between: use the clicked cell's position
       if (cell) {
         // Find index within the grid (not the tooltip wrapper)
-        const grid = cell.closest(".retune-alignment-grid");
-        const cells = Array.from(grid?.querySelectorAll(".retune-alignment-cell") || []);
+        const grid = cell.closest(".tuna-alignment-grid");
+        const cells = Array.from(grid?.querySelectorAll(".tuna-alignment-cell") || []);
         const idx = cells.indexOf(cell);
         if (idx >= 0) {
           const row = Math.floor(idx / 3);
@@ -352,7 +352,7 @@ export function AlignmentGrid({ justifyContent, alignItems, flexDirection, onCha
 
   return (
     <div
-      className="retune-alignment-grid"
+      className="tuna-alignment-grid"
       tabIndex={0}
       role="grid"
       aria-label="Alignment grid"
@@ -366,7 +366,7 @@ export function AlignmentGrid({ justifyContent, alignItems, flexDirection, onCha
             <Tooltip key={`${row}-${col}`} content={CELL_TOOLTIPS[`${row}-${col}`]} side="bottom" delay={600}>
               <button
                 type="button"
-                className="retune-alignment-cell"
+                className="tuna-alignment-cell"
                 onClick={() => handleClick(row, col)}
                 onMouseEnter={() => handleMouseEnter(row, col)}
                 onMouseLeave={handleMouseLeave}

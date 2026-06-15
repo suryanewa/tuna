@@ -48,7 +48,7 @@ export function SegmentedControl<T extends string = string>({
       return;
     }
 
-    const buttons = container.querySelectorAll<HTMLButtonElement>(".retune-segmented-item");
+    const buttons = container.querySelectorAll<HTMLButtonElement>(".tuna-segmented-item");
     const btn = buttons[idx];
     if (!btn) return;
 
@@ -84,23 +84,23 @@ export function SegmentedControl<T extends string = string>({
   return (
     <div
       ref={containerRef}
-      className="retune-segmented"
+      className="tuna-segmented"
       style={disabled ? { opacity: 0.4, pointerEvents: "none" } : undefined}
     >
-      <div ref={pillRef} className="retune-segmented-pill" />
+      <div ref={pillRef} className="tuna-segmented-pill" />
       {options.map((opt) => {
         const isSelected = localValue === opt.value;
         const button = (
           <button
             key={opt.value}
             type="button"
-            className={`retune-segmented-item${isSelected ? " selected" : ""}${opt.disabled ? " disabled" : ""}`}
+            className={`tuna-segmented-item${isSelected ? " selected" : ""}${opt.disabled ? " disabled" : ""}`}
             onClick={() => handleClick(opt.value)}
             disabled={opt.disabled || disabled}
             aria-label={opt.label}
             aria-pressed={isSelected}
           >
-            {opt.icon || <span className="retune-segmented-text">{opt.label}</span>}
+            {opt.icon || <span className="tuna-segmented-text">{opt.label}</span>}
           </button>
         );
         return opt.icon && opt.label ? (

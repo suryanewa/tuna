@@ -97,7 +97,7 @@ const CARET_NAV_KEYS = new Set([
   "End",
 ]);
 /** Hides the native caret while the margin overlay is shown for wrapped line ends. */
-const MARGIN_CUSTOM_CARET_ACTIVE_CLASS = "retune-margin-custom-caret-active";
+const MARGIN_CUSTOM_CARET_ACTIVE_CLASS = "tuna-margin-custom-caret-active";
 
 type MarginCaretOverlayRect = {
   left: number;
@@ -1845,7 +1845,7 @@ function MarginCaretOverlay() {
   if (!caret) return null;
   return (
     <span
-      className="retune-margin-caret"
+      className="tuna-margin-caret"
       aria-hidden="true"
       style={{
         left: `${caret.left}px`,
@@ -2496,7 +2496,7 @@ export const CommentEditor = forwardRef<CommentEditorApi, CommentEditorProps>(fu
   latestTargetsRef.current = targets;
 
   const initialConfig = useMemo(() => ({
-    namespace: "RetuneCommentEditor",
+    namespace: "TunaCommentEditor",
     nodes: [MentionNode],
     onError(error: Error) {
       throw error;
@@ -2596,15 +2596,15 @@ export const CommentEditor = forwardRef<CommentEditorApi, CommentEditorProps>(fu
 
   return (
     <LexicalComposer initialConfig={initialConfig}>
-      <div ref={shellRef} className="retune-comment-editor-shell">
+      <div ref={shellRef} className="tuna-comment-editor-shell">
         <PlainTextPlugin
           contentEditable={
             <ContentEditable
-              className="retune-comment-editor"
+              className="tuna-comment-editor"
               aria-label={placeholder}
             />
           }
-          placeholder={<span className="retune-comment-placeholder" aria-hidden="true">{placeholder}</span>}
+          placeholder={<span className="tuna-comment-placeholder" aria-hidden="true">{placeholder}</span>}
           ErrorBoundary={LexicalErrorBoundary}
         />
         <MarginCaretOverlay />

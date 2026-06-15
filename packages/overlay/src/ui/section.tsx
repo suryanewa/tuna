@@ -11,13 +11,13 @@ import type { ReactNode } from "react";
 
 export function Section({ label, gap, action, children }: { label: string; gap?: number; action?: ReactNode; children?: ReactNode }) {
   return (
-    <div className="retune-section">
-      <div className="retune-section-header">
-        <span className="retune-section-title">{label}</span>
+    <div className="tuna-section">
+      <div className="tuna-section-header">
+        <span className="tuna-section-title">{label}</span>
         {action}
       </div>
       {children && (
-        <div className="retune-section-body" style={gap != null ? { gap } : undefined}>
+        <div className="tuna-section-body" style={gap != null ? { gap } : undefined}>
           {children}
         </div>
       )}
@@ -28,15 +28,15 @@ export function Section({ label, gap, action, children }: { label: string; gap?:
 export function Row({ label, children }: { label?: string; children: ReactNode }) {
   if (label) {
     return (
-      <div className="retune-row-group">
-        <div className="retune-group-label-inline">{label}</div>
+      <div className="tuna-row-group">
+        <div className="tuna-group-label-inline">{label}</div>
         {children}
       </div>
     );
   }
   return (
-    <div className="retune-section-row">
-      <div className="retune-row">
+    <div className="tuna-section-row">
+      <div className="tuna-row">
         {children}
       </div>
     </div>
@@ -45,8 +45,8 @@ export function Row({ label, children }: { label?: string; children: ReactNode }
 
 export function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="retune-field">
-      <span className="retune-field-label">{label}</span>
+    <div className="tuna-field">
+      <span className="tuna-field-label">{label}</span>
       {children}
     </div>
   );
@@ -54,7 +54,7 @@ export function Field({ label, children }: { label: string; children: ReactNode 
 
 export function RowAction({ onClick, active, children }: { onClick: () => void; active?: boolean; children: ReactNode }) {
   return (
-    <button className={`retune-row-action${active ? " active" : ""}`} onClick={onClick}>
+    <button className={`tuna-row-action${active ? " active" : ""}`} onClick={onClick}>
       {children}
     </button>
   );
@@ -66,6 +66,6 @@ export const RowGroup = Row;
 /** @deprecated Use Row label prop instead */
 export function GroupLabel({ children }: { children: ReactNode }) {
   return (
-    <div className="retune-group-label">{children}</div>
+    <div className="tuna-group-label">{children}</div>
   );
 }

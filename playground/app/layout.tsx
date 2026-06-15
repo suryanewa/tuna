@@ -1,41 +1,41 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/react";
-import { Retune } from "retune";
+import { Tuna } from "tuna";
 
 export const metadata: Metadata = {
-  title: "Retune",
+  title: "Tuna",
   description:
     "Select any element in your running app, tweak it visually, and let your AI coding tool write the changes. The visual layer for vibe coding.",
-  metadataBase: new URL("https://retune.dev"),
+  metadataBase: new URL("https://tuna.dev"),
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "Retune - The visual layer for vibe coding",
+    title: "Tuna - The visual layer for vibe coding",
     description:
       "Select any element in your running app, tweak it visually, and let your AI coding tool write the changes to source.",
-    siteName: "Retune",
-    url: "https://retune.dev",
+    siteName: "Tuna",
+    url: "https://tuna.dev",
     type: "website",
     images: [
       {
         url: "/opengraph-image.png",
         width: 1200,
         height: 630,
-        alt: "Retune - The visual layer for vibe coding",
+        alt: "Tuna - The visual layer for vibe coding",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Retune - The visual layer for vibe coding",
+    title: "Tuna - The visual layer for vibe coding",
     description:
       "Select any element in your running app, tweak it visually, and let your AI coding tool write the changes to source.",
     images: ["/opengraph-image.png"],
     creator: "@___sujan",
   },
   keywords: [
-    "retune",
+    "tuna",
     "vibe coding",
     "visual devtools",
     "AI coding",
@@ -67,10 +67,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "SoftwareApplication",
-              name: "Retune",
+              name: "Tuna",
               description:
                 "The visual layer for vibe coding. Select any element in your running app, tweak it visually, and let your AI coding tool write the changes to source.",
-              url: "https://retune.dev",
+              url: "https://tuna.dev",
               applicationCategory: "DeveloperApplication",
               operatingSystem: "Web",
               offers: {
@@ -91,7 +91,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body style={{ margin: 0 }}>
         {children}
         <Analytics />
-        <Retune force />
+        <Tuna force />
       </body>
     </html>
   );

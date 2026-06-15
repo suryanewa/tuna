@@ -173,7 +173,7 @@ export function formatElementInfo(
   const selector = options?.selector ?? element.selector;
   const lines: string[] = [];
 
-  lines.push("Selected element from Retune:\n");
+  lines.push("Selected element from Tuna:\n");
 
   const textSnippet = element.textContent
     ?? (element.element.textContent?.trim()
@@ -327,7 +327,7 @@ export function formatDrawingAnnotations(
 ): string {
   if (drawings.length === 0) return "No drawings selected.";
   const lines: string[] = [];
-  lines.push(options?.title ?? "Drawn annotations from Retune:");
+  lines.push(options?.title ?? "Drawn annotations from Tuna:");
   lines.push("");
   pushVisualFrame(lines);
   pushVisualSnapshot(lines, options?.visualSnapshot);
@@ -363,17 +363,17 @@ export function formatSelectionPrompt(
   },
 ): string {
   const drawings = options?.drawings ?? [];
-  if (elements.length === 0 && drawings.length === 0) return "No Retune selection.";
+  if (elements.length === 0 && drawings.length === 0) return "No Tuna selection.";
 
   const lines: string[] = [];
   if (elements.length > 0 && drawings.length > 0) {
-    lines.push(`${elements.length} selected element${elements.length === 1 ? "" : "s"} and ${drawings.length} drawing annotation${drawings.length === 1 ? "" : "s"} from Retune:`);
+    lines.push(`${elements.length} selected element${elements.length === 1 ? "" : "s"} and ${drawings.length} drawing annotation${drawings.length === 1 ? "" : "s"} from Tuna:`);
   } else if (elements.length > 1) {
-    lines.push(`${elements.length} selected elements from Retune:`);
+    lines.push(`${elements.length} selected elements from Tuna:`);
   } else if (elements.length === 1) {
-    lines.push("Selected element from Retune:");
+    lines.push("Selected element from Tuna:");
   } else {
-    lines.push(`${drawings.length} drawing annotation${drawings.length === 1 ? "" : "s"} from Retune:`);
+    lines.push(`${drawings.length} drawing annotation${drawings.length === 1 ? "" : "s"} from Tuna:`);
   }
   lines.push("");
   pushVisualFrame(lines);
@@ -389,7 +389,7 @@ export function formatSelectionPrompt(
         lines.push(`## Element ${index + 1}`);
         lines.push("");
       }
-      lines.push(formatElementInfo(element, { selector }).replace(/^Selected element from Retune:\n\n/, ""));
+      lines.push(formatElementInfo(element, { selector }).replace(/^Selected element from Tuna:\n\n/, ""));
       lines.push("");
     });
   }
@@ -426,11 +426,11 @@ export function formatChanges(
   const hasChanges = changes.length > 0;
   const hasComments = comments && comments.length > 0;
   if (hasChanges && hasComments) {
-    lines.push("Apply these Retune visual changes and address the user's comments in the source code:\n");
+    lines.push("Apply these Tuna visual changes and address the user's comments in the source code:\n");
   } else if (hasComments) {
-    lines.push("The user has left comments on their running app using Retune. Address each comment by making the described changes to the source code:\n");
+    lines.push("The user has left comments on their running app using Tuna. Address each comment by making the described changes to the source code:\n");
   } else {
-    lines.push("Apply these Retune visual changes to the source code:\n");
+    lines.push("Apply these Tuna visual changes to the source code:\n");
   }
   // Environment context
   lines.push("**Environment:**");
@@ -473,7 +473,7 @@ export function formatChanges(
   if (manifest?.components && fidelity !== "minimal") {
     const componentNames = Object.keys(manifest.components);
     if (componentNames.length > 0) {
-      lines.push(`> **Manifest:** ${componentNames.length} components defined (${componentNames.join(", ")}). Prop types, enum values, and class mappings are available in \`retune.manifest.json\`.`);
+      lines.push(`> **Manifest:** ${componentNames.length} components defined (${componentNames.join(", ")}). Prop types, enum values, and class mappings are available in \`tuna.manifest.json\`.`);
       lines.push("");
     }
   }

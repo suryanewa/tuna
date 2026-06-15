@@ -9,7 +9,7 @@ import type { ElementChange } from "../types";
 
 type MessageHandler = (method: string, params: any) => Promise<any>;
 
-declare const __RETUNE_VERSION__: string;
+declare const __TUNA_VERSION__: string;
 
 export class BridgeClient {
   private ws: WebSocket | null = null;
@@ -66,16 +66,16 @@ export class BridgeClient {
           // bridge is usable.
           if (!this._connected) {
             this._connected = true;
-            console.log("[Retune] Connected to MCP server (handshake not acknowledged, assuming compatible)");
+            console.log("[Tuna] Connected to MCP server (handshake not acknowledged, assuming compatible)");
           }
         }, 3000);
         this.pendingRequests.set(handshakeId, {
           resolve: (result: any) => {
             this._connected = true;
-            console.log("[Retune] Connected to MCP server (verified)");
+            console.log("[Tuna] Connected to MCP server (verified)");
             // Check for update info — compare against overlay's own version
             if (result?.latestVersion) {
-              const overlayVersion = typeof __RETUNE_VERSION__ === "string" ? __RETUNE_VERSION__ : "0.0.0";
+              const overlayVersion = typeof __TUNA_VERSION__ === "string" ? __TUNA_VERSION__ : "0.0.0";
               if (result.latestVersion !== overlayVersion && this.isNewer(result.latestVersion, overlayVersion)) {
                 this.updateAvailable = { current: overlayVersion, latest: result.latestVersion };
                 this.onUpdateCallback?.(this.updateAvailable);
@@ -85,11 +85,11 @@ export class BridgeClient {
           reject: () => {
             // Server rejected handshake — still usable but log warning
             this._connected = true;
-            console.warn("[Retune] Handshake rejected, connected in fallback mode");
+            console.warn("[Tuna] Handshake rejected, connected in fallback mode");
           },
           timer,
         });
-        this.ws?.send(JSON.stringify({ id: handshakeId, method: "handshake", params: { client: "retune-overlay" } }));
+        this.ws?.send(JSON.stringify({ id: handshakeId, method: "handshake", params: { client: "tuna-overlay" } }));
       };
 
       this.ws.onmessage = async (event) => {
@@ -97,7 +97,7 @@ export class BridgeClient {
         try {
           msg = JSON.parse(event.data);
         } catch (err) {
-          console.error("[Retune] Failed to parse message:", err);
+          console.error("[Tuna] Failed to parse message:", err);
           return;
         }
 

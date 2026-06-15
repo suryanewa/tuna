@@ -73,7 +73,7 @@ function isPopoverButtonTarget(target: EventTarget | null): boolean {
 }
 
 function isCloseButtonTarget(target: EventTarget | null): boolean {
-  return target instanceof Element && target.closest(".retune-comment-close") != null;
+  return target instanceof Element && target.closest(".tuna-comment-close") != null;
 }
 
 function collapsedContentWouldOverflow(text: string): boolean {
@@ -303,7 +303,7 @@ export function CommentPopover({
       setDomOverflows(false);
       return;
     }
-    const editor = popoverRef.current?.querySelector(".retune-comment-editor");
+    const editor = popoverRef.current?.querySelector(".tuna-comment-editor");
     if (!(editor instanceof HTMLElement)) {
       setDomOverflows(false);
       return;
@@ -377,7 +377,7 @@ export function CommentPopover({
   return (
     <div
       ref={popoverRef}
-      className={`retune-comment-popover${isExpanded ? " has-content" : ""}`}
+      className={`tuna-comment-popover${isExpanded ? " has-content" : ""}`}
       style={style}
       onPointerDownCapture={(e) => {
         if (e.button === 0 && isCloseButtonTarget(e.target)) {
@@ -409,10 +409,10 @@ export function CommentPopover({
       onPointerDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="retune-comment-top-row">
+      <div className="tuna-comment-top-row">
         <button
           type="button"
-          className="retune-comment-close"
+          className="tuna-comment-close"
           aria-label="Close"
           title="Close"
           onClick={(e) => {
@@ -426,7 +426,7 @@ export function CommentPopover({
         </button>
         <div
           ref={inputWrapRef}
-          className="retune-comment-input-wrap"
+          className="tuna-comment-input-wrap"
           onPointerDown={(e) => {
             editorRef.current?.focus();
             const target = e.target instanceof HTMLElement
@@ -434,7 +434,7 @@ export function CommentPopover({
               : e.target instanceof Text
                 ? e.target.parentElement
                 : null;
-            if (!target?.closest(".retune-comment-editor")) {
+            if (!target?.closest(".tuna-comment-editor")) {
               editorRef.current?.placeSelectionAtPoint(e.clientX, e.clientY);
             }
           }}
@@ -452,9 +452,9 @@ export function CommentPopover({
         </div>
 
         {!isExpanded && (
-          <div className="retune-comment-pill-actions">
+          <div className="tuna-comment-pill-actions">
             <DictationButton
-              className={`retune-comment-circular-btn dictate-blue-circle${isTranscribing ? " transcribing" : isDictating ? " listening" : ""}`}
+              className={`tuna-comment-circular-btn dictate-blue-circle${isTranscribing ? " transcribing" : isDictating ? " listening" : ""}`}
               isDictating={isDictating}
               title={dictationTitle}
               {...collapsedDictationClick}
@@ -464,12 +464,12 @@ export function CommentPopover({
       </div>
 
       {(isExpanded || isEdit) && (
-        <div className={`retune-comment-bottom-row${isEdit ? " has-edit-actions" : ""}`}>
+        <div className={`tuna-comment-bottom-row${isEdit ? " has-edit-actions" : ""}`}>
           {isEdit && (
-            <div className="retune-comment-bottom-actions-left">
+            <div className="tuna-comment-bottom-actions-left">
               <button
                 type="button"
-                className="retune-comment-circular-btn delete"
+                className="tuna-comment-circular-btn delete"
                 {...deleteClick}
                 title="Delete comment"
               >
@@ -479,25 +479,25 @@ export function CommentPopover({
           )}
 
           {isExpanded && isDictating ? (
-            <div className="retune-comment-dictation-status">
+            <div className="tuna-comment-dictation-status">
               <AudioWaveform
                 isDictating={isDictating}
                 mediaStream={usesWhisperFallback ? visualizationStream : null}
                 useSharedMicOnly={usesWhisperFallback}
               />
-              <span className="retune-comment-dictation-time">
+              <span className="tuna-comment-dictation-time">
                 {formatTime(dictationSeconds)}
               </span>
             </div>
           ) : null}
 
           {isExpanded && (
-          <div className="retune-comment-bottom-actions-right">
+          <div className="tuna-comment-bottom-actions-right">
             {isDictating ? (
               <>
                 <button
                   type="button"
-                  className="retune-comment-circular-btn dictate-cancel"
+                  className="tuna-comment-circular-btn dictate-cancel"
                   {...dictationCancelClick}
                   title="Cancel dictation"
                 >
@@ -505,7 +505,7 @@ export function CommentPopover({
                 </button>
                 <button
                   type="button"
-                  className="retune-comment-circular-btn dictate-confirm"
+                  className="tuna-comment-circular-btn dictate-confirm"
                   {...dictationConfirmClick}
                   title="Confirm dictation"
                 >
@@ -515,14 +515,14 @@ export function CommentPopover({
             ) : (
               <>
                 <DictationButton
-                  className={`retune-comment-circular-btn dictate-icon-only${isTranscribing ? " transcribing" : isDictating ? " listening" : ""}`}
+                  className={`tuna-comment-circular-btn dictate-icon-only${isTranscribing ? " transcribing" : isDictating ? " listening" : ""}`}
                   isDictating={isDictating}
                   title={dictationTitle}
                   {...expandedDictationClick}
                 />
 
                 <button
-                  className="retune-comment-circular-btn send"
+                  className="tuna-comment-circular-btn send"
                   {...sendClick}
                   disabled={!plainText.trim()}
                   title="Send comment"

@@ -83,7 +83,7 @@ export function VariableAction({ match, property, relatedProperties, onVariableS
       setPickerOpen(false);
       return;
     }
-    const row = el.closest(".retune-prop, .retune-color-row, .retune-row, .retune-combo");
+    const row = el.closest(".tuna-prop, .tuna-color-row, .tuna-row, .tuna-combo");
     const rect = row ? row.getBoundingClientRect() : el.getBoundingClientRect();
     setAnchorRect({ top: rect.top, left: rect.left, width: rect.width, height: rect.height });
     setPickerOpen(true);
@@ -106,7 +106,7 @@ export function VariableAction({ match, property, relatedProperties, onVariableS
     e.preventDefault();
     // For unlink icon (applied state), detach the variable — check BEFORE onRequestOpen
     const target = e.target as HTMLElement;
-    if (target.closest(".retune-variable-unlink")) {
+    if (target.closest(".tuna-variable-unlink")) {
       onVariableUnlinkRef.current?.();
       return;
     }
@@ -123,7 +123,7 @@ export function VariableAction({ match, property, relatedProperties, onVariableS
       setPickerOpen(false);
       return;
     }
-    const row = el.closest(".retune-prop, .retune-color-row, .retune-row, .retune-combo");
+    const row = el.closest(".tuna-prop, .tuna-color-row, .tuna-row, .tuna-combo");
     const rect = row ? row.getBoundingClientRect() : el.getBoundingClientRect();
     setAnchorRect({ top: rect.top, left: rect.left, width: rect.width, height: rect.height });
     setPickerOpen(true);
@@ -149,7 +149,7 @@ export function VariableAction({ match, property, relatedProperties, onVariableS
 
   // Find the shadow root container for portaling the dialog
   const portalTarget = iconElRef.current?.getRootNode() instanceof ShadowRoot
-    ? (iconElRef.current.getRootNode() as ShadowRoot).querySelector("[data-retune-container]") as HTMLElement
+    ? (iconElRef.current.getRootNode() as ShadowRoot).querySelector("[data-tuna-container]") as HTMLElement
     : null;
 
   // Expose openPicker for parent components (e.g. when clicking a variable-applied input)
@@ -160,14 +160,14 @@ export function VariableAction({ match, property, relatedProperties, onVariableS
       {isActive ? (
         // Variable applied: show unlink icon on hover
         <Tooltip content="Unlink variable" side="top" delay={300}>
-          <span ref={iconRef} className="retune-variable-action retune-variable-unlink">
+          <span ref={iconRef} className="tuna-variable-action tuna-variable-unlink">
             <UnlinkIcon />
           </span>
         </Tooltip>
       ) : (
         // Variable available: show hexagon icon on hover → opens picker
         <Tooltip content="Add variable" side="top" delay={300}>
-          <span ref={iconRef} className="retune-variable-action retune-variable-add">
+          <span ref={iconRef} className="tuna-variable-action tuna-variable-add">
             <HexagonIcon />
           </span>
         </Tooltip>

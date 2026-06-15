@@ -104,26 +104,26 @@ export function SelectionActionBar({
   return (
     <div
       ref={barRef}
-      className="retune-selection-action-bar"
+      className="tuna-selection-action-bar"
       style={{ top: pos.top, left: pos.left }}
       onPointerDown={(e) => e.stopPropagation()}
     >
       <Tooltip content="Comment" side="top">
-        <button type="button" className="retune-selection-action-btn" onClick={onComment}>
+        <button type="button" className="tuna-selection-action-btn" onClick={onComment}>
           <IconComment />
         </button>
       </Tooltip>
       <Tooltip content="Copy" side="top">
         <button
           type="button"
-          className="retune-selection-action-btn"
+          className="tuna-selection-action-btn"
           onClick={onCopy}
         >
-          <span className="retune-icon-swap">
-            <span className={`retune-icon-swap-icon ${copied ? "out" : "in"}`}>
+          <span className="tuna-icon-swap">
+            <span className={`tuna-icon-swap-icon ${copied ? "out" : "in"}`}>
               <IconSquareBehindSquare6 size={18} />
             </span>
-            <span className={`retune-icon-swap-icon ${copied ? "in" : "out"}`}>
+            <span className={`tuna-icon-swap-icon ${copied ? "in" : "out"}`}>
               <IconCheckCircle2 size={18} />
             </span>
           </span>
@@ -133,19 +133,19 @@ export function SelectionActionBar({
         <Tooltip content={editMode ? "Exit edit mode" : "Edit"} side="top">
           <button
             type="button"
-            className={`retune-selection-action-btn${editMode ? " active" : ""}`}
+            className={`tuna-selection-action-btn${editMode ? " active" : ""}`}
             onClick={onToggleEdit}
           >
             <IconBroom size={18} />
           </button>
         </Tooltip>
       )}
-      <div className="retune-selection-action-divider" aria-hidden />
+      <div className="tuna-selection-action-divider" aria-hidden />
       {onDelete && (
         <Tooltip content="Delete selection" shortcut="Delete" side="top">
           <button
             type="button"
-            className="retune-selection-action-btn"
+            className="tuna-selection-action-btn"
             onClick={onDelete}
             style={{ color: "#FF6B6B" }}
           >
@@ -158,7 +158,7 @@ export function SelectionActionBar({
         </Tooltip>
       )}
       <Tooltip content="Deselect all" shortcut="Shift+Esc" side="top">
-        <button type="button" className="retune-selection-action-btn" onClick={onDeselect}>
+        <button type="button" className="tuna-selection-action-btn" onClick={onDeselect}>
           <IconCrossMedium size={18} />
         </button>
       </Tooltip>

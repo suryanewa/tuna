@@ -44,7 +44,7 @@ export function inspectElement(element: Element): InspectedElement {
 
 const BUILTIN_TOGGLE_HOTKEYS = ["meta+shift+d", "ctrl+shift+d"] as const;
 
-/** Hotkeys that toggle Retune design mode (custom + built-in shortcuts). */
+/** Hotkeys that toggle Tuna design mode (custom + built-in shortcuts). */
 export function getToggleHotkeys(customHotkey = "alt+d"): string[] {
   return customHotkey === "alt+d"
     ? ["alt+d", ...BUILTIN_TOGGLE_HOTKEYS]

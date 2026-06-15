@@ -195,7 +195,7 @@ export function GradientEditor({ gradient, onChange, originalGradient, isNewGrad
     .sort((a, b) => a.stop.position - b.stop.position);
 
   return (
-    <div className="retune-gradient-editor">
+    <div className="tuna-gradient-editor">
       {/* Gradient stop bar */}
       <GradientStopBar
         stops={gradient.stops}
@@ -207,9 +207,9 @@ export function GradientEditor({ gradient, onChange, originalGradient, isNewGrad
       />
 
       {/* Controls row: angle + reverse + rotate */}
-      <div className="retune-gradient-controls">
+      <div className="tuna-gradient-controls">
         <input
-          className="retune-gradient-angle-input"
+          className="tuna-gradient-angle-input"
           type="text"
           value={showAngle ? (isEditingAngle ? angleInput : `${gradient.angle}°`) : "–"}
           readOnly={!showAngle}
@@ -232,11 +232,11 @@ export function GradientEditor({ gradient, onChange, originalGradient, isNewGrad
           } : undefined}
           onChange={showAngle ? handleAngleInputChange : undefined}
         />
-        <div className="retune-gradient-actions">
+        <div className="tuna-gradient-actions">
           <Tooltip content="Reverse gradient direction">
             <button
               type="button"
-              className="retune-gradient-action-btn"
+              className="tuna-gradient-action-btn"
               onClick={handleReverse}
             >
               <FlipHorizontalSmall />
@@ -245,7 +245,7 @@ export function GradientEditor({ gradient, onChange, originalGradient, isNewGrad
           <Tooltip content="Rotate gradient 45°">
             <button
               type="button"
-              className="retune-gradient-action-btn"
+              className="tuna-gradient-action-btn"
               disabled={!showAngle}
               onClick={handleRotate}
             >
@@ -256,12 +256,12 @@ export function GradientEditor({ gradient, onChange, originalGradient, isNewGrad
       </div>
 
       {/* Stops header */}
-      <div className="retune-gradient-stops-header">
-        <span className="retune-gradient-stops-label">Stops</span>
+      <div className="tuna-gradient-stops-header">
+        <span className="tuna-gradient-stops-label">Stops</span>
         <Tooltip content="Add color stop">
           <button
             type="button"
-            className="retune-gradient-action-btn"
+            className="tuna-gradient-action-btn"
             onClick={handleAddStop}
           >
             <Plus />
@@ -270,14 +270,14 @@ export function GradientEditor({ gradient, onChange, originalGradient, isNewGrad
       </div>
 
       {/* Stop rows */}
-      <div className="retune-gradient-stops-list">
+      <div className="tuna-gradient-stops-list">
         {sortedStops.map(({ stop, index }) => (
-          <div key={index} className="retune-gradient-stop-row">
+          <div key={index} className="tuna-gradient-stop-row">
             {/* Position */}
-            <div className="retune-gradient-stop-pos">
+            <div className="tuna-gradient-stop-pos">
               <ChangeIndicator isChanged={isStopPositionChanged(index)} onReset={() => resetStopPosition(index)} />
               <input
-                className="retune-gradient-stop-pos-input"
+                className="tuna-gradient-stop-pos-input"
                 type="text"
                 inputMode="numeric"
                 defaultValue={Math.round(stop.position * 100)}
@@ -285,11 +285,11 @@ export function GradientEditor({ gradient, onChange, originalGradient, isNewGrad
                 onBlur={(e) => handleStopPositionInput(index, e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
               />
-              <span className="retune-gradient-stop-pos-unit">%</span>
+              <span className="tuna-gradient-stop-pos-unit">%</span>
             </div>
 
             {/* Color input (reuses existing component) */}
-            <div className="retune-gradient-stop-color">
+            <div className="tuna-gradient-stop-color">
               <ColorInput
                 prop={`stop-${index}`}
                 value={hexToRgba(stop.color, stop.opacity ?? 100)}
@@ -324,7 +324,7 @@ export function GradientEditor({ gradient, onChange, originalGradient, isNewGrad
             <Tooltip content="Remove color stop">
               <button
                 type="button"
-                className="retune-gradient-action-btn remove"
+                className="tuna-gradient-action-btn remove"
                 disabled={gradient.stops.length <= 2}
                 onClick={() => handleRemoveStop(index)}
               >

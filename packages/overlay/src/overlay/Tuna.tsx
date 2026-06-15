@@ -2,17 +2,17 @@
 
 
 /**
- * Retune — the main React component users add to their app.
+ * Tuna — the main React component users add to their app.
  *
  * Usage:
- *   import { Retune } from "retune";
+ *   import { Tuna } from "tuna";
  *   // In your layout — only renders in development by default:
- *   <Retune />
+ *   <Tuna />
  */
 
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
-import type { RetuneConfig, InspectedElement } from "../types";
+import type { TunaConfig, InspectedElement } from "../types";
 import { mountOverlay, unmountOverlay } from "./mount";
 import overlayStyles from "./overlay-css";
 import { createPicker, formatSelectionLabel } from "../selector/picker";
@@ -76,26 +76,26 @@ import { docToMentionSelectors, docToTargets, type CommentDoc } from "./comment/
 import { CommentPopover as NewCommentPopover } from "./comment/CommentPopover";
 import { useCommentMode } from "./comment/use-comment-mode";
 import { AnimatedPanel } from "./AnimatedPanel";
-import { RetuneLogo } from "./RetuneLogo";
+import { TunaLogo } from "./TunaLogo";
 import { AreaOutline, CommentMarker, IconComment } from "./comment/CommentMarkers";
 import { buildScopeLevels, type ScopeLevel } from "./scope-levels";
 
-declare const __RETUNE_VERSION__: string;
+declare const __TUNA_VERSION__: string;
 
-const retuneDevGlobal = globalThis as typeof globalThis & {
-  __retuneModuleInstance?: number;
+const tunaDevGlobal = globalThis as typeof globalThis & {
+  __tunaModuleInstance?: number;
 };
 
 /** Bumps on each dev HMR module re-eval so overlay effects can re-initialize. */
-function getRetuneDevModuleInstance(): number {
+function getTunaDevModuleInstance(): number {
   if (process.env.NODE_ENV !== "development") return 0;
-  retuneDevGlobal.__retuneModuleInstance = (retuneDevGlobal.__retuneModuleInstance ?? 0) + 1;
-  return retuneDevGlobal.__retuneModuleInstance;
+  tunaDevGlobal.__tunaModuleInstance = (tunaDevGlobal.__tunaModuleInstance ?? 0) + 1;
+  return tunaDevGlobal.__tunaModuleInstance;
 }
 
-const RETUNE_DEV_MODULE_INSTANCE = getRetuneDevModuleInstance();
+const TUNA_DEV_MODULE_INSTANCE = getTunaDevModuleInstance();
 
-const DEFAULT_CONFIG: Required<RetuneConfig> = {
+const DEFAULT_CONFIG: Required<TunaConfig> = {
   port: 9223,
   hotkey: "alt+d",
   fidelity: "standard",
@@ -148,7 +148,7 @@ function captureVisualSnapshot(
 
   for (const el of Array.from(document.body.querySelectorAll("*"))) {
     if (!(el instanceof HTMLElement || el instanceof SVGElement)) continue;
-    if (el.closest("[data-retune-host]")) continue;
+    if (el.closest("[data-tuna-host]")) continue;
     const rect = el.getBoundingClientRect();
     if (rect.width < 2 || rect.height < 2) continue;
     const bounds = {
@@ -213,7 +213,7 @@ function captureVisualSnapshot(
 // HMR update creates a new BridgeClient while the old one's reconnect timer
 // keeps firing, causing an infinite connect/disconnect fight on the server
 // (which only accepts one client at a time).
-const BRIDGE_KEY = "__retune_bridge" as const;
+const BRIDGE_KEY = "__tuna_bridge" as const;
 function getOrCreateBridge(port: number): BridgeClient {
   const existing = (window as any)[BRIDGE_KEY] as BridgeClient | undefined;
   if (existing) {
@@ -259,7 +259,7 @@ function trackInspectedElement(
 
 const MIN_VIEWPORT_WIDTH = 768;
 
-export function Retune(props: RetuneConfig = {}) {
+export function Tuna(props: TunaConfig = {}) {
   // Detect dev mode: Node process.env (Next.js, CRA) or import.meta.env (Vite, Astro)
   const isDev = (typeof process !== "undefined" && process.env?.NODE_ENV === "development")
     || (typeof import.meta !== "undefined" && (import.meta as any).env?.DEV === true);
@@ -279,10 +279,10 @@ export function Retune(props: RetuneConfig = {}) {
 
   if (!wide) return null;
 
-  return <RetuneInner {...props} />;
+  return <TunaInner {...props} />;
 }
 
-function RetuneInner(props: RetuneConfig) {
+function TunaInner(props: TunaConfig) {
   const config = { ...DEFAULT_CONFIG, ...props };
 
   const [active, setActive] = useState(false);
@@ -299,14 +299,14 @@ function RetuneInner(props: RetuneConfig) {
   const [canRedo, setCanRedo] = useState(false);
   const [fidelity, setFidelityState] = useState<Fidelity>(() => {
     try {
-      const saved = localStorage.getItem("retune-fidelity");
+      const saved = localStorage.getItem("tuna-fidelity");
       if (saved === "minimal" || saved === "standard" || saved === "full") return saved;
     } catch {}
     return config.fidelity;
   });
   const setFidelity = useCallback((f: Fidelity) => {
     setFidelityState(f);
-    try { localStorage.setItem("retune-fidelity", f); } catch {}
+    try { localStorage.setItem("tuna-fidelity", f); } catch {}
   }, []);
   const fidelityRef = useRef(fidelity);
   fidelityRef.current = fidelity;
@@ -333,7 +333,7 @@ function RetuneInner(props: RetuneConfig) {
     if (manifestLoadedRef.current) return;
     manifestLoadedRef.current = true; // Prevent concurrent fetches
     try {
-      const res = await fetch("/retune.manifest.json", { cache: "no-store" });
+      const res = await fetch("/tuna.manifest.json", { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
         if (data && (data.components || data.tokens)) {
@@ -365,14 +365,14 @@ function RetuneInner(props: RetuneConfig) {
   const settingsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [theme, setTheme] = useState<"system" | "light" | "dark">(() => {
     try {
-      const saved = localStorage.getItem("retune-theme");
+      const saved = localStorage.getItem("tuna-theme");
       if (saved === "system" || saved === "light" || saved === "dark") return saved;
     } catch {}
     return "system";
   });
   const handleThemeChange = useCallback((t: "system" | "light" | "dark") => {
     setTheme(t);
-    try { localStorage.setItem("retune-theme", t); } catch {}
+    try { localStorage.setItem("tuna-theme", t); } catch {}
   }, []);
 
   // Toggle dark class on host element based on theme
@@ -393,7 +393,7 @@ function RetuneInner(props: RetuneConfig) {
   }, [theme, portalTarget]);
   const [side, setSide] = useState<"right" | "left">(() => {
     try {
-      const saved = localStorage.getItem("retune-panel-side");
+      const saved = localStorage.getItem("tuna-panel-side");
       if (saved === "left" || saved === "right") return saved;
     } catch {}
     return config.position.includes("right") ? "right" : "left";
@@ -976,8 +976,8 @@ function RetuneInner(props: RetuneConfig) {
         // Enter inline text editing mode
         const el = element as HTMLElement;
         if (!el.textContent?.trim()) return; // no text to edit
-        // Skip elements that are Retune's own UI
-        if (el.closest("[data-retune-host]") || el.hasAttribute("data-retune-host")) return;
+        // Skip elements that are Tuna's own UI
+        if (el.closest("[data-tuna-host]") || el.hasAttribute("data-tuna-host")) return;
 
         endInlineTextEditRef.current?.();
 
@@ -1071,7 +1071,7 @@ function RetuneInner(props: RetuneConfig) {
         };
 
         const onKeyDown = (e: KeyboardEvent) => {
-          e.stopPropagation(); // Prevent Retune hotkeys from firing during edit
+          e.stopPropagation(); // Prevent Tuna hotkeys from firing during edit
           if (e.key === "Escape") {
             e.preventDefault();
             cancel();
@@ -1218,7 +1218,7 @@ function RetuneInner(props: RetuneConfig) {
       // must stay alive so the MCP server keeps its connection.
       unmountOverlay(mount.host);
     };
-  }, [RETUNE_DEV_MODULE_INSTANCE]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [TUNA_DEV_MODULE_INSTANCE]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Hot-reload overlay.css without a full page refresh.
   useEffect(() => {
@@ -1684,7 +1684,7 @@ function RetuneInner(props: RetuneConfig) {
     const pill = tabPillRef.current;
     if (!bar || !pill) return;
 
-    const buttons = bar.querySelectorAll<HTMLButtonElement>(".retune-tab");
+    const buttons = bar.querySelectorAll<HTMLButtonElement>(".tuna-tab");
     const idx = panelTab === "elements" ? 0 : 1;
     const btn = buttons[idx];
     if (!btn) return;
@@ -1709,7 +1709,7 @@ function RetuneInner(props: RetuneConfig) {
   const handleToggleSide = useCallback(() => {
     setSide((s) => {
       const next = s === "right" ? "left" : "right";
-      try { localStorage.setItem("retune-panel-side", next); } catch {}
+      try { localStorage.setItem("tuna-panel-side", next); } catch {}
       return next;
     });
   }, []);
@@ -1774,7 +1774,7 @@ function RetuneInner(props: RetuneConfig) {
       ? (drag.velocity < 0 ? "left" : "right")
       : (e.clientX < window.innerWidth / 2 ? "left" : "right");
     setSide(newSide);
-    try { localStorage.setItem("retune-panel-side", newSide); } catch {}
+    try { localStorage.setItem("tuna-panel-side", newSide); } catch {}
 
     // After React re-renders with new side class, FLIP animate
     requestAnimationFrame(() => {
@@ -1865,7 +1865,7 @@ function RetuneInner(props: RetuneConfig) {
 
     const tag = el.element.tagName.toLowerCase();
     if (tag === "body" || tag === "html" || tag === "head") return;
-    if ((el.element as HTMLElement).hasAttribute("data-retune-host")) return;
+    if ((el.element as HTMLElement).hasAttribute("data-tuna-host")) return;
 
     const parent = el.element.parentNode;
     if (!parent) return;
@@ -3050,7 +3050,7 @@ function RetuneInner(props: RetuneConfig) {
         } else if (e.key === "Enter" && !e.shiftKey) {
           // Enter: select first visible child
           const children = Array.from(el.children).filter(c =>
-            !c.hasAttribute("data-retune-host") &&
+            !c.hasAttribute("data-tuna-host") &&
             c.tagName !== "SCRIPT" && c.tagName !== "STYLE" && c.tagName !== "LINK"
           );
           if (children.length > 0) {
@@ -3063,7 +3063,7 @@ function RetuneInner(props: RetuneConfig) {
           const parent = el.parentElement;
           if (!parent) return;
           const siblings = Array.from(parent.children).filter(c =>
-            !c.hasAttribute("data-retune-host") &&
+            !c.hasAttribute("data-tuna-host") &&
             c.tagName !== "SCRIPT" && c.tagName !== "STYLE" && c.tagName !== "LINK"
           );
           if (siblings.length < 2) return;
@@ -3081,7 +3081,7 @@ function RetuneInner(props: RetuneConfig) {
 
       // Delete selected element
       if (active && selectedElementRef.current && (e.key === "Delete" || e.key === "Backspace")) {
-        // Don't intercept if focus is in a text input inside Retune's shadow root
+        // Don't intercept if focus is in a text input inside Tuna's shadow root
         if (isEditableKeyboardTarget(e)) return;
         e.preventDefault();
         e.stopPropagation();
@@ -3437,9 +3437,9 @@ function RetuneInner(props: RetuneConfig) {
     setPopoverDoc(doc);
     syncCommentDraftFromDoc(doc);
     const selectors = docToMentionSelectors(doc);
-    const drawingSelectors = new Set(selectors.filter((selector) => selector.startsWith("retune-drawing:")));
+    const drawingSelectors = new Set(selectors.filter((selector) => selector.startsWith("tuna-drawing:")));
     const remainingPaths = drawnPathAnchors.filter((path) =>
-      drawingSelectors.has(`retune-drawing:${getDrawingOrderIndex(path, drawnPathAnchors)}`),
+      drawingSelectors.has(`tuna-drawing:${getDrawingOrderIndex(path, drawnPathAnchors)}`),
     );
     pickerRef.current?.selectDrawPaths(remainingPaths);
   }, [drawnPathAnchors, setPopoverDoc, syncCommentDraftFromDoc]);
@@ -3583,8 +3583,8 @@ function RetuneInner(props: RetuneConfig) {
         refreshSelectedElementRef.current();
       },
     };
-    (window as any).__retune = api;
-    return () => { delete (window as any).__retune; };
+    (window as any).__tuna = api;
+    return () => { delete (window as any).__tuna; };
   }, []);
 
   // Keep hotkey listener alive even when hidden so toggle hotkeys can bring it back
@@ -3610,7 +3610,7 @@ function RetuneInner(props: RetuneConfig) {
       {/* Floating toolbar */}
       <div
         ref={toolbarRef}
-        className={`retune-toolbar bottom ${side} ${active ? "expanded" : "collapsed"}`}
+        className={`tuna-toolbar bottom ${side} ${active ? "expanded" : "collapsed"}`}
         onPointerDown={handleToolbarPointerDown}
         onPointerMove={handleToolbarPointerMove}
         onPointerUp={handleToolbarPointerUp}
@@ -3618,25 +3618,25 @@ function RetuneInner(props: RetuneConfig) {
         {/* Collapsed: single activate button */}
         <Tooltip content="Toggle edit mode" shortcut={formatToggleHotkeyShortcut(config.hotkey)} side="top">
           <button
-            className="retune-toolbar-collapse-btn"
+            className="tuna-toolbar-collapse-btn"
             onClick={activateOverlay}
           >
-            <RetuneLogo size={20} />
-            {!active && changeCount > 0 && <span className="retune-changes-dot" />}
+            <TunaLogo size={20} />
+            {!active && changeCount > 0 && <span className="tuna-changes-dot" />}
           </button>
         </Tooltip>
 
         {/* Expanded: count + separator + mode + actions */}
-        <div className="retune-toolbar-expanded">
+        <div className="tuna-toolbar-expanded">
           {(changeCount > 0 || commentCount > 0) && (
-            <div className="retune-edit-count">{changeCount + commentCount}</div>
+            <div className="tuna-edit-count">{changeCount + commentCount}</div>
           )}
           {(changeCount > 0 || commentCount > 0) && (
-            <div className="retune-toolbar-divider" />
+            <div className="tuna-toolbar-divider" />
           )}
           <Tooltip content="Select" shortcut="V" side="top">
             <button
-              className={`retune-toolbar-btn${mode === "select" ? " active" : ""}`}
+              className={`tuna-toolbar-btn${mode === "select" ? " active" : ""}`}
               onClick={() => {
                 setMode("select");
                 dismissCommentDraft();
@@ -3650,7 +3650,7 @@ function RetuneInner(props: RetuneConfig) {
           </Tooltip>
           <Tooltip content="Draw" shortcut="D" side="top">
             <button
-              className={`retune-toolbar-btn${mode === "draw" ? " active" : ""}`}
+              className={`tuna-toolbar-btn${mode === "draw" ? " active" : ""}`}
               onClick={() => {
                 setMode("draw");
                 dismissCommentDraft();
@@ -3664,7 +3664,7 @@ function RetuneInner(props: RetuneConfig) {
           </Tooltip>
           <Tooltip content="Edit" shortcut="E" side="top">
             <button
-              className={`retune-toolbar-btn${mode === "edit" ? " active" : ""}`}
+              className={`tuna-toolbar-btn${mode === "edit" ? " active" : ""}`}
               onClick={() => {
                 setMode("edit");
                 dismissCommentDraft();
@@ -3681,7 +3681,7 @@ function RetuneInner(props: RetuneConfig) {
           </Tooltip>
           <Tooltip content="Comment" shortcut="C" side="top">
             <button
-              className={`retune-toolbar-btn${mode === "comment" ? " active" : ""}`}
+              className={`tuna-toolbar-btn${mode === "comment" ? " active" : ""}`}
               onClick={() => {
                 setMode("comment");
                 setSelectedElement(null);
@@ -3695,15 +3695,15 @@ function RetuneInner(props: RetuneConfig) {
           </Tooltip>
           <Tooltip content="Copy" shortcut="⌘C" side="top">
             <button
-              className={`retune-toolbar-btn${changeCount === 0 && commentCount === 0 ? " disabled" : ""}`}
+              className={`tuna-toolbar-btn${changeCount === 0 && commentCount === 0 ? " disabled" : ""}`}
               onClick={handleCopy}
               disabled={changeCount === 0 && commentCount === 0}
             >
-              <span className="retune-icon-swap">
-                <span className={`retune-icon-swap-icon ${copied ? "out" : "in"}`}>
+              <span className="tuna-icon-swap">
+                <span className={`tuna-icon-swap-icon ${copied ? "out" : "in"}`}>
                   <IconSquareBehindSquare6 size={20} />
                 </span>
-                <span className={`retune-icon-swap-icon ${copied ? "in" : "out"}`}>
+                <span className={`tuna-icon-swap-icon ${copied ? "in" : "out"}`}>
                   <IconCheckCircle2 size={20} />
                 </span>
               </span>
@@ -3711,7 +3711,7 @@ function RetuneInner(props: RetuneConfig) {
           </Tooltip>
           <Tooltip content="Reset" shortcut="⌘R" side="top">
             <button
-              className={`retune-toolbar-btn${changeCount === 0 && commentCount === 0 ? " disabled" : ""}`}
+              className={`tuna-toolbar-btn${changeCount === 0 && commentCount === 0 ? " disabled" : ""}`}
               onClick={handleReset}
               disabled={changeCount === 0 && commentCount === 0}
             >
@@ -3720,7 +3720,7 @@ function RetuneInner(props: RetuneConfig) {
           </Tooltip>
           <Tooltip content="Settings" side="top">
             <button
-              className="retune-toolbar-btn"
+              className="tuna-toolbar-btn"
               onClick={() => {
                 if (settingsTimerRef.current) clearTimeout(settingsTimerRef.current);
                 if (!settingsOpen) {
@@ -3742,7 +3742,7 @@ function RetuneInner(props: RetuneConfig) {
           </Tooltip>
           <Tooltip content="Close" side="top">
             <button
-              className="retune-toolbar-btn"
+              className="tuna-toolbar-btn"
               onClick={handleClose}
             >
               <IconCrossMedium size={20} />
@@ -3792,28 +3792,28 @@ function RetuneInner(props: RetuneConfig) {
 
       {/* Design panel */}
       <AnimatedPanel visible={!!(active && selectedElement && editPanelOpen && !settingsOpen && !toolbarDragging && (mode === "select" || mode === "edit"))}>
-        <div className={`retune-panel ${side}`}>
-          <div className="retune-tab-bar" ref={tabBarRef}>
-            <div className="retune-tab-pill" ref={tabPillRef} />
-            <button className={`retune-tab${panelTab === "elements" ? " active" : ""}`} onClick={() => setPanelTab("elements")}>Elements</button>
-            <button className={`retune-tab${panelTab === "design" ? " active" : ""}`} onClick={() => setPanelTab("design")}>Design</button>
+        <div className={`tuna-panel ${side}`}>
+          <div className="tuna-tab-bar" ref={tabBarRef}>
+            <div className="tuna-tab-pill" ref={tabPillRef} />
+            <button className={`tuna-tab${panelTab === "elements" ? " active" : ""}`} onClick={() => setPanelTab("elements")}>Elements</button>
+            <button className={`tuna-tab${panelTab === "design" ? " active" : ""}`} onClick={() => setPanelTab("design")}>Design</button>
             <button
               type="button"
-              className="retune-tab-close"
+              className="tuna-tab-close"
               aria-label="Close panel"
               onClick={closeEditPanel}
             >
               <IconCrossMedium size={14} />
             </button>
           </div>
-          <div className="retune-panel-body">
+          <div className="tuna-panel-body">
             <PanelBanner
               visible={!!updateInfo && !updateDismissed}
-              title={`Retune v${updateInfo?.latest || ""} is available`}
+              title={`Tuna v${updateInfo?.latest || ""} is available`}
               body=""
               copyLabel="Copy update instructions"
               copiedLabel="Paste in your AI agent to update"
-              copyText="Update Retune to the latest version by running `npm install retune@latest` and `npx retune setup`. After updating, I'll need to restart Claude Code so the new MCP server and skill take effect."
+              copyText="Update Tuna to the latest version by running `npm install tuna@latest` and `npx tuna setup`. After updating, I'll need to restart Claude Code so the new MCP server and skill take effect."
               revertAfter={3000}
               onDismiss={() => setUpdateDismissed(true)}
             />
@@ -3979,7 +3979,7 @@ function RetuneInner(props: RetuneConfig) {
           fidelity={fidelity}
           onFidelityChange={setFidelity}
           onHide={() => { setSettingsOpen(false); setSettingsVisible(false); setSettingsExiting(false); deactivateOverlay(); setSessionHidden(true); }}
-          version={updateInfo?.current || (typeof __RETUNE_VERSION__ === "string" ? __RETUNE_VERSION__ : "")}
+          version={updateInfo?.current || (typeof __TUNA_VERSION__ === "string" ? __TUNA_VERSION__ : "")}
           updateAvailable={!!updateInfo}
           exiting={settingsExiting}
         />
@@ -4060,7 +4060,7 @@ function RetuneInner(props: RetuneConfig) {
         && commentDraft.elementInfo?.tagName !== "drawing"
         && !commentDraft.elementInfo?.selectedElements?.some((target) => target.tagName === "drawing") && (
         <div
-          className="retune-comment-area-outline"
+          className="tuna-comment-area-outline"
           style={{
             left: commentDraft.area.x,
             top: commentDraft.area.y,

@@ -23,7 +23,7 @@ The session had four phases:
 1. **Thermo-nuclear code quality review** — audit comment-mode changes and adjacent overlay code; implement high-confidence cleanup without a risky full decomposition of mega-files.
 2. **Lexical + Shadow DOM stabilization** — fix typing, deletion, mention spacing, and focus inside the shadow-root comment editor (documented in detail in the Lexical postmortem).
 3. **Mention deletion regressions** — user reported that deleting the first inline selected-element mention added spaces instead of removing it; then Cmd+A + Delete on mixed element/drawing mentions cleared drawings but left element outlines selected; then drawings remained visually selected.
-4. **Drawing area outline regressions** — dashed `retune-comment-area-outline` appeared around drawing-based comment drafts, including after deleting all inline element mentions from a mixed selection.
+4. **Drawing area outline regressions** — dashed `tuna-comment-area-outline` appeared around drawing-based comment drafts, including after deleting all inline element mentions from a mixed selection.
 
 ---
 
@@ -33,7 +33,7 @@ Most bugs in this session came from **unclear ownership** between three layers:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  Picker / DOM selection (Retune, picker.ts)                 │
+│  Picker / DOM selection (Tuna, picker.ts)                 │
 │  — element outlines, drawing path selection, SVG appearance │
 └──────────────────────────┬──────────────────────────────────┘
                            │ sync on pick / outline update
@@ -54,8 +54,8 @@ A fourth visual layer sits **outside** the picker:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  React chrome (Retune.tsx)                                  │
-│  — retune-comment-area-outline (dashed box for area drafts) │
+│  React chrome (Tuna.tsx)                                  │
+│  — tuna-comment-area-outline (dashed box for area drafts) │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -96,7 +96,7 @@ A thermo-nuclear review flagged maintainability issues in the comment-mode branc
 
 ### Issue C: Untyped comment store mutations
 
-**Symptom:** Area-resize handlers in `Retune.tsx` mutated `comment.area`, `comment.position`, and `(comment.elementInfo as any).containedElements` directly, then called `store.persist()`.
+**Symptom:** Area-resize handlers in `Tuna.tsx` mutated `comment.area`, `comment.position`, and `(comment.elementInfo as any).containedElements` directly, then called `store.persist()`.
 
 **Fix:** Added `CommentStore.patch(id, updates)` in `comment-store.ts` with a typed `CommentPatch` interface. Resize handlers compute `nextArea` / `containedElements` and patch atomically.
 
@@ -104,7 +104,7 @@ A thermo-nuclear review flagged maintainability issues in the comment-mode branc
 
 ### Issue D: Large-file maintainability (deferred)
 
-**Finding:** `Retune.tsx` (~4k lines), `picker.ts` (~3k lines), and `identifier.ts` exceed the 1k-line maintainability threshold. Comment-mode logic adds branching to already-busy files.
+**Finding:** `Tuna.tsx` (~4k lines), `picker.ts` (~3k lines), and `identifier.ts` exceed the 1k-line maintainability threshold. Comment-mode logic adds branching to already-busy files.
 
 **Decision:** Do **not** decompose these in the same pass as bug fixes. Track as follow-up extractions (comment orchestration module, picker selection submodule).
 
@@ -118,7 +118,7 @@ A thermo-nuclear review flagged maintainability issues in the comment-mode branc
 
 ## Part 2: Lexical + Shadow DOM Issues (Issues 1–8)
 
-Eight distinct bugs affected the inline comment editor inside Retune's Shadow DOM. They are documented exhaustively in [comment-editor-lexical-shadow-dom.md](./comment-editor-lexical-shadow-dom.md).
+Eight distinct bugs affected the inline comment editor inside Tuna's Shadow DOM. They are documented exhaustively in [comment-editor-lexical-shadow-dom.md](./comment-editor-lexical-shadow-dom.md).
 
 **Summary table:**
 
@@ -271,7 +271,7 @@ When an element mention and a drawing mention were both inserted inline in the c
 
 **Root cause:** `picker.ts` registers a document-level `keydown` handler that deletes selected drawings on Delete/Backspace. It ran even when focus was inside the comment editor's `contentEditable` div, intercepting the keystroke before Lexical could process a range delete of all mentions.
 
-**Fix:** Guard the picker shortcut the same way Retune's document-level delete handler does:
+**Fix:** Guard the picker shortcut the same way Tuna's document-level delete handler does:
 
 ```typescript
 // picker.ts — drawing delete shortcut
@@ -279,7 +279,7 @@ const target = e.composedPath()[0] as HTMLElement | undefined;
 if (target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable) return;
 ```
 
-**Prevention:** Any global keyboard shortcut in `picker.ts` or `Retune.tsx` must check `composedPath()[0]` for input/contenteditable targets before calling `preventDefault()`.
+**Prevention:** Any global keyboard shortcut in `picker.ts` or `Tuna.tsx` must check `composedPath()[0]` for input/contenteditable targets before calling `preventDefault()`.
 
 ### Issue 10b: Element outlines not cleared when all mentions removed
 
@@ -346,7 +346,7 @@ hideSelection();
 
 ### Symptom
 
-A dashed rectangle (`retune-comment-area-outline`) appeared around drawing-based comment drafts. This is **not** picker chrome — it is a React element rendered when `commentDraft.type === "area"`.
+A dashed rectangle (`tuna-comment-area-outline`) appeared around drawing-based comment drafts. This is **not** picker chrome — it is a React element rendered when `commentDraft.type === "area"`.
 
 Observed variants:
 
@@ -356,7 +356,7 @@ Observed variants:
 
 ### Why it happens
 
-The draw tool creates an area draft: `type: "area"` with `area` set to the drawings' bounding box. `Retune.tsx` renders a dashed outline for any area draft. Drawing-based comments should show only the SVG paths, not an additional dashed box.
+The draw tool creates an area draft: `type: "area"` with `area` set to the drawings' bounding box. `Tuna.tsx` renders a dashed outline for any area draft. Drawing-based comments should show only the SVG paths, not an additional dashed box.
 
 ### Failed fix attempts
 
@@ -390,7 +390,7 @@ export type CommentDraft = {
   fromDrawing?: boolean;
 };
 
-// Retune.tsx — handleDrawComment()
+// Tuna.tsx — handleDrawComment()
 const draft = enrichCommentDraft({
   type: "area",
   area,
@@ -398,18 +398,18 @@ const draft = enrichCommentDraft({
   // ...
 });
 
-// Retune.tsx — draft area outline render
+// Tuna.tsx — draft area outline render
 {active && commentDraft?.type === "area" && commentDraft.area
   && !commentDraft.fromDrawing
   && commentDraft.elementInfo?.tagName !== "drawing"
   && !commentDraft.elementInfo?.selectedElements?.some(t => t.tagName === "drawing") && (
-  <div className="retune-comment-area-outline" ... />
+  <div className="tuna-comment-area-outline" ... />
 )}
 ```
 
 `fromDrawing` survives `applyTargetsToDraft()` because that helper spreads `...draft` at the top level. The tagName/selectedElements checks remain as defense-in-depth for saved comments and drafts created before the marker existed.
 
-The same suppression logic was applied to **saved** area comments in `Retune.tsx`.
+The same suppression logic was applied to **saved** area comments in `Tuna.tsx`.
 
 **Commit:** `09a7192`.
 
@@ -458,7 +458,7 @@ Once `selectedElements` exists on an object — **even as `[]`** — it is the s
 |---|---|---|
 | Element selection outlines | `picker.ts` | `showSelectionOutline([])` |
 | Drawing path stroke/fill | `picker.ts` | `syncDrawingPathAppearance()` |
-| Dashed area box | `Retune.tsx` React render | Suppress via `fromDrawing` / tag checks |
+| Dashed area box | `Tuna.tsx` React render | Suppress via `fromDrawing` / tag checks |
 | Inline mention chips | Lexical `CommentEditor` | Editor delete + prop reconciliation |
 
 A bug in one layer often looks like a bug in another. When debugging, log **which layer** still shows stale state.
@@ -513,7 +513,7 @@ Common misdirection:
 - **"Lexical delete is broken"** → often draft resolver reinserting via props (Issue 9).
 - **"Selection state is wrong"** → often picker visuals not updated on empty branch (Issue 10b).
 - **"Drawing still selected"** → often SVG appearance not refreshed, not selection state (Issues 10c/10d).
-- **"Wrong outline showing"** → often React `retune-comment-area-outline`, not picker (Issue 11).
+- **"Wrong outline showing"** → often React `tuna-comment-area-outline`, not picker (Issue 11).
 
 ---
 
@@ -521,7 +521,7 @@ Common misdirection:
 
 | Item | Rationale |
 |---|---|
-| Split `Retune.tsx` comment orchestration | Reduces merge conflicts; too large for bugfix pass |
+| Split `Tuna.tsx` comment orchestration | Reduces merge conflicts; too large for bugfix pass |
 | Split `picker.ts` selection/outline module | Same |
 | Lexical unit tests for `normalizeMentionSpacing` | Issues 7–8 |
 | Playwright spec for full comment matrix | Automate Lexical + draft sync + drawing flows |
@@ -540,7 +540,7 @@ Common misdirection:
 | `packages/overlay/src/overlay/comment/CommentEditor.tsx` | Lexical composer, input/delete, prop reconciliation |
 | `packages/overlay/src/overlay/comment/mention-node.ts` | Custom `MentionNode` |
 | `packages/overlay/src/engine/comment-store.ts` | Persisted comments + `patch()` API |
-| `packages/overlay/src/overlay/Retune.tsx` | Overlay shell, dashed area outline, document keyboard guards |
+| `packages/overlay/src/overlay/Tuna.tsx` | Overlay shell, dashed area outline, document keyboard guards |
 | `packages/overlay/src/selector/picker.ts` | DOM selection, drawing appearance, outline colors |
 | `packages/overlay/src/__tests__/comment-text-parse.test.ts` | Target resolution and draft sync regression tests |
 

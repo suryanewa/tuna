@@ -4,7 +4,7 @@
   font-feature-settings: 'liga' 1, 'calt' 1, 'zero' 0, 'tnum' 0;
   font-size: 13px;
   letter-spacing: -0.005em;
-  color: var(--retune-text);
+  color: var(--tuna-text);
   line-height: 1.4;
   interpolate-size: allow-keywords;
   user-select: none;
@@ -15,108 +15,108 @@
      ══════════════════════════════════════ */
 
   /* ── Black (#1c1917) opacity ramp ── */
-  --retune-black: #1c1917;
-  --retune-black-5:  color-mix(in srgb, var(--retune-black) 5%, transparent);
-  --retune-black-10: color-mix(in srgb, var(--retune-black) 10%, transparent);
-  --retune-black-15: color-mix(in srgb, var(--retune-black) 15%, transparent);
-  --retune-black-20: color-mix(in srgb, var(--retune-black) 20%, transparent);
-  --retune-black-25: color-mix(in srgb, var(--retune-black) 25%, transparent);
-  --retune-black-30: color-mix(in srgb, var(--retune-black) 30%, transparent);
-  --retune-black-35: color-mix(in srgb, var(--retune-black) 35%, transparent);
-  --retune-black-40: color-mix(in srgb, var(--retune-black) 40%, transparent);
-  --retune-black-45: color-mix(in srgb, var(--retune-black) 45%, transparent);
-  --retune-black-50: color-mix(in srgb, var(--retune-black) 50%, transparent);
-  --retune-black-55: color-mix(in srgb, var(--retune-black) 55%, transparent);
-  --retune-black-60: color-mix(in srgb, var(--retune-black) 60%, transparent);
-  --retune-black-65: color-mix(in srgb, var(--retune-black) 65%, transparent);
-  --retune-black-70: color-mix(in srgb, var(--retune-black) 70%, transparent);
-  --retune-black-75: color-mix(in srgb, var(--retune-black) 75%, transparent);
-  --retune-black-80: color-mix(in srgb, var(--retune-black) 80%, transparent);
-  --retune-black-85: color-mix(in srgb, var(--retune-black) 85%, transparent);
-  --retune-black-90: color-mix(in srgb, var(--retune-black) 90%, transparent);
-  --retune-black-95: color-mix(in srgb, var(--retune-black) 95%, transparent);
+  --tuna-black: #1c1917;
+  --tuna-black-5:  color-mix(in srgb, var(--tuna-black) 5%, transparent);
+  --tuna-black-10: color-mix(in srgb, var(--tuna-black) 10%, transparent);
+  --tuna-black-15: color-mix(in srgb, var(--tuna-black) 15%, transparent);
+  --tuna-black-20: color-mix(in srgb, var(--tuna-black) 20%, transparent);
+  --tuna-black-25: color-mix(in srgb, var(--tuna-black) 25%, transparent);
+  --tuna-black-30: color-mix(in srgb, var(--tuna-black) 30%, transparent);
+  --tuna-black-35: color-mix(in srgb, var(--tuna-black) 35%, transparent);
+  --tuna-black-40: color-mix(in srgb, var(--tuna-black) 40%, transparent);
+  --tuna-black-45: color-mix(in srgb, var(--tuna-black) 45%, transparent);
+  --tuna-black-50: color-mix(in srgb, var(--tuna-black) 50%, transparent);
+  --tuna-black-55: color-mix(in srgb, var(--tuna-black) 55%, transparent);
+  --tuna-black-60: color-mix(in srgb, var(--tuna-black) 60%, transparent);
+  --tuna-black-65: color-mix(in srgb, var(--tuna-black) 65%, transparent);
+  --tuna-black-70: color-mix(in srgb, var(--tuna-black) 70%, transparent);
+  --tuna-black-75: color-mix(in srgb, var(--tuna-black) 75%, transparent);
+  --tuna-black-80: color-mix(in srgb, var(--tuna-black) 80%, transparent);
+  --tuna-black-85: color-mix(in srgb, var(--tuna-black) 85%, transparent);
+  --tuna-black-90: color-mix(in srgb, var(--tuna-black) 90%, transparent);
+  --tuna-black-95: color-mix(in srgb, var(--tuna-black) 95%, transparent);
 
   /* ── White (#ffffff) opacity ramp ── */
-  --retune-white: #ffffff;
-  --retune-white-5:  color-mix(in srgb, var(--retune-white) 5%, transparent);
-  --retune-white-10: color-mix(in srgb, var(--retune-white) 10%, transparent);
-  --retune-white-15: color-mix(in srgb, var(--retune-white) 15%, transparent);
-  --retune-white-20: color-mix(in srgb, var(--retune-white) 20%, transparent);
-  --retune-white-25: color-mix(in srgb, var(--retune-white) 25%, transparent);
-  --retune-white-30: color-mix(in srgb, var(--retune-white) 30%, transparent);
-  --retune-white-35: color-mix(in srgb, var(--retune-white) 35%, transparent);
-  --retune-white-40: color-mix(in srgb, var(--retune-white) 40%, transparent);
-  --retune-white-45: color-mix(in srgb, var(--retune-white) 45%, transparent);
-  --retune-white-50: color-mix(in srgb, var(--retune-white) 50%, transparent);
-  --retune-white-55: color-mix(in srgb, var(--retune-white) 55%, transparent);
-  --retune-white-60: color-mix(in srgb, var(--retune-white) 60%, transparent);
-  --retune-white-65: color-mix(in srgb, var(--retune-white) 65%, transparent);
-  --retune-white-70: color-mix(in srgb, var(--retune-white) 70%, transparent);
-  --retune-white-75: color-mix(in srgb, var(--retune-white) 75%, transparent);
-  --retune-white-80: color-mix(in srgb, var(--retune-white) 80%, transparent);
-  --retune-white-85: color-mix(in srgb, var(--retune-white) 85%, transparent);
-  --retune-white-90: color-mix(in srgb, var(--retune-white) 90%, transparent);
-  --retune-white-95: color-mix(in srgb, var(--retune-white) 95%, transparent);
+  --tuna-white: #ffffff;
+  --tuna-white-5:  color-mix(in srgb, var(--tuna-white) 5%, transparent);
+  --tuna-white-10: color-mix(in srgb, var(--tuna-white) 10%, transparent);
+  --tuna-white-15: color-mix(in srgb, var(--tuna-white) 15%, transparent);
+  --tuna-white-20: color-mix(in srgb, var(--tuna-white) 20%, transparent);
+  --tuna-white-25: color-mix(in srgb, var(--tuna-white) 25%, transparent);
+  --tuna-white-30: color-mix(in srgb, var(--tuna-white) 30%, transparent);
+  --tuna-white-35: color-mix(in srgb, var(--tuna-white) 35%, transparent);
+  --tuna-white-40: color-mix(in srgb, var(--tuna-white) 40%, transparent);
+  --tuna-white-45: color-mix(in srgb, var(--tuna-white) 45%, transparent);
+  --tuna-white-50: color-mix(in srgb, var(--tuna-white) 50%, transparent);
+  --tuna-white-55: color-mix(in srgb, var(--tuna-white) 55%, transparent);
+  --tuna-white-60: color-mix(in srgb, var(--tuna-white) 60%, transparent);
+  --tuna-white-65: color-mix(in srgb, var(--tuna-white) 65%, transparent);
+  --tuna-white-70: color-mix(in srgb, var(--tuna-white) 70%, transparent);
+  --tuna-white-75: color-mix(in srgb, var(--tuna-white) 75%, transparent);
+  --tuna-white-80: color-mix(in srgb, var(--tuna-white) 80%, transparent);
+  --tuna-white-85: color-mix(in srgb, var(--tuna-white) 85%, transparent);
+  --tuna-white-90: color-mix(in srgb, var(--tuna-white) 90%, transparent);
+  --tuna-white-95: color-mix(in srgb, var(--tuna-white) 95%, transparent);
 
   /* ── Blue (Figma blue ramp) ── */
-  --retune-blue-100: #F2F9FF;
-  --retune-blue-200: #E5F4FF;
-  --retune-blue-300: #BDE3FF;
-  --retune-blue-400: #80CAFF;
-  --retune-blue-500: #0D99FF;
-  --retune-blue-600: #007BE5;
-  --retune-blue-700: #0768CF;
-  --retune-blue-800: #034AC1;
-  --retune-blue-900: #093077;
-  --retune-blue-1000: #0D193F;
+  --tuna-blue-100: #F2F9FF;
+  --tuna-blue-200: #E5F4FF;
+  --tuna-blue-300: #BDE3FF;
+  --tuna-blue-400: #80CAFF;
+  --tuna-blue-500: #0D99FF;
+  --tuna-blue-600: #007BE5;
+  --tuna-blue-700: #0768CF;
+  --tuna-blue-800: #034AC1;
+  --tuna-blue-900: #093077;
+  --tuna-blue-1000: #0D193F;
 
   /* ── Red (Tailwind red ramp) ── */
-  --retune-red-100: #FFF5F5;
-  --retune-red-200: #FFE2E0;
-  --retune-red-300: #FFC7C2;
-  --retune-red-400: #FFAFA3;
-  --retune-red-500: #F24822;
-  --retune-red-600: #DC3412;
-  --retune-red-700: #BD2915;
-  --retune-red-800: #9F1F18;
-  --retune-red-900: #771208;
-  --retune-red-1000: #660E0B;
+  --tuna-red-100: #FFF5F5;
+  --tuna-red-200: #FFE2E0;
+  --tuna-red-300: #FFC7C2;
+  --tuna-red-400: #FFAFA3;
+  --tuna-red-500: #F24822;
+  --tuna-red-600: #DC3412;
+  --tuna-red-700: #BD2915;
+  --tuna-red-800: #9F1F18;
+  --tuna-red-900: #771208;
+  --tuna-red-1000: #660E0B;
 
   /* ══════════════════════════════════════
      SEMANTIC — swap these for dark mode
      ══════════════════════════════════════ */
 
   /* ── Always (mode-independent) ── */
-  --retune-always-white: #ffffff;
-  --retune-always-black: #1c1917;
+  --tuna-always-white: #ffffff;
+  --tuna-always-black: #1c1917;
 
   /* ── Text ── */
-  --retune-text: var(--retune-black-90);
-  --retune-text-secondary: var(--retune-black-70);
-  --retune-text-tertiary: var(--retune-black-50);
-  --retune-text-disabled: var(--retune-black-25);
+  --tuna-text: var(--tuna-black-90);
+  --tuna-text-secondary: var(--tuna-black-70);
+  --tuna-text-tertiary: var(--tuna-black-50);
+  --tuna-text-disabled: var(--tuna-black-25);
 
   /* ── Surfaces ── */
-  --retune-surface: var(--retune-white);
-  --retune-surface-hover: var(--retune-black-5);
-  --retune-surface-active: var(--retune-black-5);
-  --retune-input-bg: var(--retune-black-5);
-  --retune-input-bg-hover: var(--retune-black-10);
+  --tuna-surface: var(--tuna-white);
+  --tuna-surface-hover: var(--tuna-black-5);
+  --tuna-surface-active: var(--tuna-black-5);
+  --tuna-input-bg: var(--tuna-black-5);
+  --tuna-input-bg-hover: var(--tuna-black-10);
 
   /* ── Borders & shadows ── */
-  --retune-border: var(--retune-black-10);
-  --retune-border-hover: var(--retune-black-15);
-  --retune-border-subtle: var(--retune-black-5);
-  --retune-shadow: var(--retune-black-10);
+  --tuna-border: var(--tuna-black-10);
+  --tuna-border-hover: var(--tuna-black-15);
+  --tuna-border-subtle: var(--tuna-black-5);
+  --tuna-shadow: var(--tuna-black-10);
 
   /* ── Blue ── */
-  --retune-blue: var(--retune-blue-500);
-  --retune-blue-text: var(--retune-blue-700);
-  --retune-blue-bg: var(--retune-blue-200);
-  --retune-blue-bg-hover: var(--retune-blue-100);
+  --tuna-blue: var(--tuna-blue-500);
+  --tuna-blue-text: var(--tuna-blue-700);
+  --tuna-blue-bg: var(--tuna-blue-200);
+  --tuna-blue-bg-hover: var(--tuna-blue-100);
 
   /* ── Red ── */
-  --retune-red: var(--retune-red-500);
+  --tuna-red: var(--tuna-red-500);
 }
 
 /* ══════════════════════════════════════
@@ -124,28 +124,28 @@
    ══════════════════════════════════════ */
 :host(.dark) {
   /* ── Text ── */
-  --retune-text: var(--retune-white-90);
-  --retune-text-secondary: var(--retune-white-70);
-  --retune-text-tertiary: var(--retune-white-50);
-  --retune-text-disabled: var(--retune-white-25);
+  --tuna-text: var(--tuna-white-90);
+  --tuna-text-secondary: var(--tuna-white-70);
+  --tuna-text-tertiary: var(--tuna-white-50);
+  --tuna-text-disabled: var(--tuna-white-25);
 
   /* ── Surfaces ── */
-  --retune-surface: color-mix(in srgb, var(--retune-black) 95%, var(--retune-white));
-  --retune-surface-hover: var(--retune-white-5);
-  --retune-surface-active: var(--retune-white-5);
-  --retune-input-bg: var(--retune-white-5);
-  --retune-input-bg-hover: var(--retune-white-10);
+  --tuna-surface: color-mix(in srgb, var(--tuna-black) 95%, var(--tuna-white));
+  --tuna-surface-hover: var(--tuna-white-5);
+  --tuna-surface-active: var(--tuna-white-5);
+  --tuna-input-bg: var(--tuna-white-5);
+  --tuna-input-bg-hover: var(--tuna-white-10);
 
   /* ── Borders & shadows ── */
-  --retune-border: var(--retune-white-10);
-  --retune-border-hover: var(--retune-white-15);
-  --retune-border-subtle: var(--retune-white-5);
-  --retune-shadow: var(--retune-white-5);
+  --tuna-border: var(--tuna-white-10);
+  --tuna-border-hover: var(--tuna-white-15);
+  --tuna-border-subtle: var(--tuna-white-5);
+  --tuna-shadow: var(--tuna-white-5);
 
   /* ── Blue ── */
-  --retune-blue-text: var(--retune-blue-500);
-  --retune-blue-bg: color-mix(in srgb, var(--retune-blue-700) 50%, transparent);
-  --retune-blue-bg-hover: color-mix(in srgb, var(--retune-blue-700) 75%, transparent);
+  --tuna-blue-text: var(--tuna-blue-500);
+  --tuna-blue-bg: color-mix(in srgb, var(--tuna-blue-700) 50%, transparent);
+  --tuna-blue-bg-hover: color-mix(in srgb, var(--tuna-blue-700) 75%, transparent);
 
   /* ── Red ── */
 }
@@ -157,16 +157,16 @@ input, textarea, [contenteditable] {
 }
 
 /* ── Toolbar ── */
-@keyframes retune-icon-in {
+@keyframes tuna-icon-in {
   from { filter: blur(2px); transform: scale(0.9); }
   to   { filter: blur(0);   transform: scale(1); }
 }
 
-.retune-toolbar {
+.tuna-toolbar {
   position: fixed;
   z-index: 2147483647;
   pointer-events: auto;
-  background: var(--retune-surface);
+  background: var(--tuna-surface);
   border-radius: 16px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
   height: 44px;
@@ -183,7 +183,7 @@ input, textarea, [contenteditable] {
               background 0.15s ease;
 }
 
-.retune-toolbar.collapsed {
+.tuna-toolbar.collapsed {
   padding: 0;
   gap: 0;
   width: 44px;
@@ -191,21 +191,21 @@ input, textarea, [contenteditable] {
   overflow: visible;
   transition: transform 100ms ease, background 0.15s ease;
 }
-.retune-toolbar.collapsed:active {
+.tuna-toolbar.collapsed:active {
   transform: scale(0.97);
 }
 
-.retune-toolbar.collapsed:hover {
-  background: var(--retune-surface);
+.tuna-toolbar.collapsed:hover {
+  background: var(--tuna-surface);
 }
 
-.retune-toolbar.top.right { top: 16px; right: 16px; }
-.retune-toolbar.top.left { top: 16px; left: 16px; }
-.retune-toolbar.bottom.right { bottom: 16px; right: 16px; }
-.retune-toolbar.bottom.left { bottom: 16px; left: 16px; }
+.tuna-toolbar.top.right { top: 16px; right: 16px; }
+.tuna-toolbar.top.left { top: 16px; left: 16px; }
+.tuna-toolbar.bottom.right { bottom: 16px; right: 16px; }
+.tuna-toolbar.bottom.left { bottom: 16px; left: 16px; }
 
 /* Collapse button (cursor-click) */
-.retune-toolbar-collapse-btn {
+.tuna-toolbar-collapse-btn {
   position: relative;
   display: flex;
   align-items: center;
@@ -213,7 +213,7 @@ input, textarea, [contenteditable] {
   border: none;
   border-radius: 50%;
   cursor: pointer;
-  color: var(--retune-text);
+  color: var(--tuna-text);
   padding: 12px;
   width: 44px;
   height: 44px;
@@ -227,7 +227,7 @@ input, textarea, [contenteditable] {
               transform 0.2s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-.retune-changes-dot {
+.tuna-changes-dot {
   position: absolute;
   top: 0;
   right: 0;
@@ -239,7 +239,7 @@ input, textarea, [contenteditable] {
 }
 
 /* When expanded: collapse button shrinks away */
-.retune-toolbar.expanded .retune-toolbar-collapse-btn {
+.tuna-toolbar.expanded .tuna-toolbar-collapse-btn {
   position: absolute;
   width: 0;
   height: 0;
@@ -252,7 +252,7 @@ input, textarea, [contenteditable] {
 }
 
 /* Expanded inner container */
-.retune-toolbar-expanded {
+.tuna-toolbar-expanded {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -264,7 +264,7 @@ input, textarea, [contenteditable] {
 }
 
 /* When collapsed: expanded items hidden */
-.retune-toolbar.collapsed .retune-toolbar-expanded {
+.tuna-toolbar.collapsed .tuna-toolbar-expanded {
   max-width: 0;
   opacity: 0;
   pointer-events: none;
@@ -272,7 +272,7 @@ input, textarea, [contenteditable] {
 }
 
 /* Expanded action buttons */
-.retune-toolbar-btn {
+.tuna-toolbar-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -282,50 +282,50 @@ input, textarea, [contenteditable] {
   border-radius: 10px;
   background: transparent;
   cursor: pointer;
-  color: var(--retune-text);
+  color: var(--tuna-text);
   padding: 6px;
   flex-shrink: 0;
   position: relative;
   transition: background 0.12s ease;
 }
 
-.retune-toolbar-btn:hover { background: var(--retune-surface-hover); }
+.tuna-toolbar-btn:hover { background: var(--tuna-surface-hover); }
 
-.retune-toolbar-btn.disabled,
-.retune-toolbar-btn:disabled {
+.tuna-toolbar-btn.disabled,
+.tuna-toolbar-btn:disabled {
   opacity: 0.2;
   cursor: default;
   pointer-events: none;
 }
 
 /* Animate expanded items in */
-.retune-toolbar.expanded .retune-toolbar-expanded > :nth-child(1) {
-  animation: retune-icon-in 0.15s cubic-bezier(0.23, 1, 0.32, 1) 0ms backwards;
+.tuna-toolbar.expanded .tuna-toolbar-expanded > :nth-child(1) {
+  animation: tuna-icon-in 0.15s cubic-bezier(0.23, 1, 0.32, 1) 0ms backwards;
 }
-.retune-toolbar.expanded .retune-toolbar-expanded > :nth-child(2) {
-  animation: retune-icon-in 0.15s cubic-bezier(0.23, 1, 0.32, 1) 20ms backwards;
+.tuna-toolbar.expanded .tuna-toolbar-expanded > :nth-child(2) {
+  animation: tuna-icon-in 0.15s cubic-bezier(0.23, 1, 0.32, 1) 20ms backwards;
 }
-.retune-toolbar.expanded .retune-toolbar-expanded > :nth-child(3) {
-  animation: retune-icon-in 0.15s cubic-bezier(0.23, 1, 0.32, 1) 40ms backwards;
+.tuna-toolbar.expanded .tuna-toolbar-expanded > :nth-child(3) {
+  animation: tuna-icon-in 0.15s cubic-bezier(0.23, 1, 0.32, 1) 40ms backwards;
 }
-.retune-toolbar.expanded .retune-toolbar-expanded > :nth-child(4) {
-  animation: retune-icon-in 0.15s cubic-bezier(0.23, 1, 0.32, 1) 60ms backwards;
+.tuna-toolbar.expanded .tuna-toolbar-expanded > :nth-child(4) {
+  animation: tuna-icon-in 0.15s cubic-bezier(0.23, 1, 0.32, 1) 60ms backwards;
 }
-.retune-toolbar.expanded .retune-toolbar-expanded > :nth-child(5) {
-  animation: retune-icon-in 0.15s cubic-bezier(0.23, 1, 0.32, 1) 80ms backwards;
+.tuna-toolbar.expanded .tuna-toolbar-expanded > :nth-child(5) {
+  animation: tuna-icon-in 0.15s cubic-bezier(0.23, 1, 0.32, 1) 80ms backwards;
 }
 
 /* Animate collapse button in */
-.retune-toolbar.collapsed .retune-toolbar-collapse-btn {
-  animation: retune-icon-in 0.15s cubic-bezier(0.23, 1, 0.32, 1) backwards;
+.tuna-toolbar.collapsed .tuna-toolbar-collapse-btn {
+  animation: tuna-icon-in 0.15s cubic-bezier(0.23, 1, 0.32, 1) backwards;
 }
 
-.retune-icon-flip {
+.tuna-icon-flip {
   display: flex;
   transform: scaleX(-1);
 }
 
-.retune-icon-swap {
+.tuna-icon-swap {
   position: relative;
   display: flex;
   align-items: center;
@@ -334,7 +334,7 @@ input, textarea, [contenteditable] {
   height: 20px;
 }
 
-.retune-icon-swap-icon {
+.tuna-icon-swap-icon {
   position: absolute;
   display: flex;
   transition: opacity 150ms cubic-bezier(0.23, 1, 0.32, 1),
@@ -342,14 +342,14 @@ input, textarea, [contenteditable] {
               filter 150ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-.retune-icon-swap-icon.in {
+.tuna-icon-swap-icon.in {
   opacity: 1;
   transform: scale(1);
   filter: blur(0);
   transition-delay: 75ms;
 }
 
-.retune-icon-swap-icon.out {
+.tuna-icon-swap-icon.out {
   opacity: 0;
   transform: scale(0.5);
   filter: blur(2px);
@@ -357,11 +357,11 @@ input, textarea, [contenteditable] {
   transition-delay: 0ms;
 }
 
-.retune-edit-count {
+.tuna-edit-count {
   font-size: 13px;
   font-weight: 500;
-  background: var(--retune-blue);
-  color: var(--retune-always-white);
+  background: var(--tuna-blue);
+  color: var(--tuna-always-white);
   min-width: 32px;
   height: 32px;
   border-radius: 10px;
@@ -370,15 +370,15 @@ input, textarea, [contenteditable] {
   justify-content: center;
   padding: 0 10px;
   flex-shrink: 0;
-  animation: retune-icon-in 0.15s cubic-bezier(0.23, 1, 0.32, 1) backwards;
+  animation: tuna-icon-in 0.15s cubic-bezier(0.23, 1, 0.32, 1) backwards;
 }
 
 /* ── Panel ── */
-.retune-panel {
+.tuna-panel {
   position: fixed;
   z-index: 2147483647;
   pointer-events: auto;
-  background: var(--retune-surface);
+  background: var(--tuna-surface);
   border: none;
   border-radius: 16px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
@@ -389,28 +389,28 @@ input, textarea, [contenteditable] {
   overscroll-behavior: none;
 }
 
-.retune-panel-body {
+.tuna-panel-body {
   flex: 1;
   overflow-y: auto;
   overflow-x: clip;
   scrollbar-width: none;
 }
 
-.retune-panel-body::-webkit-scrollbar { display: none; }
+.tuna-panel-body::-webkit-scrollbar { display: none; }
 
-.retune-panel-anim {
+.tuna-panel-anim {
   display: contents;
 }
 
-.retune-panel-anim.entering .retune-panel {
-  animation: retune-panel-in 0.15s cubic-bezier(0.23, 1, 0.32, 1) both;
+.tuna-panel-anim.entering .tuna-panel {
+  animation: tuna-panel-in 0.15s cubic-bezier(0.23, 1, 0.32, 1) both;
 }
 
-.retune-panel-anim.exiting .retune-panel {
-  animation: retune-panel-out 0.15s cubic-bezier(0.23, 1, 0.32, 1) both;
+.tuna-panel-anim.exiting .tuna-panel {
+  animation: tuna-panel-out 0.15s cubic-bezier(0.23, 1, 0.32, 1) both;
 }
 
-@keyframes retune-panel-in {
+@keyframes tuna-panel-in {
   from {
     opacity: 0;
     transform: translateY(12px);
@@ -421,7 +421,7 @@ input, textarea, [contenteditable] {
   }
 }
 
-@keyframes retune-panel-out {
+@keyframes tuna-panel-out {
   from {
     opacity: 1;
     transform: translateY(0);
@@ -432,20 +432,20 @@ input, textarea, [contenteditable] {
   }
 }
 
-.retune-panel.right { right: 16px; bottom: 68px; }
-.retune-panel.left { left: 16px; bottom: 68px; }
-.retune-panel { height: calc(100vh - 84px); }
+.tuna-panel.right { right: 16px; bottom: 68px; }
+.tuna-panel.left { left: 16px; bottom: 68px; }
+.tuna-panel { height: calc(100vh - 84px); }
 
-/* Hide scrollbar (now on .retune-panel-body) */
+/* Hide scrollbar (now on .tuna-panel-body) */
 
-.retune-el-tag {
+.tuna-el-tag {
   font-size: 11px;
   line-height: 16px;
   font-weight: 550;
-  color: var(--retune-text);
+  color: var(--tuna-text);
 }
 
-.retune-el-component {
+.tuna-el-component {
   font-size: 11px;
   font-weight: 450;
   letter-spacing: -0.005em;
@@ -453,11 +453,11 @@ input, textarea, [contenteditable] {
   margin-top: 1px;
 }
 
-.retune-el-text {
+.tuna-el-text {
   font-size: 11px;
   font-weight: 450;
   letter-spacing: -0.005em;
-  color: var(--retune-text-secondary);
+  color: var(--tuna-text-secondary);
   margin-top: 1px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -465,15 +465,15 @@ input, textarea, [contenteditable] {
 }
 
 /* ── Selector field (Webflow-style class tags) ── */
-.retune-row-group:has(.retune-selector-field) {
+.tuna-row-group:has(.tuna-selector-field) {
   padding-left: 0;
   padding-right: 0;
 }
-.retune-row-group:has(.retune-selector-field) > .retune-group-label-inline {
+.tuna-row-group:has(.tuna-selector-field) > .tuna-group-label-inline {
   padding-left: 16px;
 }
 
-.retune-selector-field {
+.tuna-selector-field {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -485,7 +485,7 @@ input, textarea, [contenteditable] {
 }
 /* Remove gap around bridge connectors — the bridge IS the connection */
 /* Bridge connector between active/included pills */
-.retune-selector-bridge {
+.tuna-selector-bridge {
   width: 8px;
   height: 16px;
   flex-shrink: 0;
@@ -493,30 +493,30 @@ input, textarea, [contenteditable] {
   z-index: -1;
   margin: 0 -8px;
 }
-.retune-selector-bridge.filled {
-  background: var(--retune-blue-bg);
+.tuna-selector-bridge.filled {
+  background: var(--tuna-blue-bg);
 }
-.retune-selector-bridge::before,
-.retune-selector-bridge::after {
+.tuna-selector-bridge::before,
+.tuna-selector-bridge::after {
   content: '';
   position: absolute;
   left: 0;
   width: 100%;
   height: 5px;
-  background: var(--retune-surface);
+  background: var(--tuna-surface);
 }
-.retune-selector-bridge::before {
+.tuna-selector-bridge::before {
   top: 0;
   border-radius: 0 0 4px 4px;
 }
-.retune-selector-bridge::after {
+.tuna-selector-bridge::after {
   bottom: 0;
   border-radius: 4px 4px 0 0;
 }
 
-.retune-selector-field::-webkit-scrollbar { display: none; }
+.tuna-selector-field::-webkit-scrollbar { display: none; }
 
-.retune-selector-tag {
+.tuna-selector-tag {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -525,32 +525,32 @@ input, textarea, [contenteditable] {
   padding: 8px;
   border-radius: 8px;
   border: none;
-  background: var(--retune-surface-hover);
+  background: var(--tuna-surface-hover);
   cursor: pointer;
   font-size: 11px;
   font-weight: 500;
   letter-spacing: -0.005em;
-  color: var(--retune-text);
+  color: var(--tuna-text);
   line-height: 16px;
   white-space: nowrap;
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.retune-selector-tag:hover {
-  background: var(--retune-border);
+.tuna-selector-tag:hover {
+  background: var(--tuna-border);
 }
 
-.retune-selector-tag.included,
-.retune-selector-tag.active {
-  background: var(--retune-blue-bg);
-  color: var(--retune-blue-text);
+.tuna-selector-tag.included,
+.tuna-selector-tag.active {
+  background: var(--tuna-blue-bg);
+  color: var(--tuna-blue-text);
 }
-.retune-selector-tag.included:hover,
-.retune-selector-tag.active:hover {
-  background: var(--retune-blue-bg-hover);
+.tuna-selector-tag.included:hover,
+.tuna-selector-tag.active:hover {
+  background: var(--tuna-blue-bg-hover);
 }
 
-.retune-selector-tag-count {
+.tuna-selector-tag-count {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -559,30 +559,30 @@ input, textarea, [contenteditable] {
   font-weight: 500;
   letter-spacing: -0.005em;
   line-height: 16px;
-  background: var(--retune-surface);
-  color: var(--retune-text);
+  background: var(--tuna-surface);
+  color: var(--tuna-text);
   padding: 0 6px;
   border-radius: 4px;
 }
 
-.retune-selector-tag.included .retune-selector-tag-count,
-.retune-selector-tag.active .retune-selector-tag-count {
-  color: var(--retune-blue-text);
+.tuna-selector-tag.included .tuna-selector-tag-count,
+.tuna-selector-tag.active .tuna-selector-tag-count {
+  color: var(--tuna-blue-text);
 }
 
-:host(.dark) .retune-panel,
-:host(.dark) .retune-settings-panel,
-:host(.dark) .retune-toolbar,
-:host(.dark) .retune-floating-dialog,
-:host(.dark) .retune-comment-popover {
-  border: 1px solid var(--retune-black);
+:host(.dark) .tuna-panel,
+:host(.dark) .tuna-settings-panel,
+:host(.dark) .tuna-toolbar,
+:host(.dark) .tuna-floating-dialog,
+:host(.dark) .tuna-comment-popover {
+  border: 1px solid var(--tuna-black);
   box-shadow:
     inset 0 0 0 1px rgb(255 255 255 / 10%),
     0 2px 12px rgba(0, 0, 0, 0.08),
     0 0 0 1px rgba(0, 0, 0, 0.04);
 }
 
-:host(.dark) .retune-floating-dialog {
+:host(.dark) .tuna-floating-dialog {
   box-shadow:
     inset 0 0 0 1px rgb(255 255 255 / 10%),
     0 0 0 1px rgba(0, 0, 0, 0.06),
@@ -590,53 +590,53 @@ input, textarea, [contenteditable] {
     0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
-:host(.dark) .retune-selector-tag.included,
-:host(.dark) .retune-selector-tag.active {
-  color: var(--retune-white);
+:host(.dark) .tuna-selector-tag.included,
+:host(.dark) .tuna-selector-tag.active {
+  color: var(--tuna-white);
 }
 
-:host(.dark) .retune-selector-tag.included .retune-selector-tag-count,
-:host(.dark) .retune-selector-tag.active .retune-selector-tag-count {
-  background: var(--retune-white);
-  color: var(--retune-blue-700);
+:host(.dark) .tuna-selector-tag.included .tuna-selector-tag-count,
+:host(.dark) .tuna-selector-tag.active .tuna-selector-tag-count {
+  background: var(--tuna-white);
+  color: var(--tuna-blue-700);
 }
 
-.retune-selector-tag-name {
+.tuna-selector-tag-name {
   font-family: InterVariable, Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
 
-.retune-selector-divider {
+.tuna-selector-divider {
   width: 1px;
   height: 20px;
-  background: var(--retune-border);
+  background: var(--tuna-border);
   flex-shrink: 0;
   align-self: center;
 }
 
 /* ── Tab bar ── */
 
-.retune-tab-bar {
+.tuna-tab-bar {
   display: flex;
   align-items: center;
   position: relative;
   padding: 8px;
   flex-shrink: 0;
-  border-bottom: 1px solid var(--retune-border);
+  border-bottom: 1px solid var(--tuna-border);
 }
 
-.retune-tab-pill {
+.tuna-tab-pill {
   position: absolute;
   top: 8px;
   left: 0;
   height: calc(100% - 16px);
   border-radius: 8px;
-  background: var(--retune-input-bg);
+  background: var(--tuna-input-bg);
   transition: transform 0.2s cubic-bezier(0.23, 1, 0.32, 1), width 0.2s cubic-bezier(0.23, 1, 0.32, 1);
   pointer-events: none;
 }
 
-.retune-tab {
+.tuna-tab {
   width: auto;
   padding: 8px 12px;
   border: none;
@@ -645,7 +645,7 @@ input, textarea, [contenteditable] {
   font-family: inherit;
   font-size: 12px;
   font-weight: 500;
-  color: var(--retune-text-tertiary);
+  color: var(--tuna-text-tertiary);
   cursor: pointer;
   position: relative;
   z-index: 1;
@@ -653,15 +653,15 @@ input, textarea, [contenteditable] {
   text-align: center;
 }
 
-.retune-tab:hover {
-  color: var(--retune-text-secondary);
+.tuna-tab:hover {
+  color: var(--tuna-text-secondary);
 }
 
-.retune-tab.active {
-  color: var(--retune-text);
+.tuna-tab.active {
+  color: var(--tuna-text);
 }
 
-.retune-tab-close {
+.tuna-tab-close {
   margin-left: auto;
   width: 20px;
   height: 20px;
@@ -670,7 +670,7 @@ input, textarea, [contenteditable] {
   justify-content: center;
   background: transparent;
   border: none;
-  color: var(--retune-text-tertiary);
+  color: var(--tuna-text-tertiary);
   cursor: pointer;
   border-radius: 4px;
   padding: 0;
@@ -678,24 +678,24 @@ input, textarea, [contenteditable] {
   transition: color 0.15s ease;
 }
 
-.retune-tab-close:hover {
-  color: var(--retune-text-secondary);
+.tuna-tab-close:hover {
+  color: var(--tuna-text-secondary);
 }
 
 /* ── Element tree ── */
 
-.retune-tree {
+.tuna-tree {
   padding: 4px 0;
   overflow-x: auto;
 }
 
-.retune-tree-inner {
+.tuna-tree-inner {
   min-width: 100%;
   width: fit-content;
   position: relative;
 }
 
-.retune-tree-node {
+.tuna-tree-node {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -707,83 +707,83 @@ input, textarea, [contenteditable] {
   white-space: nowrap;
 }
 
-.retune-tree-node:hover {
-  background: var(--retune-surface-hover);
+.tuna-tree-node:hover {
+  background: var(--tuna-surface-hover);
 }
 
-.retune-tree-node.selected {
-  background: var(--retune-blue-bg);
+.tuna-tree-node.selected {
+  background: var(--tuna-blue-bg);
 }
-.retune-tree-node.descendant-selected {
-  background: color-mix(in srgb, var(--retune-blue-500) 6%, transparent);
+.tuna-tree-node.descendant-selected {
+  background: color-mix(in srgb, var(--tuna-blue-500) 6%, transparent);
 }
 
-.retune-tree-arrow {
+.tuna-tree-arrow {
   width: 16px;
   height: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: var(--retune-text-tertiary);
+  color: var(--tuna-text-tertiary);
   transform: rotate(-90deg);
   transition: transform 0.12s ease;
 }
 
-.retune-tree-arrow.expanded {
+.tuna-tree-arrow.expanded {
   transform: rotate(0deg);
 }
 
-.retune-tree-arrow.empty {
+.tuna-tree-arrow.empty {
   visibility: hidden;
 }
 
-.retune-tree-icon {
+.tuna-tree-icon {
   width: 16px;
   height: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: var(--retune-text-tertiary);
+  color: var(--tuna-text-tertiary);
   opacity: 0.5;
 }
-.retune-tree-node.selected .retune-tree-icon,
-.retune-tree-node.descendant-selected .retune-tree-icon,
-.retune-tree-node:hover .retune-tree-icon {
+.tuna-tree-node.selected .tuna-tree-icon,
+.tuna-tree-node.descendant-selected .tuna-tree-icon,
+.tuna-tree-node:hover .tuna-tree-icon {
   opacity: 1;
 }
-.retune-tree-icon--component {
-  color: var(--retune-blue-text);
+.tuna-tree-icon--component {
+  color: var(--tuna-blue-text);
 }
-:host(.dark) .retune-tree-node.selected .retune-tree-icon--component {
-  color: var(--retune-text);
+:host(.dark) .tuna-tree-node.selected .tuna-tree-icon--component {
+  color: var(--tuna-text);
 }
 
-.retune-tree-name {
+.tuna-tree-name {
   font-size: 11px;
   font-weight: 400;
   line-height: 16px;
   letter-spacing: 0.005em;
-  color: var(--retune-text);
+  color: var(--tuna-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
 }
-.retune-tree-name--component {
-  color: var(--retune-blue-text);
+.tuna-tree-name--component {
+  color: var(--tuna-blue-text);
   font-weight: 500;
 }
-:host(.dark) .retune-tree-node.selected .retune-tree-name--component {
-  color: var(--retune-text);
+:host(.dark) .tuna-tree-node.selected .tuna-tree-name--component {
+  color: var(--tuna-text);
 }
 
-.retune-tree-moved {
+.tuna-tree-moved {
   font-size: 9px;
   font-weight: 500;
-  color: var(--retune-blue-500);
-  background: var(--retune-blue-bg);
+  color: var(--tuna-blue-500);
+  background: var(--tuna-blue-bg);
   padding: 1px 4px;
   border-radius: 3px;
   flex-shrink: 0;
@@ -791,28 +791,28 @@ input, textarea, [contenteditable] {
 
 /* ── Tree drag states ── */
 
-.retune-tree-node.dragging {
+.tuna-tree-node.dragging {
   opacity: 0.3;
 }
 
-.retune-tree-node.reparent-target {
-  background: color-mix(in srgb, var(--retune-blue-500) 15%, transparent);
-  outline: 1.5px dashed var(--retune-blue-500);
+.tuna-tree-node.reparent-target {
+  background: color-mix(in srgb, var(--tuna-blue-500) 15%, transparent);
+  outline: 1.5px dashed var(--tuna-blue-500);
   outline-offset: -1.5px;
   border-radius: 4px;
 }
 
-.retune-tree-drop-indicator {
+.tuna-tree-drop-indicator {
   position: absolute;
   right: 0;
   height: 2px;
-  background: var(--retune-blue-500);
+  background: var(--tuna-blue-500);
   pointer-events: none;
   z-index: 10;
   display: none;
 }
 
-.retune-tree-drop-indicator::before {
+.tuna-tree-drop-indicator::before {
   content: "";
   position: absolute;
   left: -3px;
@@ -820,35 +820,35 @@ input, textarea, [contenteditable] {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--retune-blue-500);
+  background: var(--tuna-blue-500);
 }
 
-.retune-tree-ghost {
+.tuna-tree-ghost {
   position: fixed;
   pointer-events: none;
   z-index: 100;
   opacity: 0.85;
-  background: var(--retune-surface);
-  border: 1.5px solid var(--retune-blue-500);
+  background: var(--tuna-surface);
+  border: 1.5px solid var(--tuna-blue-500);
   border-radius: 6px;
   padding: 6px 12px;
   font-size: 12px;
-  color: var(--retune-text);
+  color: var(--tuna-text);
   white-space: nowrap;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 /* ── Section structure (matches portfolio editor) ── */
-.retune-section {
-  border-bottom: 1px solid var(--retune-border);
+.tuna-section {
+  border-bottom: 1px solid var(--tuna-border);
   user-select: none;
 }
 
-.retune-section:last-child { border-bottom: none; }
+.tuna-section:last-child { border-bottom: none; }
 /* Remove border from last section when followed by non-section elements (e.g., scroll anchor) */
-.retune-section:has(+ :not(.retune-section)) { border-bottom: none; }
+.tuna-section:has(+ :not(.tuna-section)) { border-bottom: none; }
 
-.retune-section-header {
+.tuna-section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -856,14 +856,14 @@ input, textarea, [contenteditable] {
   height: 44px;
 }
 
-.retune-section-title {
+.tuna-section-title {
   font-size: 12px;
   font-weight: 500;
   line-height: 20px;
-  color: var(--retune-text);
+  color: var(--tuna-text);
 }
 
-.retune-section-action {
+.tuna-section-action {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -872,17 +872,17 @@ input, textarea, [contenteditable] {
   border: none;
   border-radius: 8px;
   background: transparent;
-  color: var(--retune-text);
+  color: var(--tuna-text);
   cursor: pointer;
   padding: 0;
 }
-.retune-section-action:hover {
-  background: var(--retune-surface-hover);
-  color: var(--retune-text);
+.tuna-section-action:hover {
+  background: var(--tuna-surface-hover);
+  color: var(--tuna-text);
 }
 
 /* Variable action in section header: styled like section-action buttons, visible on section hover */
-.retune-section-header .retune-variable-action {
+.tuna-section-header .tuna-variable-action {
   position: static;
   width: 32px;
   height: 32px;
@@ -891,62 +891,62 @@ input, textarea, [contenteditable] {
   color: transparent;
   transition: color 0.15s ease;
 }
-.retune-section:hover .retune-section-header .retune-variable-action {
-  color: var(--retune-text-secondary);
+.tuna-section:hover .tuna-section-header .tuna-variable-action {
+  color: var(--tuna-text-secondary);
 }
-.retune-section-header .retune-variable-action:hover {
-  color: var(--retune-text) !important;
-  background: var(--retune-surface-hover);
+.tuna-section-header .tuna-variable-action:hover {
+  color: var(--tuna-text) !important;
+  background: var(--tuna-surface-hover);
 }
 
-.retune-section-body {
+.tuna-section-body {
   display: flex;
   flex-direction: column;
   gap: 12px;
   padding-bottom: 16px;
 }
 
-.retune-section-row {
+.tuna-section-row {
   padding: 0 48px 0 16px;
 }
-.retune-section-row:has(.retune-split-btn),
-.retune-section-row:has(.retune-row-action) {
+.tuna-section-row:has(.tuna-split-btn),
+.tuna-section-row:has(.tuna-row-action) {
   padding-right: 8px;
 }
 
 /* Row group: wraps multiple rows with equal vertical + horizontal gaps */
-.retune-row-group {
+.tuna-row-group {
   display: flex;
   flex-direction: column;
   gap: 4px;
   padding: 0 48px 0 16px;
 }
-.retune-row-group:has(.retune-split-btn),
-.retune-row-group:has(.retune-row-action) {
+.tuna-row-group:has(.tuna-split-btn),
+.tuna-row-group:has(.tuna-row-action) {
   padding-right: 8px;
 }
 
-.retune-row-group > .retune-row + .retune-row { margin-top: 4px; }
+.tuna-row-group > .tuna-row + .tuna-row { margin-top: 4px; }
 
 /* ── Alignment buttons (position section) ── */
-.retune-align-row {
+.tuna-align-row {
   display: flex;
   gap: 8px;
 }
 
-.retune-btn-group {
+.tuna-btn-group {
   display: flex;
   flex: 1;
-  background: var(--retune-surface-hover);
+  background: var(--tuna-surface-hover);
   border-radius: 8px;
   overflow: hidden;
 }
 
-.retune-btn-group > :not(:first-child) > .retune-align-btn {
-  box-shadow: inset 1px 0 0 var(--retune-surface);
+.tuna-btn-group > :not(:first-child) > .tuna-align-btn {
+  box-shadow: inset 1px 0 0 var(--tuna-surface);
 }
 
-.retune-align-btn {
+.tuna-align-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -954,43 +954,43 @@ input, textarea, [contenteditable] {
   height: 32px;
   border: none;
   background: transparent;
-  color: var(--retune-text);
+  color: var(--tuna-text);
   cursor: pointer;
   padding: 0;
   transition: background 0.15s ease;
 }
 
-.retune-align-btn:hover {
-  background: var(--retune-border);
-  color: var(--retune-text);
+.tuna-align-btn:hover {
+  background: var(--tuna-border);
+  color: var(--tuna-text);
 }
 
-.retune-align-btn:active {
-  color: var(--retune-text);
+.tuna-align-btn:active {
+  color: var(--tuna-text);
 }
 
-.retune-align-btn.active {
-  background: var(--retune-border);
+.tuna-align-btn.active {
+  background: var(--tuna-border);
 }
 
 /* ── Alignment grid (layout section) ── */
-.retune-alignment-grid {
+.tuna-alignment-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(3, 1fr);
-  background: var(--retune-surface-hover);
+  background: var(--tuna-surface-hover);
   border-radius: 8px;
   width: 100%;
   height: 72px;
   outline: none;
 }
 
-.retune-alignment-grid:focus-visible {
-  outline: 1px solid var(--retune-text);
+.tuna-alignment-grid:focus-visible {
+  outline: 1px solid var(--tuna-text);
   outline-offset: -1px;
 }
 
-.retune-alignment-cell {
+.tuna-alignment-cell {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1001,34 +1001,34 @@ input, textarea, [contenteditable] {
   overflow: hidden;
 }
 
-.retune-alignment-cell:hover {
-  color: var(--retune-text);
+.tuna-alignment-cell:hover {
+  color: var(--tuna-text);
 }
 
 /* ── Grid picker ── */
-.retune-grid-picker-wrap {
+.tuna-grid-picker-wrap {
   position: relative;
 }
 
-.retune-grid-picker-preview {
+.tuna-grid-picker-preview {
   display: flex;
   align-items: center;
   gap: 8px;
   width: 100%;
   height: 72px;
   padding: 4px;
-  background: var(--retune-surface-hover);
-  border: 1px solid var(--retune-border);
+  background: var(--tuna-surface-hover);
+  border: 1px solid var(--tuna-border);
   border-radius: 8px;
   cursor: pointer;
   box-sizing: border-box;
 }
 
-.retune-grid-picker-preview:hover {
+.tuna-grid-picker-preview:hover {
   background: #eeeceb;
 }
 
-.retune-grid-picker-mini {
+.tuna-grid-picker-mini {
   display: grid;
   gap: 2px;
   flex: 1;
@@ -1036,33 +1036,33 @@ input, textarea, [contenteditable] {
   position: relative;
 }
 
-.retune-grid-picker-mini-cell {
-  background: var(--retune-surface);
+.tuna-grid-picker-mini-cell {
+  background: var(--tuna-surface);
   border-radius: 2px;
   min-width: 0;
   min-height: 0;
 }
 
-.retune-grid-picker-label {
+.tuna-grid-picker-label {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   font-size: 11px;
   font-family: ui-monospace, monospace;
-  color: var(--retune-text-secondary);
+  color: var(--tuna-text-secondary);
   white-space: nowrap;
   pointer-events: none;
 }
 
-.retune-grid-picker-dialog {
+.tuna-grid-picker-dialog {
   position: absolute;
   top: 100%;
   left: 0;
   margin-top: 4px;
   padding: 8px;
-  background: var(--retune-surface);
-  border: 1px solid var(--retune-border);
+  background: var(--tuna-surface);
+  border: 1px solid var(--tuna-border);
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   z-index: 100;
@@ -1071,14 +1071,14 @@ input, textarea, [contenteditable] {
   gap: 6px;
 }
 
-.retune-grid-picker-dialog-header {
+.tuna-grid-picker-dialog-header {
   font-size: 11px;
   font-family: ui-monospace, monospace;
-  color: var(--retune-text-secondary);
+  color: var(--tuna-text-secondary);
   text-align: center;
 }
 
-.retune-grid-picker-grid {
+.tuna-grid-picker-grid {
   display: grid;
   grid-template-columns: repeat(10, 18px);
   grid-template-rows: repeat(10, 18px);
@@ -1086,35 +1086,35 @@ input, textarea, [contenteditable] {
   cursor: pointer;
 }
 
-.retune-grid-picker-cell {
+.tuna-grid-picker-cell {
   border-radius: 2px;
-  background: var(--retune-border);
+  background: var(--tuna-border);
 }
 
-.retune-grid-picker-cell.selected {
+.tuna-grid-picker-cell.selected {
   background: #3b82f6;
 }
 
-.retune-grid-picker-cell.preview {
+.tuna-grid-picker-cell.preview {
   background: #93c5fd;
 }
 
 /* ── Constraints visual (position section) ── */
-.retune-constraints {
+.tuna-constraints {
   display: flex;
   gap: 4px;
   align-items: center;
   width: 100%;
 }
 
-.retune-constraints-side {
+.tuna-constraints-side {
   flex: 1;
   min-width: 0;
   display: flex;
   align-items: center;
 }
 
-.retune-constraints-center {
+.tuna-constraints-center {
   flex: 1;
   min-width: 0;
   display: flex;
@@ -1123,15 +1123,15 @@ input, textarea, [contenteditable] {
   align-items: stretch;
 }
 
-.retune-pin-box {
+.tuna-pin-box {
   position: relative;
-  background: var(--retune-surface-hover);
+  background: var(--tuna-surface-hover);
   border-radius: 8px;
   width: 100%;
   height: 64px;
 }
 
-.retune-pin-line {
+.tuna-pin-line {
   position: absolute;
   display: flex;
   align-items: center;
@@ -1144,37 +1144,37 @@ input, textarea, [contenteditable] {
   height: 16px;
 }
 
-.retune-pin-line.top {
+.tuna-pin-line.top {
   left: 50%;
   transform: translateX(-50%);
   top: 2px;
 }
 
-.retune-pin-line.right {
+.tuna-pin-line.right {
   left: calc(75% - 2px);
   top: 24px;
 }
 
-.retune-pin-line.bottom {
+.tuna-pin-line.bottom {
   left: 50%;
   transform: translateX(-50%);
   bottom: 2px;
 }
 
-.retune-pin-line.left {
+.tuna-pin-line.left {
   left: calc(25% - 14px);
   top: 24px;
 }
 
-.retune-pin-center-btn {
+.tuna-pin-center-btn {
   position: absolute;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
   width: 24px;
   height: 24px;
-  background: var(--retune-surface);
-  border: 1px solid var(--retune-border);
+  background: var(--tuna-surface);
+  border: 1px solid var(--tuna-border);
   border-radius: 8px;
   cursor: pointer;
   display: flex;
@@ -1183,11 +1183,11 @@ input, textarea, [contenteditable] {
   padding: 0;
 }
 
-.retune-pin-center-btn:hover {
-  border-color: var(--retune-border-hover);
+.tuna-pin-center-btn:hover {
+  border-color: var(--tuna-border-hover);
 }
 
-.retune-pin-center-dot {
+.tuna-pin-center-dot {
   width: 4px;
   height: 4px;
   border-radius: 50%;
@@ -1195,22 +1195,22 @@ input, textarea, [contenteditable] {
 }
 
 /* Row layout: flex with gap for side-by-side fields */
-.retune-row {
+.tuna-row {
   display: flex;
   align-items: flex-end;
   gap: 8px;
 }
 
 /* Direct children in a row get flex: 1 */
-.retune-row > .retune-prop,
-.retune-row > .retune-combo,
-.retune-row > .retune-select,
-.retune-row > .retune-text-input,
-.retune-row > .retune-font-input,
-.retune-row > .retune-slider { flex: 1; min-width: 0; }
+.tuna-row > .tuna-prop,
+.tuna-row > .tuna-combo,
+.tuna-row > .tuna-select,
+.tuna-row > .tuna-text-input,
+.tuna-row > .tuna-font-input,
+.tuna-row > .tuna-slider { flex: 1; min-width: 0; }
 
 /* Field: flex-1 column with label above input */
-.retune-field {
+.tuna-field {
   flex: 1;
   min-width: 0;
   display: flex;
@@ -1218,30 +1218,30 @@ input, textarea, [contenteditable] {
   gap: 4px;
 }
 
-.retune-field-label {
+.tuna-field-label {
   font-size: 11px;
   font-weight: 400;
   letter-spacing: -0.005em;
-  color: var(--retune-text-tertiary);
+  color: var(--tuna-text-tertiary);
   line-height: 16px;
 }
 
 /* Group label: single label above a set of related inputs */
-.retune-group-label {
+.tuna-group-label {
   font-size: 11px;
   font-weight: 400;
   letter-spacing: -0.005em;
-  color: var(--retune-text-tertiary);
+  color: var(--tuna-text-tertiary);
   line-height: 16px;
   padding: 0 16px;
 }
 
 /* Group label inside a RowGroup (no extra horizontal padding) */
-.retune-group-label-inline {
+.tuna-group-label-inline {
   font-size: 11px;
   font-weight: 400;
   letter-spacing: -0.005em;
-  color: var(--retune-text-tertiary);
+  color: var(--tuna-text-tertiary);
   line-height: 16px;
   display: flex;
   align-items: center;
@@ -1249,8 +1249,8 @@ input, textarea, [contenteditable] {
 }
 
 /* Row action button (expand/collapse, dialog trigger, toggle) */
-.retune-row-action,
-.retune-split-btn {
+.tuna-row-action,
+.tuna-split-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1259,45 +1259,45 @@ input, textarea, [contenteditable] {
   border: none;
   border-radius: 8px;
   background: transparent;
-  color: var(--retune-text);
+  color: var(--tuna-text);
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
   transition: background 0.15s ease, color 0.15s ease;
 }
-.retune-row-action:hover,
-.retune-split-btn:hover {
-  background: var(--retune-surface-active);
-  color: var(--retune-text);
+.tuna-row-action:hover,
+.tuna-split-btn:hover {
+  background: var(--tuna-surface-active);
+  color: var(--tuna-text);
 }
-.retune-row-action.active,
-.retune-split-btn.active {
-  color: var(--retune-text);
-  background: var(--retune-input-bg-hover);
+.tuna-row-action.active,
+.tuna-split-btn.active {
+  color: var(--tuna-text);
+  background: var(--tuna-input-bg-hover);
 }
 
 /* Dropdown menu (size + button) */
-.retune-dropdown-anchor {
+.tuna-dropdown-anchor {
   position: relative;
 }
-.retune-dropdown-menu {
+.tuna-dropdown-menu {
   position: absolute;
   top: 100%;
   right: 0;
   margin-top: 4px;
   min-width: 140px;
-  background: var(--retune-surface);
+  background: var(--tuna-surface);
   border-radius: 10px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.06);
   padding: 4px;
   z-index: 100;
-  animation: retune-dropdown-in 0.15s cubic-bezier(0.23, 1, 0.32, 1);
+  animation: tuna-dropdown-in 0.15s cubic-bezier(0.23, 1, 0.32, 1);
 }
-@keyframes retune-dropdown-in {
+@keyframes tuna-dropdown-in {
   from { opacity: 0; transform: translateY(-4px) scale(0.97); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
-.retune-dropdown-item {
+.tuna-dropdown-item {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1306,36 +1306,36 @@ input, textarea, [contenteditable] {
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: var(--retune-text);
+  color: var(--tuna-text);
   font-size: 13px;
   cursor: pointer;
   padding: 0 10px;
   transition: background 0.1s ease;
 }
-.retune-dropdown-item:hover {
-  background: var(--retune-input-bg);
+.tuna-dropdown-item:hover {
+  background: var(--tuna-input-bg);
 }
-.retune-dropdown-item .retune-dropdown-check {
+.tuna-dropdown-item .tuna-dropdown-check {
   margin-left: auto;
-  color: var(--retune-text-tertiary);
+  color: var(--tuna-text-tertiary);
 }
-.retune-dropdown-heading {
+.tuna-dropdown-heading {
   padding: 6px 10px 2px;
   font-size: 11px;
   font-weight: 500;
-  color: var(--retune-text-tertiary);
+  color: var(--tuna-text-tertiary);
   letter-spacing: -0.005em;
 }
 
 /* Property cell — matches portfolio NumberInput */
-.retune-prop {
+.tuna-prop {
   display: flex;
   align-items: center;
   gap: 0;
   height: 32px;
   padding: 0;
   border-radius: 8px;
-  background: var(--retune-surface-hover);
+  background: var(--tuna-surface-hover);
   border: none;
   min-width: 0;
   overflow: visible;
@@ -1343,16 +1343,16 @@ input, textarea, [contenteditable] {
   transition: background-color 0.15s ease;
 }
 
-.retune-prop:hover:not(.retune-prop-variable-applied) { background: var(--retune-border); }
-.retune-prop:focus-within:not(.retune-prop-variable-applied) {
-  outline: 1px solid var(--retune-border);
+.tuna-prop:hover:not(.tuna-prop-variable-applied) { background: var(--tuna-border); }
+.tuna-prop:focus-within:not(.tuna-prop-variable-applied) {
+  outline: 1px solid var(--tuna-border);
   outline-offset: -1px;
 }
-.retune-prop:focus-within:not(.retune-prop-variable-applied) {
-  background: var(--retune-surface-hover);
+.tuna-prop:focus-within:not(.tuna-prop-variable-applied) {
+  background: var(--tuna-surface-hover);
 }
 
-.retune-prop-label {
+.tuna-prop-label {
   position: absolute;
   left: 0;
   width: 32px;
@@ -1363,14 +1363,14 @@ input, textarea, [contenteditable] {
   font-size: 11px;
   font-weight: 450;
   letter-spacing: -0.005em;
-  color: var(--retune-text);
+  color: var(--tuna-text);
   flex-shrink: 0;
   user-select: none;
   cursor: ew-resize;
   z-index: 1;
 }
 
-.retune-prop-input {
+.tuna-prop-input {
   flex: 1;
   min-width: 0;
   width: 100%;
@@ -1381,17 +1381,17 @@ input, textarea, [contenteditable] {
   font-weight: 450;
   letter-spacing: -0.005em;
   font-family: inherit;
-  color: var(--retune-text);
+  color: var(--tuna-text);
   outline: none;
   padding: 0 0 0 32px;
 }
 
-.retune-prop-input:first-child { padding-left: 12px; }
-.retune-prop-input::selection { background: var(--retune-blue-bg); color: var(--retune-text); }
-.retune-prop-input:focus { outline: none; }
+.tuna-prop-input:first-child { padding-left: 12px; }
+.tuna-prop-input::selection { background: var(--tuna-blue-bg); color: var(--tuna-text); }
+.tuna-prop-input:focus { outline: none; }
 
 /* ── Color Input (split: [swatch|hex] [opacity%]) ── */
-.retune-color-row {
+.tuna-color-row {
   display: flex;
   gap: 1px;
   flex: 1;
@@ -1399,18 +1399,18 @@ input, textarea, [contenteditable] {
   position: relative;
 }
 
-.retune-color-hex-section {
+.tuna-color-hex-section {
   display: flex;
   align-items: center;
   flex: 1;
   min-width: 0;
   height: 32px;
   position: relative;
-  background: var(--retune-surface-hover);
+  background: var(--tuna-surface-hover);
   border-radius: 8px 0 0 8px;
 }
 
-.retune-color-swatch {
+.tuna-color-swatch {
   width: 32px;
   height: 32px;
   display: flex;
@@ -1420,7 +1420,7 @@ input, textarea, [contenteditable] {
   cursor: pointer;
 }
 
-.retune-color-swatch-inner {
+.tuna-color-swatch-inner {
   width: 20px;
   height: 20px;
   border-radius: 2px;
@@ -1428,7 +1428,7 @@ input, textarea, [contenteditable] {
   overflow: hidden;
 }
 
-.retune-color-hex-input {
+.tuna-color-hex-input {
   flex: 1;
   min-width: 0;
   height: 32px;
@@ -1437,30 +1437,30 @@ input, textarea, [contenteditable] {
   font-family: inherit;
   font-size: 11px;
   font-weight: 500;
-  color: var(--retune-text);
+  color: var(--tuna-text);
   outline: none;
   padding: 0;
 }
 
-.retune-color-hex-input:focus { outline: none; }
-.retune-color-hex-section:focus-within {
-  outline: 1px solid var(--retune-border);
+.tuna-color-hex-input:focus { outline: none; }
+.tuna-color-hex-section:focus-within {
+  outline: 1px solid var(--tuna-border);
   outline-offset: -1px;
 }
-.retune-color-hex-input::selection { background: var(--retune-blue-bg); color: var(--retune-text); }
+.tuna-color-hex-input::selection { background: var(--tuna-blue-bg); color: var(--tuna-text); }
 
-.retune-color-opacity-section {
+.tuna-color-opacity-section {
   display: flex;
   align-items: center;
   gap: 2px;
   padding: 0 8px 0 4px;
   height: 32px;
-  background: var(--retune-surface-hover);
+  background: var(--tuna-surface-hover);
   border-radius: 0 8px 8px 0;
   flex-shrink: 0;
 }
 
-.retune-color-opacity-input {
+.tuna-color-opacity-input {
   width: 28px;
   height: 32px;
   background: transparent;
@@ -1468,34 +1468,34 @@ input, textarea, [contenteditable] {
   font-family: inherit;
   font-size: 11px;
   font-weight: 500;
-  color: var(--retune-text);
+  color: var(--tuna-text);
   text-align: center;
   outline: none;
   padding: 0;
   -moz-appearance: textfield;
 }
 
-.retune-color-opacity-input:focus { outline: none; }
-.retune-color-opacity-section:focus-within {
-  outline: 1px solid var(--retune-border);
+.tuna-color-opacity-input:focus { outline: none; }
+.tuna-color-opacity-section:focus-within {
+  outline: 1px solid var(--tuna-border);
   outline-offset: -1px;
 }
-.retune-color-opacity-input::-webkit-outer-spin-button,
-.retune-color-opacity-input::-webkit-inner-spin-button {
+.tuna-color-opacity-input::-webkit-outer-spin-button,
+.tuna-color-opacity-input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
 
-.retune-color-opacity-unit {
+.tuna-color-opacity-unit {
   font-size: 10px;
   font-weight: 500;
-  color: var(--retune-text-tertiary);
+  color: var(--tuna-text-tertiary);
 }
 
 /* ── Floating Dialog (shared shell for color picker, token dialog, etc.) ── */
-.retune-floating-dialog {
+.tuna-floating-dialog {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: var(--retune-surface);
+  background: var(--tuna-surface);
   border-radius: 12px;
   box-shadow:
     0 0 0 1px rgba(0, 0, 0, 0.06),
@@ -1506,22 +1506,22 @@ input, textarea, [contenteditable] {
   flex-direction: column;
   z-index: 2147483647;
   pointer-events: auto;
-  animation: retune-dialog-enter 150ms cubic-bezier(0.23, 1, 0.32, 1);
+  animation: tuna-dialog-enter 150ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-@keyframes retune-dialog-enter {
+@keyframes tuna-dialog-enter {
   from { opacity: 0; transform: scale(0.97); }
   to { opacity: 1; transform: scale(1); }
 }
 
-.retune-floating-dialog-header {
+.tuna-floating-dialog-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 8px 8px 0 12px;
 }
 
-.retune-floating-dialog-title-area {
+.tuna-floating-dialog-title-area {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -1529,14 +1529,14 @@ input, textarea, [contenteditable] {
   min-width: 0;
 }
 
-.retune-floating-dialog-title {
+.tuna-floating-dialog-title {
   font-size: 12px;
   font-weight: 500;
-  color: var(--retune-text);
+  color: var(--tuna-text);
 }
 
 /* Tab styles — single tab has no selected style */
-.retune-floating-dialog-tab {
+.tuna-floating-dialog-tab {
   height: 24px;
   padding: 0 8px;
   border-radius: 5px;
@@ -1549,30 +1549,30 @@ input, textarea, [contenteditable] {
   cursor: pointer;
   transition: color 0.15s, background-color 0.15s;
   font-weight: 450;
-  color: var(--retune-text-secondary);
+  color: var(--tuna-text-secondary);
   font-family: inherit;
 }
-.retune-floating-dialog-tab:hover {
-  background: var(--retune-input-bg);
+.tuna-floating-dialog-tab:hover {
+  background: var(--tuna-input-bg);
 }
-.retune-floating-dialog-tab-active {
-  background: var(--retune-surface-hover);
+.tuna-floating-dialog-tab-active {
+  background: var(--tuna-surface-hover);
   font-weight: 550;
-  color: var(--retune-text);
+  color: var(--tuna-text);
 }
-.retune-floating-dialog-tab-active:hover {
-  background: var(--retune-surface-hover);
+.tuna-floating-dialog-tab-active:hover {
+  background: var(--tuna-surface-hover);
 }
-.retune-floating-dialog-tab-single {
+.tuna-floating-dialog-tab-single {
   font-weight: 550;
-  color: var(--retune-text);
+  color: var(--tuna-text);
   cursor: inherit;
 }
-.retune-floating-dialog-tab-single:hover {
+.tuna-floating-dialog-tab-single:hover {
   background: none;
 }
 
-.retune-floating-dialog-close {
+.tuna-floating-dialog-close {
   width: 32px;
   height: 32px;
   display: flex;
@@ -1580,42 +1580,42 @@ input, textarea, [contenteditable] {
   justify-content: center;
   background: transparent;
   border: none;
-  color: var(--retune-text-tertiary);
+  color: var(--tuna-text-tertiary);
   cursor: pointer;
   border-radius: 8px;
   padding: 0;
   flex-shrink: 0;
   transition: background 0.15s ease, color 0.15s ease;
 }
-.retune-floating-dialog-close:hover {
-  color: var(--retune-text);
-  background: var(--retune-surface-active);
+.tuna-floating-dialog-close:hover {
+  color: var(--tuna-text);
+  background: var(--tuna-surface-active);
 }
 
-.retune-floating-dialog-search {
+.tuna-floating-dialog-search {
   padding: 8px;
 }
-.retune-floating-dialog-search-input {
+.tuna-floating-dialog-search-input {
   width: 100%;
   height: 32px;
-  background: var(--retune-surface-hover);
+  background: var(--tuna-surface-hover);
   border: none;
   border-radius: 8px;
   padding: 0 10px;
   font-size: 12px;
   font-family: inherit;
-  color: var(--retune-text);
+  color: var(--tuna-text);
   outline: none;
   box-sizing: border-box;
 }
-.retune-floating-dialog-search-input::placeholder {
-  color: var(--retune-text-tertiary);
+.tuna-floating-dialog-search-input::placeholder {
+  color: var(--tuna-text-tertiary);
 }
-.retune-floating-dialog-search-input:focus {
+.tuna-floating-dialog-search-input:focus {
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
 }
 
-.retune-floating-dialog-body {
+.tuna-floating-dialog-body {
   flex: 1;
   min-height: 0;
   display: flex;
@@ -1624,11 +1624,11 @@ input, textarea, [contenteditable] {
 
 /* ── Color Picker Content ── */
 
-.retune-cp-sv-wrap {
+.tuna-cp-sv-wrap {
   padding: 12px 12px 0 12px;
 }
 
-.retune-cp-sv {
+.tuna-cp-sv {
   position: relative;
   width: 100%;
   aspect-ratio: 1;
@@ -1637,31 +1637,31 @@ input, textarea, [contenteditable] {
   border-radius: 8px;
 }
 
-.retune-cp-sv-white,
-.retune-cp-sv-black {
+.tuna-cp-sv-white,
+.tuna-cp-sv-black {
   border-radius: inherit;
 }
 
-.retune-cp-sv-white {
+.tuna-cp-sv-white {
   position: absolute;
   inset: 0;
   background: linear-gradient(to right, #fff, transparent);
 }
 
-.retune-cp-sv-black {
+.tuna-cp-sv-black {
   position: absolute;
   inset: 0;
   background: linear-gradient(to bottom, transparent, #000);
 }
 
-.retune-cp-handle {
+.tuna-cp-handle {
   position: absolute;
   pointer-events: none;
   transform: translate(-50%, -50%);
   will-change: transform;
 }
 
-.retune-cp-handle-inner {
+.tuna-cp-handle-inner {
   width: 14px;
   height: 14px;
   border-radius: 50%;
@@ -1671,14 +1671,14 @@ input, textarea, [contenteditable] {
     0 2px 6px rgba(0, 0, 0, 0.12);
 }
 
-.retune-cp-sliders {
+.tuna-cp-sliders {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
 }
 
-.retune-cp-eyedropper {
+.tuna-cp-eyedropper {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1688,30 +1688,30 @@ input, textarea, [contenteditable] {
   background: transparent;
   border: none;
   border-radius: 8px;
-  color: var(--retune-text-tertiary);
+  color: var(--tuna-text-tertiary);
   cursor: pointer;
   padding: 0;
   transition: background 0.15s ease, color 0.15s ease;
 }
-.retune-cp-eyedropper:hover {
-  color: var(--retune-text);
-  background: var(--retune-surface-active);
+.tuna-cp-eyedropper:hover {
+  color: var(--tuna-text);
+  background: var(--tuna-surface-active);
 }
 
-.retune-cp-preview-checker {
+.tuna-cp-preview-checker {
   position: absolute;
   inset: 0;
   background-image: repeating-conic-gradient(#e0e0e0 0% 25%, #fff 0% 50%);
   background-size: 8px 8px;
 }
 
-.retune-cp-preview {
+.tuna-cp-preview {
   position: absolute;
   inset: 0;
   border-radius: 50%;
 }
 
-.retune-cp-slider-tracks {
+.tuna-cp-slider-tracks {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1719,7 +1719,7 @@ input, textarea, [contenteditable] {
   min-width: 0;
 }
 
-.retune-cp-hue {
+.tuna-cp-hue {
   position: relative;
   height: 14px;
   border-radius: 7px;
@@ -1730,7 +1730,7 @@ input, textarea, [contenteditable] {
   box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.1);
 }
 
-.retune-cp-alpha {
+.tuna-cp-alpha {
   position: relative;
   height: 14px;
   border-radius: 7px;
@@ -1740,7 +1740,7 @@ input, textarea, [contenteditable] {
   box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.1);
 }
 
-.retune-cp-alpha-checker {
+.tuna-cp-alpha-checker {
   position: absolute;
   inset: 0;
   background-image: repeating-conic-gradient(#e0e0e0 0% 25%, #fff 0% 50%);
@@ -1748,19 +1748,19 @@ input, textarea, [contenteditable] {
   border-radius: 7px;
 }
 
-.retune-cp-alpha-gradient {
+.tuna-cp-alpha-gradient {
   position: absolute;
   inset: 0;
   border-radius: 7px;
 }
 
-.retune-cp-inputs {
+.tuna-cp-inputs {
   display: flex;
   gap: 4px;
   padding: 0 12px 10px;
 }
 
-.retune-cp-input-group {
+.tuna-cp-input-group {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -1768,52 +1768,52 @@ input, textarea, [contenteditable] {
   min-width: 0;
 }
 
-.retune-cp-input-group:first-child {
+.tuna-cp-input-group:first-child {
   flex: 1.8;
 }
 
-.retune-cp-label {
+.tuna-cp-label {
   font-size: 9px;
   font-weight: 500;
-  color: var(--retune-text-tertiary);
+  color: var(--tuna-text-tertiary);
   text-transform: uppercase;
   letter-spacing: -0.005em;
   padding-left: 2px;
 }
 
-.retune-cp-input {
+.tuna-cp-input {
   height: 32px;
   border-radius: 8px;
-  background: var(--retune-surface-hover);
+  background: var(--tuna-surface-hover);
   border: none;
   font-family: inherit;
   font-size: 11px;
   font-weight: 500;
-  color: var(--retune-text);
+  color: var(--tuna-text);
   padding: 0 6px;
   outline: none;
   width: 100%;
   min-width: 0;
 }
 
-.retune-cp-input:focus {
+.tuna-cp-input:focus {
   outline: none;
   box-shadow: 0 0 0 1.5px rgba(59, 130, 246, 0.5);
 }
 
-.retune-cp-input::selection { background: var(--retune-blue-bg); color: var(--retune-text); }
+.tuna-cp-input::selection { background: var(--tuna-blue-bg); color: var(--tuna-text); }
 
 /* ── Gradient Editor ── */
-.retune-gradient-editor {
+.tuna-gradient-editor {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
-.retune-gradient-editor > * {
+.tuna-gradient-editor > * {
   padding: 0px 8px 0px 16px;
 }
 
-.retune-gradient-bar-wrap {
+.tuna-gradient-bar-wrap {
   position: relative;
   height: 32px;
   cursor: crosshair;
@@ -1821,7 +1821,7 @@ input, textarea, [contenteditable] {
   padding: 0 !important;
 }
 
-.retune-gradient-bar {
+.tuna-gradient-bar {
   position: absolute;
   bottom: 0;
   left: 0;
@@ -1829,10 +1829,10 @@ input, textarea, [contenteditable] {
   height: 32px;
   border-radius: 8px;
   overflow: hidden;
-  border: 1px solid var(--retune-border);
+  border: 1px solid var(--tuna-border);
 }
 
-.retune-gradient-bar-checker {
+.tuna-gradient-bar-checker {
   position: absolute;
   inset: 0;
   background-image:
@@ -1842,12 +1842,12 @@ input, textarea, [contenteditable] {
   background-position: 0 0, 3px 3px;
 }
 
-.retune-gradient-bar-fill {
+.tuna-gradient-bar-fill {
   position: absolute;
   inset: 0;
 }
 
-.retune-gradient-stop-handle {
+.tuna-gradient-stop-handle {
   position: absolute;
   top: 0px;
   transform: translateX(-50%);
@@ -1855,16 +1855,16 @@ input, textarea, [contenteditable] {
   touch-action: none;
 }
 
-.retune-gradient-stop-handle:active { cursor: grabbing; }
+.tuna-gradient-stop-handle:active { cursor: grabbing; }
 
-.retune-gradient-stop-indicator {
+.tuna-gradient-stop-indicator {
   display: flex;
   flex-direction: column;
   align-items: center;
   filter: drop-shadow(0 0 0.5px rgba(0,0,0,0.18)) drop-shadow(0 2px 6px rgba(0,0,0,0.12));
 }
 
-.retune-gradient-stop-chit {
+.tuna-gradient-stop-chit {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1873,51 +1873,51 @@ input, textarea, [contenteditable] {
   border-radius: 5px;
 }
 
-.retune-gradient-stop-chit-color {
+.tuna-gradient-stop-chit-color {
   width: 12px;
   height: 24px;
   border-radius: 2px;
   box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);
 }
 
-.retune-gradient-stop-caret {
+.tuna-gradient-stop-caret {
   display: none;
 }
 
-.retune-gradient-controls {
+.tuna-gradient-controls {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
 }
 
-.retune-gradient-angle-input {
+.tuna-gradient-angle-input {
   width: 64px;
   height: 32px;
   border-radius: 8px;
-  background: var(--retune-surface-hover);
+  background: var(--tuna-surface-hover);
   border: none;
   font-family: inherit;
   font-size: 11px;
   font-weight: 450;
   letter-spacing: -0.005em;
-  color: var(--retune-text);
+  color: var(--tuna-text);
   padding: 0 8px;
   text-align: left;
 }
 
-.retune-gradient-angle-input:focus {
+.tuna-gradient-angle-input:focus {
   outline: none;
   box-shadow: 0 0 0 1.5px rgba(59, 130, 246, 0.5);
 }
 
-.retune-gradient-actions {
+.tuna-gradient-actions {
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
-.retune-gradient-action-btn {
+.tuna-gradient-action-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1926,42 +1926,42 @@ input, textarea, [contenteditable] {
   border: none;
   background: transparent;
   border-radius: 8px;
-  color: var(--retune-text-secondary);
+  color: var(--tuna-text-secondary);
   cursor: pointer;
   transition: background-color 0.08s ease, color 0.08s ease;
 }
 
-.retune-gradient-action-btn:hover { background: var(--retune-surface-hover); color: var(--retune-text); }
-.retune-gradient-action-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-.retune-gradient-action-btn:disabled:hover { background: transparent; color: var(--retune-text-secondary); }
+.tuna-gradient-action-btn:hover { background: var(--tuna-surface-hover); color: var(--tuna-text); }
+.tuna-gradient-action-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.tuna-gradient-action-btn:disabled:hover { background: transparent; color: var(--tuna-text-secondary); }
 
-.retune-gradient-stops-header {
+.tuna-gradient-stops-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.retune-gradient-stops-label {
+.tuna-gradient-stops-label {
   font-size: 11px;
   font-weight: 550;
   letter-spacing: -0.005em;
-  color: var(--retune-text);
+  color: var(--tuna-text);
 }
 
-.retune-gradient-stops-list {
+.tuna-gradient-stops-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.retune-gradient-stop-row {
+.tuna-gradient-stop-row {
   display: flex;
   align-items: flex-start;
   gap: 8px;
   padding: 0;
 }
 
-.retune-gradient-stop-pos {
+.tuna-gradient-stop-pos {
   position: relative;
   display: flex;
   align-items: center;
@@ -1969,53 +1969,53 @@ input, textarea, [contenteditable] {
   flex-shrink: 0;
 }
 
-.retune-gradient-stop-pos-input {
+.tuna-gradient-stop-pos-input {
   width: 100%;
   height: 32px;
   border-radius: 8px;
-  background: var(--retune-surface-hover);
+  background: var(--tuna-surface-hover);
   border: none;
   font-family: inherit;
   font-size: 11px;
   font-weight: 450;
   letter-spacing: -0.005em;
-  color: var(--retune-text);
+  color: var(--tuna-text);
   padding: 0 18px 0 6px;
   text-align: left;
 }
 
-.retune-gradient-stop-pos-input:focus {
+.tuna-gradient-stop-pos-input:focus {
   outline: none;
   box-shadow: 0 0 0 1.5px rgba(59, 130, 246, 0.5);
 }
 
-.retune-gradient-stop-pos-unit {
+.tuna-gradient-stop-pos-unit {
   position: absolute;
   right: 6px;
   font-size: 11px;
-  color: var(--retune-text-tertiary);
+  color: var(--tuna-text-tertiary);
   pointer-events: none;
 }
 
-.retune-gradient-stop-color {
+.tuna-gradient-stop-color {
   flex: 1;
   min-width: 0;
 }
 
 /* ── SelectInput ── */
-.retune-select {
+.tuna-select {
   position: relative;
   min-width: 0;
   overflow: visible;
 }
 
-.retune-select-button {
+.tuna-select-button {
   display: flex;
   align-items: center;
   width: 100%;
   height: 32px;
   border-radius: 8px;
-  background: var(--retune-surface-hover);
+  background: var(--tuna-surface-hover);
   border: none;
   cursor: pointer;
   font-family: inherit;
@@ -2024,13 +2024,13 @@ input, textarea, [contenteditable] {
   position: relative;
 }
 
-.retune-select-button:hover { background: var(--retune-border); }
-.retune-select-button:focus-visible {
-  outline: 1px solid var(--retune-text);
+.tuna-select-button:hover { background: var(--tuna-border); }
+.tuna-select-button:focus-visible {
+  outline: 1px solid var(--tuna-text);
   outline-offset: -1px;
 }
 
-.retune-select-label {
+.tuna-select-label {
   position: absolute;
   left: 0;
   width: 32px;
@@ -2041,17 +2041,17 @@ input, textarea, [contenteditable] {
   font-size: 11px;
   font-weight: 450;
   letter-spacing: -0.005em;
-  color: var(--retune-text-tertiary);
+  color: var(--tuna-text-tertiary);
   flex-shrink: 0;
 }
 
-.retune-select-value {
+.tuna-select-value {
   flex: 1;
   min-width: 0;
   font-size: 11px;
   font-weight: 450;
   letter-spacing: -0.005em;
-  color: var(--retune-text);
+  color: var(--tuna-text);
   text-align: left;
   padding-left: 32px;
   overflow: hidden;
@@ -2059,69 +2059,69 @@ input, textarea, [contenteditable] {
   white-space: nowrap;
 }
 
-.retune-select-chevron {
+.tuna-select-chevron {
   width: 32px;
   height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--retune-text-secondary);
+  color: var(--tuna-text-secondary);
   flex-shrink: 0;
 }
 
-.retune-select-dropdown-anchor {
+.tuna-select-dropdown-anchor {
   position: fixed;
   z-index: 2147483647;
   width: max-content;
 }
 
 /* ── Slider ── */
-.retune-slider {
+.tuna-slider {
   position: relative;
   height: 32px;
   border-radius: 8px;
-  background: var(--retune-surface-hover);
+  background: var(--tuna-surface-hover);
   cursor: ew-resize;
   user-select: none;
   overflow: hidden;
   transition: background-color 0.15s ease;
 }
 
-.retune-slider:hover { }
-.retune-slider:focus-visible { outline: 1px solid var(--retune-text); outline-offset: -1px; }
+.tuna-slider:hover { }
+.tuna-slider:focus-visible { outline: 1px solid var(--tuna-text); outline-offset: -1px; }
 
-.retune-slider-fill {
+.tuna-slider-fill {
   position: absolute;
   inset: 0;
   right: auto;
-  background: var(--retune-surface-active);
+  background: var(--tuna-surface-active);
   pointer-events: none;
 }
 
-.retune-slider-indicator {
+.tuna-slider-indicator {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
   width: 1px;
   height: 4px;
   border-radius: 1px;
-  background: var(--retune-border);
+  background: var(--tuna-border);
   pointer-events: none;
 }
 
-.retune-slider-handle {
+.tuna-slider-handle {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
   width: 2px;
   height: 16px;
   border-radius: 1px;
-  background: var(--retune-text);
+  background: var(--tuna-text);
   pointer-events: none;
   margin-left: -1px;
 }
 
-.retune-slider-labels {
+.tuna-slider-labels {
   position: absolute;
   inset: 0;
   display: flex;
@@ -2133,40 +2133,40 @@ input, textarea, [contenteditable] {
   white-space: nowrap;
 }
 
-.retune-slider-label {
+.tuna-slider-label {
   font-size: 11px;
   font-weight: 450;
   letter-spacing: -0.005em;
-  color: var(--retune-text-secondary);
+  color: var(--tuna-text-secondary);
 }
 
-.retune-slider-value {
+.tuna-slider-value {
   font-size: 11px;
   font-weight: 450;
   letter-spacing: -0.005em;
   font-family: inherit;
-  color: var(--retune-text);
+  color: var(--tuna-text);
 }
 
 /* ── SegmentedControl ── */
-.retune-segmented {
+.tuna-segmented {
   display: flex;
   position: relative;
   height: 32px;
-  background: var(--retune-surface-hover);
+  background: var(--tuna-surface-hover);
   border-radius: 8px;
   overflow: hidden;
   flex: 1;
 }
 
-.retune-segmented-pill {
+.tuna-segmented-pill {
   position: absolute;
   top: 0;
   left: 0;
   height: 100%;
   border-radius: 8px;
-  background: var(--retune-surface);
-  border: 1px solid var(--retune-border);
+  background: var(--tuna-surface);
+  border: 1px solid var(--tuna-border);
   box-sizing: border-box;
   transition: transform 200ms cubic-bezier(0.77, 0, 0.175, 1);
   will-change: transform;
@@ -2175,7 +2175,7 @@ input, textarea, [contenteditable] {
 }
 
 
-.retune-segmented-item {
+.tuna-segmented-item {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2186,56 +2186,56 @@ input, textarea, [contenteditable] {
   background: transparent;
   cursor: pointer;
   padding: 0;
-  color: var(--retune-text);
+  color: var(--tuna-text);
   transition: color 150ms ease;
   position: relative;
   z-index: 1;
 }
 
-.retune-segmented-item:hover:not(.disabled) { color: var(--retune-text-secondary); }
+.tuna-segmented-item:hover:not(.disabled) { color: var(--tuna-text-secondary); }
 
-.retune-segmented-item.selected {
-  color: var(--retune-text);
+.tuna-segmented-item.selected {
+  color: var(--tuna-text);
 }
 
-.retune-segmented-item.disabled {
+.tuna-segmented-item.disabled {
   opacity: 0.3;
   cursor: not-allowed;
 }
 
-.retune-segmented-item svg {
+.tuna-segmented-item svg {
   width: 24px;
   height: 24px;
   display: block;
 }
 
-.retune-segmented-text {
+.tuna-segmented-text {
   font-size: 11px;
   font-weight: 500;
   letter-spacing: -0.005em;
 }
 
 /* ── FontInput ── */
-.retune-font-input {
+.tuna-font-input {
   display: flex;
   align-items: center;
   height: 32px;
   border-radius: 8px;
-  background: var(--retune-surface-hover);
+  background: var(--tuna-surface-hover);
   min-width: 0;
   overflow: visible;
   position: relative;
   transition: background-color 0.15s ease;
 }
 
-.retune-font-input:hover { background: var(--retune-border); }
-.retune-font-input:focus-within {
-  outline: 1px solid var(--retune-border);
+.tuna-font-input:hover { background: var(--tuna-border); }
+.tuna-font-input:focus-within {
+  outline: 1px solid var(--tuna-border);
   outline-offset: -1px;
-  background: var(--retune-surface-hover);
+  background: var(--tuna-surface-hover);
 }
 
-.retune-font-input-trigger {
+.tuna-font-input-trigger {
   display: flex;
   align-items: center;
   width: 100%;
@@ -2245,53 +2245,53 @@ input, textarea, [contenteditable] {
   font-size: 11px;
   font-weight: 450;
   letter-spacing: -0.005em;
-  color: var(--retune-text);
+  color: var(--tuna-text);
   cursor: pointer;
   padding: 0 4px 0 8px;
   gap: 4px;
 }
-.retune-font-input-value {
+.tuna-font-input-value {
   flex: 1;
   text-align: left;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.retune-font-input-trigger svg {
+.tuna-font-input-trigger svg {
   flex-shrink: 0;
-  color: var(--retune-text-secondary);
+  color: var(--tuna-text-secondary);
 }
 
 /* ── Font Picker (FloatingDialog) ── */
-.retune-font-filter {
+.tuna-font-filter {
   padding: 8px;
-  border-top: 1px solid var(--retune-border);
+  border-top: 1px solid var(--tuna-border);
 }
 
-.retune-font-list {
+.tuna-font-list {
   overflow-y: auto;
   padding: 2px 0 4px;
   scrollbar-width: none;
 }
-.retune-font-list::-webkit-scrollbar { display: none; }
+.tuna-font-list::-webkit-scrollbar { display: none; }
 
-.retune-font-section-title {
+.tuna-font-section-title {
   font-size: 11px;
   font-weight: 450;
   line-height: 16px;
   letter-spacing: -0.005em;
-  color: var(--retune-text-secondary);
+  color: var(--tuna-text-secondary);
   padding: 8px 16px 8px;
 }
 
-.retune-font-item {
+.tuna-font-item {
   display: flex;
   align-items: center;
   padding: 8px 16px;
   cursor: pointer;
   font-size: 13px;
   font-weight: 450;
-  color: var(--retune-text);
+  color: var(--tuna-text);
   transition: background-color 0.08s ease;
   min-height: 32px;
   box-sizing: border-box;
@@ -2299,64 +2299,64 @@ input, textarea, [contenteditable] {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.retune-font-item:hover { background: var(--retune-surface-hover); }
-.retune-font-item-active { background: var(--retune-surface-hover); }
-.retune-font-item-active:hover { background: var(--retune-surface-hover); }
-.retune-font-item-highlighted { background: var(--retune-input-bg); }
-.retune-font-item-active.retune-font-item-highlighted { background: var(--retune-surface-hover); }
+.tuna-font-item:hover { background: var(--tuna-surface-hover); }
+.tuna-font-item-active { background: var(--tuna-surface-hover); }
+.tuna-font-item-active:hover { background: var(--tuna-surface-hover); }
+.tuna-font-item-highlighted { background: var(--tuna-input-bg); }
+.tuna-font-item-active.tuna-font-item-highlighted { background: var(--tuna-surface-hover); }
 
-.retune-font-system-prompt {
+.tuna-font-system-prompt {
   padding: 8px 16px 12px;
 }
-.retune-font-system-btn {
+.tuna-font-system-btn {
   width: 100%;
   padding: 8px;
-  border: 1px dashed var(--retune-border-hover);
+  border: 1px dashed var(--tuna-border-hover);
   border-radius: 8px;
   background: transparent;
   font-size: 12px;
   font-weight: 500;
-  color: var(--retune-text-secondary);
+  color: var(--tuna-text-secondary);
   cursor: pointer;
   transition: background-color 0.15s ease, color 0.15s ease;
 }
-.retune-font-system-btn:hover { background: var(--retune-surface-hover); color: var(--retune-text); }
+.tuna-font-system-btn:hover { background: var(--tuna-surface-hover); color: var(--tuna-text); }
 
-.retune-font-denied {
+.tuna-font-denied {
   font-size: 11px;
   line-height: 16px;
-  color: var(--retune-text-tertiary);
+  color: var(--tuna-text-tertiary);
   margin: 0;
 }
 
-.retune-font-empty {
+.tuna-font-empty {
   padding: 16px 12px;
   font-size: 12px;
-  color: var(--retune-text-tertiary);
+  color: var(--tuna-text-tertiary);
   text-align: center;
 }
 
 /* ── TextInput ── */
-.retune-text-input {
+.tuna-text-input {
   display: flex;
   align-items: center;
   height: 32px;
   border-radius: 8px;
-  background: var(--retune-surface-hover);
+  background: var(--tuna-surface-hover);
   min-width: 0;
   overflow: hidden;
   position: relative;
   transition: background-color 0.15s ease;
 }
 
-.retune-text-input:hover { background: var(--retune-border); }
-.retune-text-input:focus-within {
-  outline: 1px solid var(--retune-border);
+.tuna-text-input:hover { background: var(--tuna-border); }
+.tuna-text-input:focus-within {
+  outline: 1px solid var(--tuna-border);
   outline-offset: -1px;
-  background: var(--retune-surface-hover);
+  background: var(--tuna-surface-hover);
 }
 
-.retune-text-input-field {
+.tuna-text-input-field {
   flex: 1;
   min-width: 0;
   width: 100%;
@@ -2367,16 +2367,16 @@ input, textarea, [contenteditable] {
   font-weight: 450;
   letter-spacing: -0.005em;
   font-family: inherit;
-  color: var(--retune-text);
+  color: var(--tuna-text);
   outline: none;
   padding: 0 8px;
 }
 
-.retune-text-input-field::selection { background: var(--retune-blue-bg); color: var(--retune-text); }
-.retune-text-input-field:focus { outline: none; }
+.tuna-text-input-field::selection { background: var(--tuna-blue-bg); color: var(--tuna-text); }
+.tuna-text-input-field:focus { outline: none; }
 
 /* ── ComboInput ── */
-.retune-combo {
+.tuna-combo {
   display: flex;
   align-items: center;
   height: 32px;
@@ -2386,7 +2386,7 @@ input, textarea, [contenteditable] {
   gap: 1px;
 }
 
-.retune-combo-label {
+.tuna-combo-label {
   position: absolute;
   left: 0;
   width: 32px;
@@ -2397,70 +2397,70 @@ input, textarea, [contenteditable] {
   font-size: 11px;
   font-weight: 450;
   letter-spacing: -0.005em;
-  color: var(--retune-text-tertiary);
+  color: var(--tuna-text-tertiary);
   flex-shrink: 0;
   user-select: none;
   cursor: ew-resize;
   z-index: 1;
 }
 
-.retune-combo-input {
+.tuna-combo-input {
   flex: 1;
   min-width: 0;
   height: 100%;
   border: none;
-  background: var(--retune-surface-hover);
+  background: var(--tuna-surface-hover);
   border-radius: 8px 0 0 8px;
   font-size: 11px;
   font-weight: 450;
   letter-spacing: -0.005em;
   font-family: inherit;
-  color: var(--retune-text);
+  color: var(--tuna-text);
   outline: none;
   padding: 0 0 0 32px;
   transition: background-color 0.15s ease;
 }
 
-.retune-combo-input:hover:not(.retune-combo-variable-applied) { background: var(--retune-border); }
-.retune-combo-input:focus {
-  outline: 1px solid var(--retune-border);
+.tuna-combo-input:hover:not(.tuna-combo-variable-applied) { background: var(--tuna-border); }
+.tuna-combo-input:focus {
+  outline: 1px solid var(--tuna-border);
   outline-offset: -1px;
 }
-.retune-combo-variable-applied:focus {
-  outline: 1px solid var(--retune-border-hover);
+.tuna-combo-variable-applied:focus {
+  outline: 1px solid var(--tuna-border-hover);
   outline-offset: -1px;
 }
-.retune-combo-input::selection { background: var(--retune-blue-bg); color: var(--retune-text); }
+.tuna-combo-input::selection { background: var(--tuna-blue-bg); color: var(--tuna-text); }
 
-.retune-combo-trigger {
+.tuna-combo-trigger {
   width: 32px;
   height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--retune-surface-hover);
+  background: var(--tuna-surface-hover);
   border-radius: 0 8px 8px 0;
   border: none;
   cursor: pointer;
-  color: var(--retune-text-secondary);
+  color: var(--tuna-text-secondary);
   flex-shrink: 0;
   padding: 0;
   transition: background-color 0.15s ease, color 0.12s ease;
 }
 
-.retune-combo-trigger:hover { background: var(--retune-border); color: var(--retune-text); }
-.retune-combo-trigger:focus-visible {
-  outline: 1px solid var(--retune-text);
+.tuna-combo-trigger:hover { background: var(--tuna-border); color: var(--tuna-text); }
+.tuna-combo-trigger:focus-visible {
+  outline: 1px solid var(--tuna-text);
   outline-offset: -1px;
 }
 
-.retune-combo-dropdown-anchor {
+.tuna-combo-dropdown-anchor {
   position: fixed;
   z-index: 2147483647;
 }
 
 /* ── Dropdown Menu ── */
-.retune-menu-wrapper {
+.tuna-menu-wrapper {
   position: relative;
   width: fit-content;
   min-width: max(120px, 100%);
@@ -2470,7 +2470,7 @@ input, textarea, [contenteditable] {
   box-shadow: 0 0 0.5px rgba(0,0,0,0.12), 0 10px 16px rgba(0,0,0,0.12), 0 2px 5px rgba(0,0,0,0.15);
 }
 
-.retune-menu-scroll {
+.tuna-menu-scroll {
   max-height: 400px;
   overflow-y: auto;
   overflow-x: hidden;
@@ -2480,21 +2480,21 @@ input, textarea, [contenteditable] {
   overscroll-behavior: none;
 }
 
-.retune-menu-scroll::-webkit-scrollbar { display: none; }
+.tuna-menu-scroll::-webkit-scrollbar { display: none; }
 
-.retune-menu-separator {
+.tuna-menu-separator {
   height: 16px;
   display: flex;
   align-items: center;
 }
 
-.retune-menu-separator-line {
+.tuna-menu-separator-line {
   width: 100%;
   height: 1px;
   background: #292524;
 }
 
-.retune-menu-heading {
+.tuna-menu-heading {
   padding: 4px 14px;
   font-size: 11px;
   font-weight: 450;
@@ -2503,11 +2503,11 @@ input, textarea, [contenteditable] {
   color: rgba(255,255,255,0.4);
 }
 
-.retune-menu-item-wrap {
+.tuna-menu-item-wrap {
   padding: 0 6px;
 }
 
-.retune-menu-item {
+.tuna-menu-item {
   position: relative;
   width: 100%;
   display: flex;
@@ -2527,13 +2527,13 @@ input, textarea, [contenteditable] {
   transition: background-color 0.08s ease;
 }
 
-.retune-menu-item.has-check { padding-left: 28px; }
+.tuna-menu-item.has-check { padding-left: 28px; }
 
-.retune-menu-item.highlighted { background: rgba(255,255,255,0.1); }
-.retune-menu-item.selected { color: #fff; }
-.retune-menu-item.disabled { opacity: 0.5; cursor: not-allowed; }
+.tuna-menu-item.highlighted { background: rgba(255,255,255,0.1); }
+.tuna-menu-item.selected { color: #fff; }
+.tuna-menu-item.disabled { opacity: 0.5; cursor: not-allowed; }
 
-.retune-menu-check {
+.tuna-menu-check {
   position: absolute;
   left: 4px;
   top: 50%;
@@ -2544,25 +2544,25 @@ input, textarea, [contenteditable] {
   color: #fff;
 }
 
-.retune-menu-item-label {
+.tuna-menu-item-label {
   line-height: 16px;
   white-space: nowrap;
 }
 
-.retune-menu-item-shortcut {
+.tuna-menu-item-shortcut {
   margin-left: auto;
   padding-left: 16px;
   color: rgba(255,255,255,0.7);
   white-space: nowrap;
 }
 
-.retune-menu-empty {
+.tuna-menu-empty {
   padding: 4px 16px;
   font-size: 11px;
   color: rgba(255,255,255,0.4);
 }
 
-.retune-menu-scroll-indicator {
+.tuna-menu-scroll-indicator {
   position: absolute;
   left: 0;
   right: 0;
@@ -2576,22 +2576,22 @@ input, textarea, [contenteditable] {
   color: #fff;
 }
 
-.retune-menu-scroll-indicator.top {
+.tuna-menu-scroll-indicator.top {
   top: 0;
   border-radius: 12px 12px 0 0;
 }
 
-.retune-menu-scroll-indicator.bottom {
+.tuna-menu-scroll-indicator.bottom {
   bottom: 0;
   border-radius: 0 0 12px 12px;
 }
 
 /* ── Tooltip ── */
-.retune-tooltip-trigger {
+.tuna-tooltip-trigger {
   display: contents;
 }
 
-.retune-tooltip {
+.tuna-tooltip {
   position: fixed;
   z-index: 2147483647;
   pointer-events: none;
@@ -2608,10 +2608,10 @@ input, textarea, [contenteditable] {
   line-height: 16px;
   letter-spacing: -0.005em;
   white-space: nowrap;
-  animation: retune-tooltip-in 150ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  animation: tuna-tooltip-in 150ms cubic-bezier(0.23, 1, 0.32, 1) both;
 }
 
-.retune-tooltip::before {
+.tuna-tooltip::before {
   content: "";
   position: absolute;
   width: 12px;
@@ -2620,42 +2620,42 @@ input, textarea, [contenteditable] {
   clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
 }
 
-.retune-tooltip-bottom::before {
+.tuna-tooltip-bottom::before {
   top: -6px;
   left: var(--caret-x, 50%);
   transform: translateX(-50%);
 }
 
-.retune-tooltip-top::before {
+.tuna-tooltip-top::before {
   bottom: -6px;
   left: var(--caret-x, 50%);
   transform: translateX(-50%) rotate(180deg);
 }
 
-.retune-tooltip-left::before {
+.tuna-tooltip-left::before {
   right: -9px;
   top: var(--caret-y, 50%);
   transform: translateY(-50%) rotate(90deg);
 }
 
-.retune-tooltip-right::before {
+.tuna-tooltip-right::before {
   left: -9px;
   top: var(--caret-y, 50%);
   transform: translateY(-50%) rotate(-90deg);
 }
 
-.retune-tooltip-text {
+.tuna-tooltip-text {
   color: #fff;
   min-width: 0;
   flex: 1;
 }
 
-.retune-tooltip-shortcut {
+.tuna-tooltip-shortcut {
   color: rgba(255, 255, 255, 0.5);
   flex-shrink: 0;
 }
 
-@keyframes retune-tooltip-in {
+@keyframes tuna-tooltip-in {
   from {
     opacity: 0;
     transform: scale(0.95);
@@ -2668,7 +2668,7 @@ input, textarea, [contenteditable] {
 
 /* ── Reduced Motion ── */
 /* ── Change Indicator (blue dot at top-left corner of changed inputs) ── */
-.retune-change-dot {
+.tuna-change-dot {
   position: absolute;
   top: -8px;
   right: -8px;
@@ -2680,17 +2680,17 @@ input, textarea, [contenteditable] {
   align-items: center;
   justify-content: center;
 }
-.retune-change-dot-inner {
+.tuna-change-dot-inner {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--retune-blue);
-  box-shadow: 0 0 0 3px var(--retune-surface);
+  background: var(--tuna-blue);
+  box-shadow: 0 0 0 3px var(--tuna-surface);
   pointer-events: none;
 }
 
 /* ── Variable Action (hexagon/unlink icons on right side of inputs) ── */
-.retune-variable-action {
+.tuna-variable-action {
   position: absolute;
   right: 0;
   top: 0;
@@ -2705,76 +2705,76 @@ input, textarea, [contenteditable] {
   z-index: 2;
 }
 /* Show on parent hover */
-.retune-prop:hover .retune-variable-action:not(.retune-variable-unlink),
-.retune-color-hex-section:hover .retune-variable-action:not(.retune-variable-unlink) {
-  color: var(--retune-text-secondary);
+.tuna-prop:hover .tuna-variable-action:not(.tuna-variable-unlink),
+.tuna-color-hex-section:hover .tuna-variable-action:not(.tuna-variable-unlink) {
+  color: var(--tuna-text-secondary);
 }
-.retune-variable-action:hover:not(.retune-variable-unlink) {
-  color: var(--retune-text) !important;
+.tuna-variable-action:hover:not(.tuna-variable-unlink) {
+  color: var(--tuna-text) !important;
 }
 /* Unlink icon: purple color, 80% opacity at rest, full on hover */
-.retune-variable-unlink {
-  color: var(--retune-text);
+.tuna-variable-unlink {
+  color: var(--tuna-text);
 }
-.retune-prop-variable-applied .retune-variable-unlink,
-.retune-combo:has(.retune-combo-variable-applied) .retune-variable-unlink,
-.retune-color-variable-applied .retune-variable-unlink {
+.tuna-prop-variable-applied .tuna-variable-unlink,
+.tuna-combo:has(.tuna-combo-variable-applied) .tuna-variable-unlink,
+.tuna-color-variable-applied .tuna-variable-unlink {
   color: transparent;
 }
-.retune-prop-variable-applied:hover .retune-variable-unlink,
-.retune-combo:has(.retune-combo-variable-applied):hover .retune-variable-unlink,
-.retune-color-variable-applied:hover .retune-variable-unlink {
-  color: var(--retune-text-secondary);
+.tuna-prop-variable-applied:hover .tuna-variable-unlink,
+.tuna-combo:has(.tuna-combo-variable-applied):hover .tuna-variable-unlink,
+.tuna-color-variable-applied:hover .tuna-variable-unlink {
+  color: var(--tuna-text-secondary);
 }
-.retune-variable-unlink:hover {
-  color: var(--retune-text) !important;
+.tuna-variable-unlink:hover {
+  color: var(--tuna-text) !important;
 }
 
 /* ── Variable Applied State (white bg, bordered) ── */
-.retune-prop-variable-applied {
-  background: var(--retune-surface);
-  outline: 1px solid var(--retune-border);
+.tuna-prop-variable-applied {
+  background: var(--tuna-surface);
+  outline: 1px solid var(--tuna-border);
   outline-offset: -1px;
 }
-.retune-prop-variable-applied:hover {
-  outline-color: var(--retune-border-hover);
+.tuna-prop-variable-applied:hover {
+  outline-color: var(--tuna-border-hover);
 }
-.retune-prop-variable-applied .retune-prop-input,
-.retune-prop-variable-applied .retune-prop-label {
+.tuna-prop-variable-applied .tuna-prop-input,
+.tuna-prop-variable-applied .tuna-prop-label {
   cursor: pointer;
 }
-.retune-combo-variable-applied {
-  background: var(--retune-surface);
-  outline: 1px solid var(--retune-border);
+.tuna-combo-variable-applied {
+  background: var(--tuna-surface);
+  outline: 1px solid var(--tuna-border);
   outline-offset: -1px;
   cursor: pointer;
   border-radius: 8px;
 }
-.retune-combo-variable-applied:hover {
-  outline-color: var(--retune-border-hover);
+.tuna-combo-variable-applied:hover {
+  outline-color: var(--tuna-border-hover);
 }
-.retune-combo:has(.retune-combo-variable-applied) .retune-combo-label {
+.tuna-combo:has(.tuna-combo-variable-applied) .tuna-combo-label {
   cursor: pointer;
 }
-.retune-combo:has(.retune-combo-variable-applied) .retune-combo-trigger {
+.tuna-combo:has(.tuna-combo-variable-applied) .tuna-combo-trigger {
   display: none;
 }
-.retune-color-variable-applied {
-  background: var(--retune-surface);
-  outline: 1px solid var(--retune-border);
+.tuna-color-variable-applied {
+  background: var(--tuna-surface);
+  outline: 1px solid var(--tuna-border);
   outline-offset: -1px;
   /* When variable applied, opacity section is hidden — hex section takes full width with full rounding */
   border-radius: 8px;
 }
-.retune-color-variable-applied:hover {
-  outline-color: var(--retune-border-hover);
+.tuna-color-variable-applied:hover {
+  outline-color: var(--tuna-border-hover);
 }
-.retune-color-variable-applied .retune-color-hex-input {
+.tuna-color-variable-applied .tuna-color-hex-input {
   cursor: pointer;
 }
 
 /* ── Token Picker (floating panel for swapping tokens) ── */
-.retune-variable-picker {
+.tuna-variable-picker {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   background: #1c1917;
   border-radius: 10px;
@@ -2782,20 +2782,20 @@ input, textarea, [contenteditable] {
   overflow: hidden;
   z-index: 2147483647;
   pointer-events: auto;
-  animation: retune-variable-picker-enter 150ms ease-out;
+  animation: tuna-variable-picker-enter 150ms ease-out;
 }
 
-@keyframes retune-variable-picker-enter {
+@keyframes tuna-variable-picker-enter {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-.retune-variable-picker-header {
+.tuna-variable-picker-header {
   padding: 8px 10px 4px;
   border-bottom: 1px solid rgba(255,255,255,0.06);
 }
 
-.retune-variable-picker-title {
+.tuna-variable-picker-title {
   font-size: 10px;
   font-weight: 600;
   color: rgba(255,255,255,0.4);
@@ -2803,15 +2803,15 @@ input, textarea, [contenteditable] {
   letter-spacing: 0.5px;
 }
 
-.retune-variable-picker-list {
+.tuna-variable-picker-list {
   max-height: 240px;
   overflow-y: auto;
   padding: 4px 0;
   scrollbar-width: none;
 }
-.retune-variable-picker-list::-webkit-scrollbar { display: none; }
+.tuna-variable-picker-list::-webkit-scrollbar { display: none; }
 
-.retune-variable-picker-item {
+.tuna-variable-picker-item {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -2822,19 +2822,19 @@ input, textarea, [contenteditable] {
   box-sizing: border-box;
 }
 
-.retune-variable-picker-item:hover {
+.tuna-variable-picker-item:hover {
   background: rgba(255,255,255,0.08);
 }
 
-.retune-variable-picker-item-active {
+.tuna-variable-picker-item-active {
   background: rgba(59,130,246,0.15);
   cursor: default;
 }
-.retune-variable-picker-item-active:hover {
+.tuna-variable-picker-item-active:hover {
   background: rgba(59,130,246,0.15);
 }
 
-.retune-variable-picker-swatch {
+.tuna-variable-picker-swatch {
   width: 14px;
   height: 14px;
   border-radius: 3px;
@@ -2842,7 +2842,7 @@ input, textarea, [contenteditable] {
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15);
 }
 
-.retune-variable-picker-name {
+.tuna-variable-picker-name {
   font-size: 11px;
   font-weight: 500;
   color: #fff;
@@ -2853,23 +2853,23 @@ input, textarea, [contenteditable] {
   white-space: nowrap;
 }
 
-.retune-variable-picker-value {
+.tuna-variable-picker-value {
   font-size: 10px;
   color: rgba(255,255,255,0.4);
   flex-shrink: 0;
 }
 
 /* ── Token Dialog List (content inside FloatingDialog) ── */
-.retune-variable-dialog-list {
+.tuna-variable-dialog-list {
   flex: 1 1 0;
   overflow-y: auto;
   padding: 2px 0 4px;
   scrollbar-width: none;
-  border-top: 1px solid var(--retune-border);
+  border-top: 1px solid var(--tuna-border);
 }
-.retune-variable-dialog-list::-webkit-scrollbar { display: none; }
+.tuna-variable-dialog-list::-webkit-scrollbar { display: none; }
 
-.retune-variable-dialog-item {
+.tuna-variable-dialog-item {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -2879,24 +2879,24 @@ input, textarea, [contenteditable] {
   min-height: 32px;
   box-sizing: border-box;
 }
-.retune-variable-dialog-item:hover {
-  background: var(--retune-surface-hover);
+.tuna-variable-dialog-item:hover {
+  background: var(--tuna-surface-hover);
 }
 
-.retune-variable-dialog-item-active {
-  background: var(--retune-surface-hover);
+.tuna-variable-dialog-item-active {
+  background: var(--tuna-surface-hover);
 }
-.retune-variable-dialog-item-active:hover {
-  background: var(--retune-surface-hover);
+.tuna-variable-dialog-item-active:hover {
+  background: var(--tuna-surface-hover);
 }
-.retune-variable-dialog-item-highlighted {
-  background: var(--retune-input-bg);
+.tuna-variable-dialog-item-highlighted {
+  background: var(--tuna-input-bg);
 }
-.retune-variable-dialog-item-active.retune-variable-dialog-item-highlighted {
-  background: var(--retune-surface-hover);
+.tuna-variable-dialog-item-active.tuna-variable-dialog-item-highlighted {
+  background: var(--tuna-surface-hover);
 }
 
-.retune-variable-dialog-active-dot {
+.tuna-variable-dialog-active-dot {
   width: 5px;
   height: 5px;
   border-radius: 50%;
@@ -2904,7 +2904,7 @@ input, textarea, [contenteditable] {
   flex-shrink: 0;
 }
 
-.retune-variable-dialog-swatch {
+.tuna-variable-dialog-swatch {
   width: 14px;
   height: 14px;
   border-radius: 3px;
@@ -2912,10 +2912,10 @@ input, textarea, [contenteditable] {
   box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);
 }
 
-.retune-variable-dialog-name {
+.tuna-variable-dialog-name {
   font-size: 11px;
   font-weight: 450;
-  color: var(--retune-text);
+  color: var(--tuna-text);
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -2923,34 +2923,34 @@ input, textarea, [contenteditable] {
   white-space: nowrap;
 }
 
-.retune-variable-dialog-value {
+.tuna-variable-dialog-value {
   font-size: 11px;
-  color: var(--retune-text-tertiary);
+  color: var(--tuna-text-tertiary);
   flex-shrink: 0;
 }
 
-.retune-variable-dialog-empty {
+.tuna-variable-dialog-empty {
   padding: 16px 12px;
   font-size: 12px;
-  color: var(--retune-text-tertiary);
+  color: var(--tuna-text-tertiary);
   text-align: center;
 }
 
 /* ── Snap Guide Lines ── */
 
-.retune-snap-guide {
+.tuna-snap-guide {
   position: fixed;
   pointer-events: none;
   z-index: 2147483645;
-  background: var(--retune-red);
+  background: var(--tuna-red);
   display: none;
 }
 
-.retune-snap-guide.visible {
+.tuna-snap-guide.visible {
   display: block;
 }
 
-.retune-snap-label {
+.tuna-snap-label {
   position: fixed;
   pointer-events: none;
   z-index: 2147483646;
@@ -2959,41 +2959,41 @@ input, textarea, [contenteditable] {
   font-family: InterVariable, Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   color: #fff;
   white-space: nowrap;
-  background: var(--retune-red);
+  background: var(--tuna-red);
   padding: 1px 4px;
   border-radius: 2px;
   opacity: 0;
   transition: opacity 100ms ease;
 }
 
-.retune-snap-label.visible {
+.tuna-snap-label.visible {
   opacity: 1;
   transition: none;
 }
 
 /* ── Settings Panel ── */
 
-.retune-settings-clip {
+.tuna-settings-clip {
   border-radius: inherit;
 }
 
 /* ── Settings Panel ── */
 
-@keyframes retune-settings-in {
+@keyframes tuna-settings-in {
   from { opacity: 0; transform: translateY(8px); filter: blur(4px); }
   to { opacity: 1; transform: none; filter: none; }
 }
 
-@keyframes retune-settings-out {
+@keyframes tuna-settings-out {
   from { opacity: 1; transform: none; filter: none; }
   to { opacity: 0; transform: translateY(8px); filter: blur(4px); }
 }
 
-.retune-settings-panel {
+.tuna-settings-panel {
   position: fixed;
   z-index: 2147483647;
   pointer-events: auto;
-  background: var(--retune-surface);
+  background: var(--tuna-surface);
   border: none;
   border-radius: 16px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
@@ -3002,17 +3002,17 @@ input, textarea, [contenteditable] {
   max-height: calc(100vh - 84px);
   overflow: visible;
   bottom: 68px;
-  animation: retune-settings-in 250ms cubic-bezier(0.5, 0, 0, 1);
+  animation: tuna-settings-in 250ms cubic-bezier(0.5, 0, 0, 1);
 }
 
-.retune-settings-panel.exiting {
-  animation: retune-settings-out 250ms cubic-bezier(0.5, 0, 0, 1) forwards;
+.tuna-settings-panel.exiting {
+  animation: tuna-settings-out 250ms cubic-bezier(0.5, 0, 0, 1) forwards;
 }
 
-.retune-settings-panel.right { right: 16px; }
-.retune-settings-panel.left { left: 16px; }
+.tuna-settings-panel.right { right: 16px; }
+.tuna-settings-panel.left { left: 16px; }
 
-.retune-settings-row {
+.tuna-settings-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -3020,29 +3020,29 @@ input, textarea, [contenteditable] {
   width: 100%;
 }
 
-.retune-settings-label {
+.tuna-settings-label {
   font-size: 11px;
   font-weight: 400;
   line-height: 16px;
   letter-spacing: 0.06px;
-  color: var(--retune-text-secondary);
+  color: var(--tuna-text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 /* Switch */
-.retune-switch-wrap {
+.tuna-switch-wrap {
   padding: 6px 0;
   flex-shrink: 0;
 }
 
-.retune-switch {
+.tuna-switch {
   position: relative;
   width: 36px;
   height: 20px;
   border-radius: 13px;
-  background: var(--retune-input-bg);
+  background: var(--tuna-input-bg);
   cursor: pointer;
   border: none;
   padding: 0;
@@ -3050,101 +3050,101 @@ input, textarea, [contenteditable] {
   transition: background 0.15s ease, border-radius 0.15s ease;
 }
 
-.retune-switch.on {
-  background: var(--retune-blue);
+.tuna-switch.on {
+  background: var(--tuna-blue);
   border-radius: 9999px;
 }
 
-.retune-switch-knob {
+.tuna-switch-knob {
   position: absolute;
   top: 2px;
   left: 2px;
   width: 16px;
   height: 16px;
   border-radius: 999px;
-  background: var(--retune-white);
+  background: var(--tuna-white);
   box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
   transition: left 0.15s ease, box-shadow 0.15s ease;
 }
 
-.retune-switch.on .retune-switch-knob {
+.tuna-switch.on .tuna-switch-knob {
   left: 18px;
   box-shadow: none;
 }
 
 /* Keyboard shortcuts link row */
-.retune-settings-row.clickable {
+.tuna-settings-row.clickable {
   cursor: pointer;
   height: 48px;
-  color: var(--retune-text-secondary);
+  color: var(--tuna-text-secondary);
 }
 
-.retune-settings-row.clickable:hover {
-  color: var(--retune-text);
+.tuna-settings-row.clickable:hover {
+  color: var(--tuna-text);
 }
 
-.retune-settings-row.clickable:hover .retune-settings-label {
-  color: var(--retune-text);
+.tuna-settings-row.clickable:hover .tuna-settings-label {
+  color: var(--tuna-text);
 }
 
 /* Keyboard shortcut key badge */
-.retune-key {
+.tuna-key {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-width: 24px;
   padding: 4px;
   border-radius: 4px;
-  background: var(--retune-input-bg);
+  background: var(--tuna-input-bg);
   border: none;
-  box-shadow: 0 0 0 0.5px var(--retune-shadow) inset, 0 2px 0 0 var(--retune-border);
+  box-shadow: 0 0 0 0.5px var(--tuna-shadow) inset, 0 2px 0 0 var(--tuna-border);
   font-family: inherit;
   font-size: 11px;
   font-weight: 450;
   line-height: 16px;
   letter-spacing: 0.055px;
-  color: var(--retune-text);
+  color: var(--tuna-text);
 }
 
-.retune-key.wide {
+.tuna-key.wide {
   padding: 4px 8px;
   min-width: auto;
 }
 
-.retune-key-group {
+.tuna-key-group {
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
 /* Settings header with back button */
-.retune-settings-header {
+.tuna-settings-header {
   display: flex;
   align-items: center;
   padding: 8px;
-  border-bottom: 1px solid var(--retune-border);
+  border-bottom: 1px solid var(--tuna-border);
   flex-shrink: 0;
 }
 
-.retune-settings-back {
+.tuna-settings-back {
   cursor: pointer;
-  color: var(--retune-text-secondary);
+  color: var(--tuna-text-secondary);
 }
 
-.retune-settings-back:hover {
-  color: var(--retune-text);
+.tuna-settings-back:hover {
+  color: var(--tuna-text);
 }
 
-.retune-settings-title {
+.tuna-settings-title {
   font-size: 12px;
   font-weight: 550;
   line-height: 16px;
   letter-spacing: 0.06px;
-  color: var(--retune-text);
+  color: var(--tuna-text);
   padding: 8px;
 }
 
-.retune-settings-version {
+.tuna-settings-version {
   margin-left: auto;
   display: flex;
   align-items: center;
@@ -3153,20 +3153,20 @@ input, textarea, [contenteditable] {
   font-size: 10px;
   line-height: 16px;
   letter-spacing: 0.01em;
-  color: var(--retune-text-tertiary);
+  color: var(--tuna-text-tertiary);
   opacity: 0.4;
 }
 
-.retune-settings-version-dot {
+.tuna-settings-version-dot {
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: var(--retune-blue);
+  background: var(--tuna-blue);
   flex-shrink: 0;
 }
 
 /* Settings body (scrollable for keyboard view) */
-.retune-settings-body {
+.tuna-settings-body {
   flex: 1;
   overflow-y: auto;
   overflow-x: clip;
@@ -3174,128 +3174,128 @@ input, textarea, [contenteditable] {
   padding: 8px 0;
 }
 
-.retune-settings-body::-webkit-scrollbar { display: none; }
+.tuna-settings-body::-webkit-scrollbar { display: none; }
 
 
-.retune-variable-dialog-group-title {
+.tuna-variable-dialog-group-title {
   font-size: 11px;
   font-weight: 450;
   line-height: 16px;
   letter-spacing: -0.005em;
-  color: var(--retune-text-secondary);
+  color: var(--tuna-text-secondary);
   padding: 8px 16px 8px;
   text-transform: capitalize;
 }
 
 /* ── Component Section ── */
-.retune-component-info {
+.tuna-component-info {
   display: flex;
   align-items: baseline;
   gap: 8px;
   width: 100%;
 }
-.retune-component-name {
+.tuna-component-name {
   font-size: 12px;
   font-weight: 600;
-  color: var(--retune-text);
+  color: var(--tuna-text);
 }
-.retune-component-source {
+.tuna-component-source {
   font-size: 10px;
-  color: var(--retune-text-tertiary);
+  color: var(--tuna-text-tertiary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 /* ── Component props/state grid ── */
-.retune-component-grid {
+.tuna-component-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px 8px;
   padding: 0 48px 4px 16px;
 }
-.retune-component-field {
+.tuna-component-field {
   display: flex;
   flex-direction: column;
   gap: 4px;
   min-width: 0;
 }
-.retune-component-field-label {
+.tuna-component-field-label {
   font-size: 11px;
   font-weight: 450;
   letter-spacing: -0.005em;
-  color: var(--retune-text-tertiary);
+  color: var(--tuna-text-tertiary);
 }
-.retune-component-field--toggle {
+.tuna-component-field--toggle {
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
 }
-.retune-component-field--toggle .retune-component-field-label {
+.tuna-component-field--toggle .tuna-component-field-label {
   flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.retune-component-toggle-row {
+.tuna-component-toggle-row {
   display: flex;
   align-items: center;
   gap: 4px;
 }
-.retune-component-field > .retune-prop {
+.tuna-component-field > .tuna-prop {
   width: 100%;
 }
-.retune-component-field > .retune-select {
+.tuna-component-field > .tuna-select {
   width: 100%;
 }
 
-.retune-component-field .retune-prop-input::-webkit-inner-spin-button,
-.retune-component-field .retune-prop-input::-webkit-outer-spin-button {
+.tuna-component-field .tuna-prop-input::-webkit-inner-spin-button,
+.tuna-component-field .tuna-prop-input::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
-.retune-component-field .retune-prop-input[type="number"] {
+.tuna-component-field .tuna-prop-input[type="number"] {
   -moz-appearance: textfield;
 }
 
-.retune-component-toggle {
+.tuna-component-toggle {
   position: relative;
   width: 28px;
   height: 16px;
   border-radius: 8px;
   border: none;
-  background: var(--retune-border);
+  background: var(--tuna-border);
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
   transition: background 150ms ease;
 }
-.retune-component-toggle.on {
-  background: var(--retune-blue);
+.tuna-component-toggle.on {
+  background: var(--tuna-blue);
 }
-.retune-component-toggle-thumb {
+.tuna-component-toggle-thumb {
   position: absolute;
   top: 2px;
   left: 2px;
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: var(--retune-always-white);
+  background: var(--tuna-always-white);
   transition: transform 150ms ease;
-  box-shadow: 0 1px 2px var(--retune-black-25);
+  box-shadow: 0 1px 2px var(--tuna-black-25);
 }
-.retune-component-toggle.on .retune-component-toggle-thumb {
+.tuna-component-toggle.on .tuna-component-toggle-thumb {
   transform: translateX(12px);
 }
 
 /* ── Comment system ── */
-.retune-comment-marker {
+.tuna-comment-marker {
   position: fixed;
   min-height: 24px;
   border-radius: 12px 12px 12px 0;
-  background: var(--retune-surface);
-  color: var(--retune-text);
+  background: var(--tuna-surface);
+  color: var(--tuna-text);
   font-size: 11px;
   font-weight: 600;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
@@ -3306,14 +3306,14 @@ input, textarea, [contenteditable] {
   transform: translate(-4px, -24px);
   transform-origin: bottom left;
   user-select: none;
-  animation: retune-marker-in 150ms cubic-bezier(0.23, 1, 0.32, 1) backwards;
+  animation: tuna-marker-in 150ms cubic-bezier(0.23, 1, 0.32, 1) backwards;
   transition: width 150ms ease, height 150ms ease, border-radius 150ms ease, transform 150ms ease;
   overflow: hidden;
   width: 24px;
   height: 24px;
   will-change: width, height;
 }
-.retune-comment-marker-num {
+.tuna-comment-marker-num {
   min-width: 24px;
   height: 24px;
   display: flex;
@@ -3323,7 +3323,7 @@ input, textarea, [contenteditable] {
   opacity: 1;
   transition: opacity 150ms ease;
 }
-.retune-comment-marker-preview {
+.tuna-comment-marker-preview {
   position: absolute;
   left: 0;
   top: 0;
@@ -3331,7 +3331,7 @@ input, textarea, [contenteditable] {
   font-size: 12px;
   font-weight: 400;
   line-height: 1.4;
-  color: var(--retune-text-secondary);
+  color: var(--tuna-text-secondary);
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -3343,24 +3343,24 @@ input, textarea, [contenteditable] {
   pointer-events: none;
   will-change: opacity;
 }
-.retune-comment-marker-preview .retune-comment-mention {
+.tuna-comment-marker-preview .tuna-comment-mention {
   font-size: 12px;
   font-weight: 500;
 }
-.retune-comment-marker.interactive {
+.tuna-comment-marker.interactive {
   pointer-events: auto;
   cursor: pointer;
 }
-.retune-comment-marker.expanded .retune-comment-marker-num {
+.tuna-comment-marker.expanded .tuna-comment-marker-num {
   opacity: 0;
 }
-.retune-comment-marker.expanded .retune-comment-marker-preview {
+.tuna-comment-marker.expanded .tuna-comment-marker-preview {
   opacity: 1;
 }
-.retune-comment-popover.shaking {
-  animation: retune-shake 300ms ease-out !important;
+.tuna-comment-popover.shaking {
+  animation: tuna-shake 300ms ease-out !important;
 }
-@keyframes retune-shake {
+@keyframes tuna-shake {
   0%, 100% { transform: translateX(0); }
   20% { transform: translateX(-4px); }
   40% { transform: translateX(4px); }
@@ -3368,7 +3368,7 @@ input, textarea, [contenteditable] {
   80% { transform: translateX(2px); }
 }
 
-@keyframes retune-marker-in {
+@keyframes tuna-marker-in {
   from {
     opacity: 0;
     transform: translate(-4px, -24px) scale(0.8);
@@ -3378,26 +3378,26 @@ input, textarea, [contenteditable] {
     transform: translate(-4px, -24px) scale(1);
   }
 }
-.retune-comment-area-outline {
+.tuna-comment-area-outline {
   position: fixed;
-  border: 1px dashed var(--retune-blue);
+  border: 1px dashed var(--tuna-blue);
   pointer-events: none;
   z-index: 2147483639;
 }
-.retune-area-handle {
+.tuna-area-handle {
   position: fixed;
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: var(--retune-blue);
-  border: 2px solid var(--retune-always-white);
-  box-shadow: 0 1px 3px var(--retune-black-25);
+  background: var(--tuna-blue);
+  border: 2px solid var(--tuna-always-white);
+  box-shadow: 0 1px 3px var(--tuna-black-25);
   z-index: 2147483640;
   cursor: nwse-resize;
   pointer-events: auto;
 }
-.retune-comment-popover {
-  background: var(--retune-surface);
+.tuna-comment-popover {
+  background: var(--tuna-surface);
   border-radius: 20px;
   padding: 8px 8px 8px 12px;
   min-width: 320px;
@@ -3406,36 +3406,36 @@ input, textarea, [contenteditable] {
   display: flex;
   align-items: flex-end;
   gap: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12), 0 0 0 1px var(--retune-border);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12), 0 0 0 1px var(--tuna-border);
   font-family: InterVariable, Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   z-index: 2147483647;
   pointer-events: auto;
   transform-origin: top left;
-  animation: retune-popover-in 150ms cubic-bezier(0.23, 1, 0.32, 1) 30ms backwards;
+  animation: tuna-popover-in 150ms cubic-bezier(0.23, 1, 0.32, 1) 30ms backwards;
 }
-.retune-comment-popover.has-content {
+.tuna-comment-popover.has-content {
   flex-direction: column;
   align-items: stretch;
   gap: 0;
   overflow: hidden;
 }
-.retune-comment-top-row {
+.tuna-comment-top-row {
   display: flex;
   align-items: center;
   flex: 1;
   min-width: 0;
   gap: 6px;
 }
-.retune-comment-popover.has-content .retune-comment-top-row {
+.tuna-comment-popover.has-content .tuna-comment-top-row {
   align-items: flex-start;
   width: 100%;
 }
-.retune-comment-popover.has-content .retune-comment-input-wrap {
+.tuna-comment-popover.has-content .tuna-comment-input-wrap {
   overflow: hidden;
   align-items: flex-start;
   max-width: 100%;
 }
-.retune-comment-popover.has-content .retune-comment-editor {
+.tuna-comment-popover.has-content .tuna-comment-editor {
   overflow-x: hidden;
   overflow-y: visible;
   height: auto;
@@ -3446,12 +3446,12 @@ input, textarea, [contenteditable] {
 /* Block-width paragraph forces inline chips to wrap; inline-block + max-width
    keeps single long mentions inside the popover (ellipsis) without flex layout
    that breaks multi-line caret placement. */
-.retune-comment-popover.has-content .retune-comment-editor p {
+.tuna-comment-popover.has-content .tuna-comment-editor p {
   width: 100%;
   max-width: 100%;
   min-width: 0;
 }
-.retune-comment-popover.has-content .retune-comment-mention {
+.tuna-comment-popover.has-content .tuna-comment-mention {
   display: inline-block;
   max-width: 100%;
   overflow: hidden;
@@ -3459,7 +3459,7 @@ input, textarea, [contenteditable] {
   white-space: nowrap;
   vertical-align: bottom;
 }
-.retune-comment-close {
+.tuna-comment-close {
   width: 20px;
   height: 20px;
   display: flex;
@@ -3467,64 +3467,64 @@ input, textarea, [contenteditable] {
   justify-content: center;
   background: transparent;
   border: none;
-  color: var(--retune-text-tertiary);
+  color: var(--tuna-text-tertiary);
   cursor: pointer;
   border-radius: 4px;
   padding: 0;
   flex-shrink: 0;
   transition: color 0.15s ease;
 }
-.retune-comment-close:hover {
-  color: var(--retune-text-secondary);
+.tuna-comment-close:hover {
+  color: var(--tuna-text-secondary);
 }
-.retune-comment-popover.has-content .retune-comment-close {
+.tuna-comment-popover.has-content .tuna-comment-close {
   margin-top: 3px;
 }
-.retune-comment-bottom-row {
+.tuna-comment-bottom-row {
   display: flex;
   justify-content: flex-end;
   align-items: center;
   width: 100%;
   margin-top: 10px;
 }
-.retune-comment-bottom-row.has-edit-actions {
+.tuna-comment-bottom-row.has-edit-actions {
   justify-content: space-between;
 }
-.retune-comment-bottom-actions-left {
+.tuna-comment-bottom-actions-left {
   display: flex;
   align-items: center;
   flex-shrink: 0;
 }
-.retune-comment-bottom-actions-right {
+.tuna-comment-bottom-actions-right {
   display: flex;
   align-items: center;
   gap: 4px;
   flex-shrink: 0;
   margin-left: auto;
 }
-.retune-comment-dictation-status {
+.tuna-comment-dictation-status {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: var(--retune-text-secondary);
+  color: var(--tuna-text-secondary);
   font-size: 12px;
   font-family: inherit;
   flex: 1;
   min-width: 0;
 }
-.retune-comment-waveform-canvas {
+.tuna-comment-waveform-canvas {
   flex: 1;
   height: 24px;
   min-width: 80px;
   display: block;
 }
-.retune-comment-dictation-time {
+.tuna-comment-dictation-time {
   margin-right: 10px;
 }
 
-.retune-comment-circular-btn.dictate-icon-only,
-.retune-comment-circular-btn.dictate-cancel,
-.retune-comment-circular-btn.dictate-confirm {
+.tuna-comment-circular-btn.dictate-icon-only,
+.tuna-comment-circular-btn.dictate-cancel,
+.tuna-comment-circular-btn.dictate-confirm {
   width: 24px;
   height: 24px;
   display: inline-flex;
@@ -3532,38 +3532,38 @@ input, textarea, [contenteditable] {
   justify-content: center;
   border: none;
   background: transparent;
-  color: var(--retune-text-secondary);
+  color: var(--tuna-text-secondary);
   cursor: pointer;
   transition: opacity 0.15s ease, color 0.15s ease;
   padding: 0;
   flex-shrink: 0;
   border-radius: 0;
 }
-.retune-comment-circular-btn.dictate-icon-only:hover,
-.retune-comment-circular-btn.dictate-cancel:hover,
-.retune-comment-circular-btn.dictate-confirm:hover {
-  color: var(--retune-text);
+.tuna-comment-circular-btn.dictate-icon-only:hover,
+.tuna-comment-circular-btn.dictate-cancel:hover,
+.tuna-comment-circular-btn.dictate-confirm:hover {
+  color: var(--tuna-text);
   transform: none !important;
 }
-.retune-comment-circular-btn.dictate-icon-only:active,
-.retune-comment-circular-btn.dictate-cancel:active,
-.retune-comment-circular-btn.dictate-confirm:active {
+.tuna-comment-circular-btn.dictate-icon-only:active,
+.tuna-comment-circular-btn.dictate-cancel:active,
+.tuna-comment-circular-btn.dictate-confirm:active {
   opacity: 0.7;
   transform: none !important;
 }
-.retune-comment-circular-btn.dictate-icon-only svg,
-.retune-comment-circular-btn.dictate-cancel svg,
-.retune-comment-circular-btn.dictate-confirm svg {
+.tuna-comment-circular-btn.dictate-icon-only svg,
+.tuna-comment-circular-btn.dictate-cancel svg,
+.tuna-comment-circular-btn.dictate-confirm svg {
   width: 12px;
   height: 12px;
 }
-.retune-comment-circular-btn.dictate-cancel:hover {
-  color: var(--retune-red);
+.tuna-comment-circular-btn.dictate-cancel:hover {
+  color: var(--tuna-red);
 }
-.retune-comment-circular-btn.dictate-confirm:hover {
-  color: var(--retune-blue);
+.tuna-comment-circular-btn.dictate-confirm:hover {
+  color: var(--tuna-blue);
 }
-@keyframes retune-popover-in {
+@keyframes tuna-popover-in {
   from {
     opacity: 0;
     transform: scale(0.95) translateY(4px);
@@ -3573,7 +3573,7 @@ input, textarea, [contenteditable] {
     transform: scale(1) translateY(0);
   }
 }
-.retune-comment-input-wrap {
+.tuna-comment-input-wrap {
   flex: 1;
   position: relative;
   display: flex;
@@ -3581,12 +3581,12 @@ input, textarea, [contenteditable] {
   min-width: 0;
   overflow: hidden;
 }
-.retune-comment-placeholder {
+.tuna-comment-placeholder {
   position: absolute;
   left: 0;
   top: 50%;
   transform: translateY(-50%);
-  color: var(--retune-text-tertiary);
+  color: var(--tuna-text-tertiary);
   font-size: 13px;
   line-height: 1.4;
   pointer-events: none;
@@ -3595,18 +3595,18 @@ input, textarea, [contenteditable] {
   text-overflow: ellipsis;
   max-width: 100%;
 }
-.retune-comment-editor-shell {
+.tuna-comment-editor-shell {
   position: relative;
   flex: 1;
   width: 100%;
   min-width: 4ch;
 }
-.retune-comment-editor {
+.tuna-comment-editor {
   width: 100%;
   min-width: 4ch;
   background: transparent;
   border: none;
-  color: var(--retune-text);
+  color: var(--tuna-text);
   font-size: 13px;
   font-family: inherit;
   line-height: 1.4;
@@ -3619,32 +3619,32 @@ input, textarea, [contenteditable] {
   overflow-x: hidden;
   overflow-y: hidden;
 }
-.retune-comment-editor:empty {
+.tuna-comment-editor:empty {
   min-height: 1.4em;
 }
-.retune-comment-editor p {
+.tuna-comment-editor p {
   margin: 0;
 }
-.retune-comment-editor.retune-margin-custom-caret-active {
+.tuna-comment-editor.tuna-margin-custom-caret-active {
   caret-color: transparent;
 }
-.retune-margin-caret {
+.tuna-margin-caret {
   position: absolute;
   width: 1px;
   pointer-events: none;
-  background-color: var(--retune-text);
-  animation: retune-margin-caret-blink 1.05s step-end infinite;
+  background-color: var(--tuna-text);
+  animation: tuna-margin-caret-blink 1.05s step-end infinite;
 }
-@keyframes retune-margin-caret-blink {
+@keyframes tuna-margin-caret-blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .retune-margin-caret {
+  .tuna-margin-caret {
     animation: none;
   }
 }
-.retune-comment-mention {
+.tuna-comment-mention {
   display: inline;
   font-size: 13px;
   font-weight: 400;
@@ -3653,13 +3653,13 @@ input, textarea, [contenteditable] {
   user-select: text;
   -webkit-user-select: text;
 }
-.retune-comment-pill-actions {
+.tuna-comment-pill-actions {
   display: flex;
   align-items: center;
   gap: 4px;
   flex-shrink: 0;
 }
-.retune-comment-circular-btn {
+.tuna-comment-circular-btn {
   width: 24px;
   height: 24px;
   border-radius: 50%;
@@ -3672,35 +3672,35 @@ input, textarea, [contenteditable] {
   padding: 0;
   flex-shrink: 0;
 }
-.retune-comment-circular-btn:hover {
+.tuna-comment-circular-btn:hover {
   transform: scale(1.05);
 }
-.retune-comment-circular-btn:active {
+.tuna-comment-circular-btn:active {
   transform: scale(0.95);
 }
-.retune-comment-circular-btn:disabled {
+.tuna-comment-circular-btn:disabled {
   opacity: 0.4;
   cursor: default;
   transform: none;
 }
-.retune-comment-circular-btn.dictate {
-  background: var(--retune-black);
-  color: var(--retune-always-white);
+.tuna-comment-circular-btn.dictate {
+  background: var(--tuna-black);
+  color: var(--tuna-always-white);
 }
-.retune-comment-circular-btn.dictate-blue-circle {
-  background: var(--retune-blue);
-  color: var(--retune-always-white);
+.tuna-comment-circular-btn.dictate-blue-circle {
+  background: var(--tuna-blue);
+  color: var(--tuna-always-white);
 }
-.retune-comment-circular-btn.dictate-blue-circle.listening {
-  background: var(--retune-red) !important;
-  animation: retune-pulse 1.5s infinite;
+.tuna-comment-circular-btn.dictate-blue-circle.listening {
+  background: var(--tuna-red) !important;
+  animation: tuna-pulse 1.5s infinite;
 }
-.retune-comment-circular-btn.dictate-blue-circle.transcribing {
-  background: var(--retune-blue) !important;
-  animation: retune-pulse 1.5s infinite;
+.tuna-comment-circular-btn.dictate-blue-circle.transcribing {
+  background: var(--tuna-blue) !important;
+  animation: tuna-pulse 1.5s infinite;
   cursor: wait;
 }
-.retune-comment-circular-btn.dictate-icon-only {
+.tuna-comment-circular-btn.dictate-icon-only {
   width: 24px;
   height: 24px;
   display: inline-flex;
@@ -3708,71 +3708,71 @@ input, textarea, [contenteditable] {
   justify-content: center;
   border: none;
   background: transparent;
-  color: var(--retune-text-secondary);
+  color: var(--tuna-text-secondary);
   cursor: pointer;
   transition: transform 0.15s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.15s ease, color 0.15s ease;
   padding: 0;
   flex-shrink: 0;
 }
-.retune-comment-circular-btn.dictate-icon-only svg {
+.tuna-comment-circular-btn.dictate-icon-only svg {
   width: 12px;
   height: 12px;
 }
-.retune-comment-circular-btn.dictate-icon-only:hover {
+.tuna-comment-circular-btn.dictate-icon-only:hover {
   transform: scale(1.05);
-  color: var(--retune-text);
+  color: var(--tuna-text);
 }
-.retune-comment-circular-btn.dictate-icon-only:active {
+.tuna-comment-circular-btn.dictate-icon-only:active {
   transform: scale(0.95);
 }
-.retune-comment-circular-btn.dictate-icon-only.listening {
-  color: var(--retune-red) !important;
-  animation: retune-pulse 1.5s infinite;
+.tuna-comment-circular-btn.dictate-icon-only.listening {
+  color: var(--tuna-red) !important;
+  animation: tuna-pulse 1.5s infinite;
 }
-.retune-comment-circular-btn.dictate-icon-only.transcribing {
-  color: var(--retune-blue) !important;
-  animation: retune-pulse 1.5s infinite;
+.tuna-comment-circular-btn.dictate-icon-only.transcribing {
+  color: var(--tuna-blue) !important;
+  animation: tuna-pulse 1.5s infinite;
   cursor: wait;
 }
-.retune-comment-circular-btn.send {
-  background: var(--retune-blue);
-  color: var(--retune-always-white);
+.tuna-comment-circular-btn.send {
+  background: var(--tuna-blue);
+  color: var(--tuna-always-white);
 }
-.retune-comment-circular-btn.delete {
+.tuna-comment-circular-btn.delete {
   width: 20px;
   height: 20px;
   border-radius: 0;
   background: transparent;
-  color: var(--retune-red);
+  color: var(--tuna-red);
   transition: opacity 0.15s ease, color 0.15s ease;
 }
-.retune-comment-circular-btn.delete:hover {
+.tuna-comment-circular-btn.delete:hover {
   background: transparent;
-  color: var(--retune-red);
+  color: var(--tuna-red);
   opacity: 0.75;
   transform: none !important;
 }
-.retune-comment-circular-btn.delete:active {
+.tuna-comment-circular-btn.delete:active {
   opacity: 0.55;
   transform: none !important;
 }
-.retune-comment-circular-btn.delete svg {
+.tuna-comment-circular-btn.delete svg {
   width: 12px;
   height: 12px;
 }
 
-@keyframes retune-pulse {
+@keyframes tuna-pulse {
   0% { transform: scale(1); }
   50% { transform: scale(1.08); }
   100% { transform: scale(1); }
 }
-.retune-comment-count {
+.tuna-comment-count {
   position: absolute;
   top: 2px;
   right: 2px;
   min-width: 14px;
   height: 14px;
-  background: var(--retune-blue-10);
+  background: var(--tuna-blue-10);
   color: #fff;
   font-size: 9px;
   font-weight: 600;
@@ -3783,28 +3783,28 @@ input, textarea, [contenteditable] {
   padding: 0 3px;
   line-height: 1;
 }
-.retune-toolbar-btn.active {
-  background: var(--retune-surface-hover);
+.tuna-toolbar-btn.active {
+  background: var(--tuna-surface-hover);
 }
-.retune-toolbar-btn.active:hover {
-  background: var(--retune-surface-hover);
+.tuna-toolbar-btn.active:hover {
+  background: var(--tuna-surface-hover);
 }
-.retune-toolbar-divider {
+.tuna-toolbar-divider {
   width: 1px;
   height: 20px;
-  background: var(--retune-border);
+  background: var(--tuna-border);
   flex-shrink: 0;
 }
 
 /* ── Selection action bar (comment / copy / edit) ── */
-.retune-selection-action-bar {
+.tuna-selection-action-bar {
   position: fixed;
   z-index: 2147483646;
   display: flex;
   align-items: center;
   gap: 4px;
   padding: 4px;
-  background: var(--retune-surface);
+  background: var(--tuna-surface);
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
   pointer-events: auto;
@@ -3812,7 +3812,7 @@ input, textarea, [contenteditable] {
   user-select: none;
 }
 
-.retune-selection-action-btn {
+.tuna-selection-action-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3822,92 +3822,92 @@ input, textarea, [contenteditable] {
   border-radius: 8px;
   background: transparent;
   cursor: pointer;
-  color: var(--retune-text);
+  color: var(--tuna-text);
   padding: 0;
   flex-shrink: 0;
 }
 
-.retune-selection-action-btn:hover {
-  background: var(--retune-surface-hover);
+.tuna-selection-action-btn:hover {
+  background: var(--tuna-surface-hover);
 }
 
-.retune-selection-action-btn.active {
-  background: var(--retune-blue-bg);
-  color: var(--retune-blue-text);
+.tuna-selection-action-btn.active {
+  background: var(--tuna-blue-bg);
+  color: var(--tuna-blue-text);
 }
 
-.retune-selection-action-btn.active:hover {
-  background: color-mix(in srgb, var(--retune-blue-bg) 80%, var(--retune-surface-hover));
+.tuna-selection-action-btn.active:hover {
+  background: color-mix(in srgb, var(--tuna-blue-bg) 80%, var(--tuna-surface-hover));
 }
 
-.retune-selection-action-btn.disabled,
-.retune-selection-action-btn:disabled {
+.tuna-selection-action-btn.disabled,
+.tuna-selection-action-btn:disabled {
   opacity: 0.35;
   cursor: default;
   pointer-events: none;
 }
 
-.retune-selection-action-divider {
+.tuna-selection-action-divider {
   width: 1px;
   height: 20px;
-  background: var(--retune-border);
+  background: var(--tuna-border);
   flex-shrink: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .retune-toolbar,
-  .retune-toolbar-collapse-btn,
-  .retune-toolbar-expanded,
-  .retune-toolbar-btn,
-  .retune-icon-swap-icon,
-  .retune-segmented-pill,
-  .retune-segmented-item,
-  .retune-align-btn,
-  .retune-split-btn,
-  .retune-section-header-btn,
-  .retune-color-hex-input,
-  .retune-color-opacity-input,
-  .retune-number-input,
-  .retune-font-input,
-  .retune-select-button,
-  .retune-combo-input,
-  .retune-combo-trigger,
-  .retune-gradient-action-btn,
-  .retune-dropdown-trigger,
-  .retune-dropdown-item,
-  .retune-menu-item {
+  .tuna-toolbar,
+  .tuna-toolbar-collapse-btn,
+  .tuna-toolbar-expanded,
+  .tuna-toolbar-btn,
+  .tuna-icon-swap-icon,
+  .tuna-segmented-pill,
+  .tuna-segmented-item,
+  .tuna-align-btn,
+  .tuna-split-btn,
+  .tuna-section-header-btn,
+  .tuna-color-hex-input,
+  .tuna-color-opacity-input,
+  .tuna-number-input,
+  .tuna-font-input,
+  .tuna-select-button,
+  .tuna-combo-input,
+  .tuna-combo-trigger,
+  .tuna-gradient-action-btn,
+  .tuna-dropdown-trigger,
+  .tuna-dropdown-item,
+  .tuna-menu-item {
     transition: none;
   }
 
-  .retune-panel-anim.entering .retune-panel,
-  .retune-panel-anim.exiting .retune-panel,
-  .retune-floating-dialog,
-  .retune-dropdown-menu,
-  .retune-tooltip,
-  .retune-edit-count,
-  .retune-toolbar.expanded .retune-toolbar-expanded > *,
-  .retune-toolbar.collapsed .retune-toolbar-collapse-btn,
-  .retune-grid-picker-dialog,
-  .retune-combo-dropdown-anchor,
-  .retune-comment-marker,
-  .retune-comment-popover,
-  .retune-comment-popover.shaking {
+  .tuna-panel-anim.entering .tuna-panel,
+  .tuna-panel-anim.exiting .tuna-panel,
+  .tuna-floating-dialog,
+  .tuna-dropdown-menu,
+  .tuna-tooltip,
+  .tuna-edit-count,
+  .tuna-toolbar.expanded .tuna-toolbar-expanded > *,
+  .tuna-toolbar.collapsed .tuna-toolbar-collapse-btn,
+  .tuna-grid-picker-dialog,
+  .tuna-combo-dropdown-anchor,
+  .tuna-comment-marker,
+  .tuna-comment-popover,
+  .tuna-comment-popover.shaking {
     animation: none;
   }
 
-  .retune-comment-marker {
+  .tuna-comment-marker {
     transition: none;
   }
 
-  .retune-variable-action,
-  .retune-change-dot,
-  .retune-variable-picker {
+  .tuna-variable-action,
+  .tuna-change-dot,
+  .tuna-variable-picker {
     transition: none;
     animation: none;
   }
 
-  .retune-settings-view-container,
-  .retune-settings-panel {
+  .tuna-settings-view-container,
+  .tuna-settings-panel {
     transition: none;
     animation: none;
   }

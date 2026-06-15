@@ -1,4 +1,4 @@
-# Retune
+# Tuna
 
 The visual layer for vibe coding.
 
@@ -7,37 +7,37 @@ Select, tweak, restructure — directly in your running app. Your AI agent write
 ## Quick Start
 
 ```bash
-npm install retune
+npm install tuna
 ```
 
 Add the overlay to your app layout — it only renders in development by default:
 
 ```tsx
-import { Retune } from "retune";
+import { Tuna } from "tuna";
 
 export default function Layout({ children }) {
   return (
     <html>
       <body>
         {children}
-        <Retune />
+        <Tuna />
       </body>
     </html>
   );
 }
 ```
 
-**Vite / Astro / SvelteKit:** These frameworks use `import.meta.env.DEV` instead of `process.env.NODE_ENV`. Retune detects both automatically since v0.7.2. If your dev check fails, use the `force` prop:
+**Vite / Astro / SvelteKit:** These frameworks use `import.meta.env.DEV` instead of `process.env.NODE_ENV`. Tuna detects both automatically since v0.7.2. If your dev check fails, use the `force` prop:
 
 ```tsx
-<Retune force />
+<Tuna force />
 ```
 
 Press **Alt+D** (or **Option+D** on macOS) to toggle edit mode, then click any element to start tweaking.
 
 ### Monorepo Setup
 
-Run `npx retune setup` from your **repo root**. It detects common app directories (`app/`, `client/`, `web/`, `packages/app`) by looking for framework config files (next.config, vite.config) and places `retune.manifest.json` in the correct `public/` folder. If your app directory isn't detected, run setup from within the app directory instead.
+Run `npx tuna setup` from your **repo root**. It detects common app directories (`app/`, `client/`, `web/`, `packages/app`) by looking for framework config files (next.config, vite.config) and places `tuna.manifest.json` in the correct `public/` folder. If your app directory isn't detected, run setup from within the app directory instead.
 
 ## How It Works
 
@@ -98,14 +98,14 @@ The comment popover uses a Lexical editor with inline mention tokens inside the 
 
 ### Manifest System (v2)
 
-Generate a `retune.manifest.json` to describe your design system's components, props, state hooks, and tokens. The manifest powers accurate token pickers, component variant controls, scope pill labels, and richer output context for your AI agent.
+Generate a `tuna.manifest.json` to describe your design system's components, props, state hooks, and tokens. The manifest powers accurate token pickers, component variant controls, scope pill labels, and richer output context for your AI agent.
 
 **v2 features:**
 - **Smart prop filtering** — non-manifest components auto-filter to show only designer-relevant props. Framework plumbing components are hidden entirely.
 - **Conditional visibility** — props can declare `"hidden_unless"` to only show when relevant.
 - **Variable picker cleanup** — class-only tokens excluded from the variable picker. Only CSS custom properties show.
 
-Generate via the in-app banner prompt, MCP nudge, or `npx retune setup`. Existing v1 manifests trigger a regeneration nudge.
+Generate via the in-app banner prompt, MCP nudge, or `npx tuna setup`. Existing v1 manifests trigger a regeneration nudge.
 
 ### Aspect Ratio Lock
 
@@ -117,11 +117,11 @@ Toggle between Hover, Focus, and Active states to inspect and edit styles that o
 
 ### Scope Targeting
 
-When you select an element with multiple classes, Retune shows scope levels so you can choose how broadly your changes apply — from the base class (all buttons) to a variant (ghost buttons) to "This instance". When a manifest is present, variant classes are labeled accurately using the manifest's prop values.
+When you select an element with multiple classes, Tuna shows scope levels so you can choose how broadly your changes apply — from the base class (all buttons) to a variant (ghost buttons) to "This instance". When a manifest is present, variant classes are labeled accurately using the manifest's prop values.
 
 ### Design Token Resolution
 
-When you change a value, Retune finds matching design tokens (CSS variables, utility classes, semantic tokens) and suggests the best match. When a manifest is present, manifest tokens replace the runtime scanner for more accurate results with proper categorization.
+When you change a value, Tuna finds matching design tokens (CSS variables, utility classes, semantic tokens) and suggests the best match. When a manifest is present, manifest tokens replace the runtime scanner for more accurate results with proper categorization.
 
 ### Elements Tab
 
@@ -153,21 +153,21 @@ Figma-style tree view with layout-aware icons (flex-row, flex-column, grid, bloc
 Auto-configure MCP, install the AI skill, and extract design tokens:
 
 ```bash
-npx retune setup
+npx tuna setup
 ```
 
 This detects Claude Code and Cursor, configures the MCP server, installs the skill, and generates a partial manifest with your project's design tokens from CSS files. The output prompts your AI agent to complete the manifest with component definitions.
 
 ## AI Integration (MCP Server)
 
-Retune includes a built-in MCP server. Configure your AI tool to use it:
+Tuna includes a built-in MCP server. Configure your AI tool to use it:
 
 ```json
 {
   "mcpServers": {
-    "retune": {
+    "tuna": {
       "command": "npx",
-      "args": ["-y", "retune"]
+      "args": ["-y", "tuna"]
     }
   }
 }
@@ -177,20 +177,20 @@ Retune includes a built-in MCP server. Configure your AI tool to use it:
 
 | Tool | Description |
 |---|---|
-| `retune_get_visual_context` | Get the current visual prompt context: selected elements, multi-selection, drawing annotations, comments, pending changes, viewport state, and a DOM spatial page-state snapshot |
-| `retune_get_selection` | Get the currently selected element with its selector, component tree, and styles |
-| `retune_get_pending_changes` | Get all visual changes as before/after diffs |
-| `retune_get_formatted_changes` | Get changes as structured markdown, ready to apply to code, including page-state snapshot context when available |
-| `retune_watch_changes` | Wait for new changes (blocks up to 30s) |
-| `retune_clear_changes` | Clear pending changes after applying them |
-| `retune_get_comments` | Get all comments/annotations left by the user |
-| `retune_manifest_loaded` | Notify the overlay after generating or updating the manifest |
-| `retune_status` | Check overlay connection status |
+| `tuna_get_visual_context` | Get the current visual prompt context: selected elements, multi-selection, drawing annotations, comments, pending changes, viewport state, and a DOM spatial page-state snapshot |
+| `tuna_get_selection` | Get the currently selected element with its selector, component tree, and styles |
+| `tuna_get_pending_changes` | Get all visual changes as before/after diffs |
+| `tuna_get_formatted_changes` | Get changes as structured markdown, ready to apply to code, including page-state snapshot context when available |
+| `tuna_watch_changes` | Wait for new changes (blocks up to 30s) |
+| `tuna_clear_changes` | Clear pending changes after applying them |
+| `tuna_get_comments` | Get all comments/annotations left by the user |
+| `tuna_manifest_loaded` | Notify the overlay after generating or updating the manifest |
+| `tuna_status` | Check overlay connection status |
 
 ## Configuration
 
 ```tsx
-<Retune
+<Tuna
   port={9223}              // WebSocket port for MCP bridge
   hotkey="alt+d"           // Toggle hotkey
   fidelity="standard"      // Output detail: "minimal" | "standard" | "full"
@@ -201,7 +201,7 @@ Retune includes a built-in MCP server. Configure your AI tool to use it:
 
 ## Element Identification
 
-Retune uses layered identification to help AI agents find elements in your code:
+Tuna uses layered identification to help AI agents find elements in your code:
 
 1. **DOM-level** — CSS selector, text content, classes, computed styles
 2. **React-specific** — Component name, props, component ancestry (via fiber tree)
@@ -218,15 +218,15 @@ Retune uses layered identification to help AI agents find elements in your code:
 
 React, TypeScript. Single package with two entry points:
 
-- `import { Retune } from "retune"` — React overlay component
-- `npx retune` — MCP server for AI tool integration
+- `import { Tuna } from "tuna"` — React overlay component
+- `npx tuna` — MCP server for AI tool integration
 
 ## Development
 
 This fork is a monorepo:
 
-- `packages/overlay` — the `retune` npm package
-- `playground` — the [Retune marketing site](https://github.com/khadgi-sujan/retune-site), wired to the local overlay
+- `packages/overlay` — the `tuna` npm package
+- `playground` — the [Tuna marketing site](https://github.com/khadgi-sujan/tuna-site), wired to the local overlay
 
 ```bash
 npm install
@@ -235,7 +235,7 @@ npm run dev:overlay      # overlay package only (CSS + TypeScript watch)
 npm run dev:playground   # playground only (requires overlay watch in another terminal)
 ```
 
-`npm run dev` runs both watchers together. Overlay CSS changes rebuild automatically, and the playground watches the linked `retune` package for faster hot reload.
+`npm run dev` runs both watchers together. Overlay CSS changes rebuild automatically, and the playground watches the linked `tuna` package for faster hot reload.
 
 ## License
 

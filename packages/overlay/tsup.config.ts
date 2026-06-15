@@ -19,7 +19,7 @@ export default defineConfig([
     external: ["react", "react-dom", "@xenova/transformers"],
     treeshake: true,
     define: {
-      __RETUNE_VERSION__: JSON.stringify(pkg.version),
+      __TUNA_VERSION__: JSON.stringify(pkg.version),
     },
     ignoreWatch: isWatch ? ["**/overlay-css.ts"] : undefined,
     onSuccess: async () => {

@@ -39,7 +39,7 @@ export function SpacingSection({
       <Row label="Padding">
         {paddingExpanded ? (
           <>
-            <div className="retune-row">
+            <div className="tuna-row">
               <div onPointerEnter={() => onPropertyHover?.("paddingLeft")} onPointerLeave={() => onPropertyHover?.(null)} style={{ flex: 1 }}>
                 <NumberInput label={<Tooltip content="Padding left" side="top" sideOffset={14}><AlPaddingLeft /></Tooltip>} prop="paddingLeft" value={s.paddingLeft} onChange={onPropertyChange} min={0} {...variableProps("paddingLeft")} {...changeProps("paddingLeft")} />
               </div>
@@ -47,12 +47,12 @@ export function SpacingSection({
                 <NumberInput label={<Tooltip content="Padding top" side="top" sideOffset={14}><AlPaddingTop /></Tooltip>} prop="paddingTop" value={s.paddingTop} onChange={onPropertyChange} min={0} {...variableProps("paddingTop")} {...changeProps("paddingTop")} />
               </div>
               <Tooltip content="Collapse to axes" side="top">
-                <button className="retune-split-btn active" onClick={() => setPaddingExpanded(false)}>
+                <button className="tuna-split-btn active" onClick={() => setPaddingExpanded(false)}>
                   <AlPaddingSides />
                 </button>
               </Tooltip>
             </div>
-            <div className="retune-row">
+            <div className="tuna-row">
               <div onPointerEnter={() => onPropertyHover?.("paddingRight")} onPointerLeave={() => onPropertyHover?.(null)} style={{ flex: 1 }}>
                 <NumberInput label={<Tooltip content="Padding right" side="top" sideOffset={14}><AlPaddingRight /></Tooltip>} prop="paddingRight" value={s.paddingRight} onChange={onPropertyChange} min={0} {...variableProps("paddingRight")} {...changeProps("paddingRight")} />
               </div>
@@ -63,7 +63,7 @@ export function SpacingSection({
             </div>
           </>
         ) : (
-          <div className="retune-row">
+          <div className="tuna-row">
             <div style={{ flex: 1 }} onPointerEnter={() => onPropertyHover?.("paddingInline")} onPointerLeave={() => onPropertyHover?.(null)}>
               <ShorthandInput
                 label={<Tooltip content="Horizontal padding (left, right)" side="top" sideOffset={14}><AlPaddingHorizontal /></Tooltip>}
@@ -87,7 +87,7 @@ export function SpacingSection({
               />
             </div>
             <Tooltip content="Edit individual sides" side="top">
-              <button className="retune-split-btn" onClick={() => setPaddingExpanded(true)}>
+              <button className="tuna-split-btn" onClick={() => setPaddingExpanded(true)}>
                 <AlPaddingSides />
               </button>
             </Tooltip>
@@ -97,7 +97,7 @@ export function SpacingSection({
       <Row label="Margin">
         {marginExpanded ? (
           <>
-            <div className="retune-row">
+            <div className="tuna-row">
               <div onPointerEnter={() => onPropertyHover?.("marginLeft")} onPointerLeave={() => onPropertyHover?.(null)} style={{ flex: 1 }}>
                 <NumberInput label={<Tooltip content="Margin left" side="top" sideOffset={14}><AlPaddingLeft /></Tooltip>} prop="marginLeft" value={s.marginLeft} onChange={onPropertyChange} {...variableProps("marginLeft")} {...changeProps("marginLeft")} />
               </div>
@@ -105,12 +105,12 @@ export function SpacingSection({
                 <NumberInput label={<Tooltip content="Margin top" side="top" sideOffset={14}><AlPaddingTop /></Tooltip>} prop="marginTop" value={s.marginTop} onChange={onPropertyChange} {...variableProps("marginTop")} {...changeProps("marginTop")} />
               </div>
               <Tooltip content="Collapse to axes" side="top">
-                <button className="retune-split-btn active" onClick={() => setMarginExpanded(false)}>
+                <button className="tuna-split-btn active" onClick={() => setMarginExpanded(false)}>
                   <AlPaddingSides />
                 </button>
               </Tooltip>
             </div>
-            <div className="retune-row">
+            <div className="tuna-row">
               <div onPointerEnter={() => onPropertyHover?.("marginRight")} onPointerLeave={() => onPropertyHover?.(null)} style={{ flex: 1 }}>
                 <NumberInput label={<Tooltip content="Margin right" side="top" sideOffset={14}><AlPaddingRight /></Tooltip>} prop="marginRight" value={s.marginRight} onChange={onPropertyChange} {...variableProps("marginRight")} {...changeProps("marginRight")} />
               </div>
@@ -121,7 +121,7 @@ export function SpacingSection({
             </div>
           </>
         ) : (
-          <div className="retune-row">
+          <div className="tuna-row">
             <div style={{ flex: 1 }} onPointerEnter={() => onPropertyHover?.("marginInline")} onPointerLeave={() => onPropertyHover?.(null)}>
               <ShorthandInput
                 label={<Tooltip content="Horizontal margin (left, right)" side="top" sideOffset={14}><AlPaddingHorizontal /></Tooltip>}
@@ -143,7 +143,7 @@ export function SpacingSection({
               />
             </div>
             <Tooltip content="Edit individual sides" side="top">
-              <button className="retune-split-btn" onClick={() => setMarginExpanded(true)}>
+              <button className="tuna-split-btn" onClick={() => setMarginExpanded(true)}>
                 <AlPaddingSides />
               </button>
             </Tooltip>

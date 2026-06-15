@@ -1,6 +1,6 @@
-# Playground (retune-site)
+# Playground (tuna-site)
 
-The [Retune marketing site](https://github.com/khadgi-sujan/retune-site) lives here as the monorepo playground. It imports the local `packages/overlay` package instead of the published `retune` npm package.
+The [Tuna marketing site](https://github.com/khadgi-sujan/tuna-site) lives here as the monorepo playground. It imports the local `packages/overlay` package instead of the published `tuna` npm package.
 
 ## Development
 

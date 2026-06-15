@@ -63,9 +63,9 @@ export function ShadowSection({
             />
           )}
           {hasShadow || shadowHasVariable ? (
-            <Tooltip content="Remove shadow" side="top"><button className="retune-section-action" onClick={handleRemoveShadow}><Minus /></button></Tooltip>
+            <Tooltip content="Remove shadow" side="top"><button className="tuna-section-action" onClick={handleRemoveShadow}><Minus /></button></Tooltip>
           ) : (
-            <Tooltip content="Add shadow" side="top"><button className="retune-section-action" onClick={handleAddShadow}><Plus /></button></Tooltip>
+            <Tooltip content="Add shadow" side="top"><button className="tuna-section-action" onClick={handleAddShadow}><Plus /></button></Tooltip>
           )}
         </div>
       }
@@ -74,9 +74,9 @@ export function ShadowSection({
         const shadowPickerRef = { current: null as (() => void) | null };
         return (
           <Row>
-            <div className="retune-prop retune-prop-variable-applied" style={{ flex: 1, cursor: "pointer" }} onClick={() => shadowPickerRef.current?.()}>
+            <div className="tuna-prop tuna-prop-variable-applied" style={{ flex: 1, cursor: "pointer" }} onClick={() => shadowPickerRef.current?.()}>
               <ChangeIndicator isChanged={changeProps("boxShadow").isChanged} onReset={changeProps("boxShadow").onReset} />
-              <span className="retune-prop-input" style={{ display: "flex", alignItems: "center", paddingLeft: 12, color: "var(--retune-text)" }}>
+              <span className="tuna-prop-input" style={{ display: "flex", alignItems: "center", paddingLeft: 12, color: "var(--tuna-text)" }}>
                 {shadowVarMatch.variable.className.startsWith("var(--")
                   ? shadowVarMatch.variable.className.slice(6, -1)
                   : shadowVarMatch.variable.className}

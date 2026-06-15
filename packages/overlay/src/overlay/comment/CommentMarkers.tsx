@@ -163,12 +163,12 @@ export function CommentMarker({
   return (
     <div
       ref={markerRef}
-      className={`retune-comment-marker interactive${isPopoverOpen ? " popover-open" : ""}${isAreaResize ? " area-resize" : ""}`}
+      className={`tuna-comment-marker interactive${isPopoverOpen ? " popover-open" : ""}${isAreaResize ? " area-resize" : ""}`}
       style={{ left: pos.x, top: pos.y, cursor: isAreaResize ? "nwse-resize" : undefined }}
       onPointerUp={isAreaResize ? undefined : (e) => { e.stopPropagation(); onOpen(); }}
     >
-      <span className="retune-comment-marker-num">{index + 1}</span>
-      <span ref={previewRef} className="retune-comment-marker-preview">
+      <span className="tuna-comment-marker-num">{index + 1}</span>
+      <span ref={previewRef} className="tuna-comment-marker-preview">
         <CommentTextPreview comment={c} />
       </span>
     </div>
@@ -245,7 +245,7 @@ export function AreaOutline({
   return (
     <>
       <div
-        className="retune-comment-area-outline"
+        className="tuna-comment-area-outline"
         style={liveBR ? {
           left: liveArea.x,
           top: liveArea.y,
@@ -261,7 +261,7 @@ export function AreaOutline({
       {interactive && (
         <>
           <div
-            className="retune-area-handle"
+            className="tuna-area-handle"
             style={{ left: liveArea.x - half, top: liveArea.y - half }}
             onPointerDown={(e) => {
               e.preventDefault();

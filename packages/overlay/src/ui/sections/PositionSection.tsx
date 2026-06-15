@@ -214,18 +214,18 @@ export function PositionSection({
     <Section label="Position">
       {/* Unified alignment row -- always visible, disabled when not applicable */}
       <Row>
-        <div className="retune-field">
-          <span className="retune-field-label">Alignment</span>
-          <div className="retune-align-row">
-            <div className="retune-btn-group" style={!hEnabled ? { opacity: 0.3, pointerEvents: "none" } : undefined}>
-              <Tooltip content="Align left" side="top"><button type="button" className={`retune-align-btn${hActive === "start" ? " active" : ""}`} onClick={() => onHClick("start")}><LayoutAlignLeft /></button></Tooltip>
-              <Tooltip content="Align center horizontally" side="top"><button type="button" className={`retune-align-btn${hActive === "center" ? " active" : ""}`} onClick={() => onHClick("center")}><LayoutAlignHorizontalCenter /></button></Tooltip>
-              <Tooltip content="Align right" side="top"><button type="button" className={`retune-align-btn${hActive === "end" ? " active" : ""}`} onClick={() => onHClick("end")}><LayoutAlignRight /></button></Tooltip>
+        <div className="tuna-field">
+          <span className="tuna-field-label">Alignment</span>
+          <div className="tuna-align-row">
+            <div className="tuna-btn-group" style={!hEnabled ? { opacity: 0.3, pointerEvents: "none" } : undefined}>
+              <Tooltip content="Align left" side="top"><button type="button" className={`tuna-align-btn${hActive === "start" ? " active" : ""}`} onClick={() => onHClick("start")}><LayoutAlignLeft /></button></Tooltip>
+              <Tooltip content="Align center horizontally" side="top"><button type="button" className={`tuna-align-btn${hActive === "center" ? " active" : ""}`} onClick={() => onHClick("center")}><LayoutAlignHorizontalCenter /></button></Tooltip>
+              <Tooltip content="Align right" side="top"><button type="button" className={`tuna-align-btn${hActive === "end" ? " active" : ""}`} onClick={() => onHClick("end")}><LayoutAlignRight /></button></Tooltip>
             </div>
-            <div className="retune-btn-group" style={!vEnabled ? { opacity: 0.3, pointerEvents: "none" } : undefined}>
-              <Tooltip content="Align top" side="top"><button type="button" className={`retune-align-btn${vActive === "start" ? " active" : ""}`} onClick={() => onVClick("start")}><LayoutAlignTop /></button></Tooltip>
-              <Tooltip content="Align center vertically" side="top"><button type="button" className={`retune-align-btn${vActive === "center" ? " active" : ""}`} onClick={() => onVClick("center")}><LayoutAlignVerticalCenter /></button></Tooltip>
-              <Tooltip content="Align bottom" side="top"><button type="button" className={`retune-align-btn${vActive === "end" ? " active" : ""}`} onClick={() => onVClick("end")}><LayoutAlignBottom /></button></Tooltip>
+            <div className="tuna-btn-group" style={!vEnabled ? { opacity: 0.3, pointerEvents: "none" } : undefined}>
+              <Tooltip content="Align top" side="top"><button type="button" className={`tuna-align-btn${vActive === "start" ? " active" : ""}`} onClick={() => onVClick("start")}><LayoutAlignTop /></button></Tooltip>
+              <Tooltip content="Align center vertically" side="top"><button type="button" className={`tuna-align-btn${vActive === "center" ? " active" : ""}`} onClick={() => onVClick("center")}><LayoutAlignVerticalCenter /></button></Tooltip>
+              <Tooltip content="Align bottom" side="top"><button type="button" className={`tuna-align-btn${vActive === "end" ? " active" : ""}`} onClick={() => onVClick("end")}><LayoutAlignBottom /></button></Tooltip>
             </div>
           </div>
         </div>
@@ -252,11 +252,11 @@ export function PositionSection({
       )}
       {positionType === "relative" && (
         <Row label="Offsets">
-          <div className="retune-row">
+          <div className="tuna-row">
             <NumberInput label="T" prop="top" value={s.top} onChange={onPropertyChange} {...changeProps("top")} />
             <NumberInput label="R" prop="right" value={s.right} onChange={onPropertyChange} {...changeProps("right")} />
           </div>
-          <div className="retune-row">
+          <div className="tuna-row">
             <NumberInput label="B" prop="bottom" value={s.bottom} onChange={onPropertyChange} {...changeProps("bottom")} />
             <NumberInput label="L" prop="left" value={s.left} onChange={onPropertyChange} {...changeProps("left")} />
           </div>
@@ -264,7 +264,7 @@ export function PositionSection({
       )}
       {isSticky && (
         <Row label="Sticky offset">
-          <div className="retune-row">
+          <div className="tuna-row">
             <NumberInput label="T" prop="top" value={s.top} onChange={onPropertyChange} {...changeProps("top")} />
             <NumberInput label="B" prop="bottom" value={s.bottom} onChange={onPropertyChange} {...changeProps("bottom")} />
           </div>

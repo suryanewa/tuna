@@ -1,13 +1,13 @@
 ---
-name: retune-visual-changes
-description: Apply visual changes from the Retune overlay to source code. Use this skill when receiving output from retune MCP tools (retune_get_visual_context, retune_get_formatted_changes, retune_get_pending_changes) OR when the user pastes structured visual change output containing "# Visual Changes", "# Comments", "Page-state snapshot", "Drawing Annotations", "Prop Changes", "Attribute Changes", "SVG Attribute Changes", a Before/After changes table, or property diffs with Token/Variable columns. Triggers on: retune, "Visual Changes", "visual context", "apply these changes", style diff, design tokens, design variables, property before/after table, visual tweaks, overlay changes, "Comment #", "Address each comment", "Drawing", "Prop Changes", "Attribute Changes".
+name: tuna-visual-changes
+description: Apply visual changes from the Tuna overlay to source code. Use this skill when receiving output from tuna MCP tools (tuna_get_visual_context, tuna_get_formatted_changes, tuna_get_pending_changes) OR when the user pastes structured visual change output containing "# Visual Changes", "# Comments", "Page-state snapshot", "Drawing Annotations", "Prop Changes", "Attribute Changes", "SVG Attribute Changes", a Before/After changes table, or property diffs with Token/Variable columns. Triggers on: tuna, "Visual Changes", "visual context", "apply these changes", style diff, design tokens, design variables, property before/after table, visual tweaks, overlay changes, "Comment #", "Address each comment", "Drawing", "Prop Changes", "Attribute Changes".
 ---
 
-# Applying Retune Visual Changes
+# Applying Tuna Visual Changes
 
-Retune sends you structured diffs of visual changes the user made in the browser. Your job is to translate these into precise source code edits that respect the project's styling conventions.
+Tuna sends you structured diffs of visual changes the user made in the browser. Your job is to translate these into precise source code edits that respect the project's styling conventions.
 
-When MCP is available and the user is working from a current Retune selection, prefer `retune_get_visual_context` first. It returns the active selected elements, multi-selection, drawing annotations, comments, pending changes, viewport state, and a compact page-state snapshot. Use `retune_get_formatted_changes` when you only need the queued change/comment markdown or after the user explicitly asks to apply all pending changes.
+When MCP is available and the user is working from a current Tuna selection, prefer `tuna_get_visual_context` first. It returns the active selected elements, multi-selection, drawing annotations, comments, pending changes, viewport state, and a compact page-state snapshot. Use `tuna_get_formatted_changes` when you only need the queued change/comment markdown or after the user explicitly asks to apply all pending changes.
 
 ## The User's Value Is Sacred
 
@@ -15,7 +15,7 @@ The user chose an exact CSS value through direct visual manipulation. Never snap
 
 ## Value Resolution
 
-When Retune output includes candidate tokens, classes, or CSS variables, use this priority:
+When Tuna output includes candidate tokens, classes, or CSS variables, use this priority:
 
 1. **Exact semantic token match** — A design token that resolves to the exact value the user set. Always prefer this. Example: user sets `16px`, token `spacing-4` resolves to `1rem` (16px) → use the token.
 
@@ -63,17 +63,17 @@ Use these fields to find the element in source code, in order of reliability:
 
 ### Visual Prompt Context
 
-Retune handoffs can include visual prompt sections in addition to property diffs:
+Tuna handoffs can include visual prompt sections in addition to property diffs:
 
 - **Page-state snapshot** — A bounded DOM spatial snapshot of visible viewport elements. Treat this like screenshot context: it tells you what was on screen, where elements were positioned, which selectors were selected, and which drawings were active. Use it to understand layout relationships, but edit source code using element/source/component context.
 - **Selected targets** — The exact elements referenced by inline mentions or multi-select. If a comment says to make one thing match another, compare the selected targets in order.
 - **Inline references** — Rich mention tokens projected into text. The plain text may say `@Button`, but the selector/component mapping in `Inline references` is the authoritative target.
-- **Drawing annotations** — User-drawn circles/boxes/marks over the interface. Each drawing has a synthetic selector (`retune-drawing:N`), stroke color, SVG path data, and viewport/page bounds. Use drawings to identify the region or relationship the user is pointing at; they usually do not correspond to source elements themselves.
+- **Drawing annotations** — User-drawn circles/boxes/marks over the interface. Each drawing has a synthetic selector (`tuna-drawing:N`), stroke color, SVG path data, and viewport/page bounds. Use drawings to identify the region or relationship the user is pointing at; they usually do not correspond to source elements themselves.
 - **Contains / Visible context** — Nearby or contained DOM elements under a drawn or area region. Use these to locate the relevant JSX/CSS when the user points to a region instead of a specific element.
 
 ### Prop Changes
 
-When the output includes a `### Prop Changes` section, the user changed a React component prop in Retune's visual editor:
+When the output includes a `### Prop Changes` section, the user changed a React component prop in Tuna's visual editor:
 
 ```
 ### Prop Changes
@@ -209,7 +209,7 @@ The selector annotation tells you the blast radius:
 
 ## Variable Associations
 
-When the output includes `variableAssociations`, the user explicitly picked a design variable in Retune's variable picker. Always honor this association — use the variable's class name or CSS custom property, not the raw value.
+When the output includes `variableAssociations`, the user explicitly picked a design variable in Tuna's variable picker. Always honor this association — use the variable's class name or CSS custom property, not the raw value.
 
 ## Structural Actions
 
@@ -269,7 +269,7 @@ Width and height changes from drag-to-resize appear as regular property changes 
 
 ## Comments
 
-Retune allows users to leave comments on elements or areas of their running app. Comments describe intent, feedback, or instructions that complement (or replace) visual property changes.
+Tuna allows users to leave comments on elements or areas of their running app. Comments describe intent, feedback, or instructions that complement (or replace) visual property changes.
 
 ### Comment Output Format
 
@@ -296,7 +296,7 @@ Comments are **user intent in plain language**. Unlike property changes (which a
 
 ### Comment-Only Output
 
-When the output header says "The user has left comments on their running app using Retune. Address each comment by making the described changes to the source code:", there are no visual property changes — only comments. Read each comment and make the described changes.
+When the output header says "The user has left comments on their running app using Tuna. Address each comment by making the described changes to the source code:", there are no visual property changes — only comments. Read each comment and make the described changes.
 
 ### Area Comments
 
@@ -314,7 +314,7 @@ For area comments, use the region coordinates and surrounding elements to determ
 
 ## Clearing Changes
 
-After applying all changes to source code, **always call `retune_clear_changes`** to clear the pending changes from the Retune overlay. This:
+After applying all changes to source code, **always call `tuna_clear_changes`** to clear the pending changes from the Tuna overlay. This:
 - Removes the change badge from the toolbar
 - Clears the undo/redo history for applied changes
 - Resets the overlay state so new changes can be tracked cleanly
@@ -323,11 +323,11 @@ If you don't clear, the overlay will still show the old changes and the user may
 
 ## Manifest Generation & Maintenance
 
-Retune uses a `retune.manifest.json` file in the project's public directory to power accurate token pickers, component controls, and scope targeting. If the MCP tool response includes a manifest generation prompt, generate the manifest before applying changes.
+Tuna uses a `tuna.manifest.json` file in the project's public directory to power accurate token pickers, component controls, and scope targeting. If the MCP tool response includes a manifest generation prompt, generate the manifest before applying changes.
 
 ### When to generate:
-- When a tool response says "No retune.manifest.json found" or "missing component definitions"
-- When `npx retune setup` output asks you to complete the manifest
+- When a tool response says "No tuna.manifest.json found" or "missing component definitions"
+- When `npx tuna setup` output asks you to complete the manifest
 
 ### Manifest format (v2):
 
@@ -364,10 +364,10 @@ Each token has:
 - For components: include `class_map` when props determine which CSS class is applied
 
 ### After generating or updating:
-Always call `retune_manifest_loaded` after writing the manifest file. This notifies the overlay to reload immediately -- the user sees updated token pickers and component controls without refreshing the page.
+Always call `tuna_manifest_loaded` after writing the manifest file. This notifies the overlay to reload immediately -- the user sees updated token pickers and component controls without refreshing the page.
 
 ### Maintenance:
-When modifying components (adding props, changing variants) or design tokens (adding colors, spacing), update the manifest to keep it in sync. The manifest should always reflect the current state of the codebase. Call `retune_manifest_loaded` after any update.
+When modifying components (adding props, changing variants) or design tokens (adding colors, spacing), update the manifest to keep it in sync. The manifest should always reflect the current state of the codebase. Call `tuna_manifest_loaded` after any update.
 
 ## Workflow
 
@@ -385,4 +385,4 @@ When modifying components (adding props, changing variants) or design tokens (ad
    b. Locate the element using Component → Selector → Classes
    c. Make the described changes using the project's conventions
 7. Verify all changes make sense in context (don't blindly apply if something looks wrong)
-8. **Call `retune_clear_changes`** to clear the applied changes and comments from the overlay
+8. **Call `tuna_clear_changes`** to clear the applied changes and comments from the overlay

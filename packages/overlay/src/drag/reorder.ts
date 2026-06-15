@@ -66,7 +66,7 @@ export function createReorderController(
 
     // Create ghost element
     const ghost = document.createElement("div");
-    ghost.setAttribute("data-retune-drag-ghost", "");
+    ghost.setAttribute("data-tuna-drag-ghost", "");
     ghost.style.cssText = `
       position: fixed;
       pointer-events: none;
@@ -85,7 +85,7 @@ export function createReorderController(
 
     // Create drop indicator
     const indicator = document.createElement("div");
-    indicator.setAttribute("data-retune-drop-indicator", "");
+    indicator.setAttribute("data-tuna-drop-indicator", "");
     indicator.style.cssText = `
       position: fixed;
       pointer-events: none;

@@ -21,9 +21,9 @@ export function TextInput({ prop, value, onChange }: TextInputProps) {
   }, [value]);
 
   return (
-    <div className="retune-text-input">
+    <div className="tuna-text-input">
       <input
-        className="retune-text-input-field"
+        className="tuna-text-input-field"
         value={localValue}
         onChange={(e) => setLocalValue(e.target.value)}
         onFocus={(e) => { if (isMixedValue(value)) setLocalValue(""); e.target.select(); }}

@@ -23,7 +23,7 @@ function PinLine({ side, pinned, onClick }: { side: Side; pinned: boolean; onCli
     <button
       type="button"
       onClick={onClick}
-      className={`retune-pin-line ${side}`}
+      className={`tuna-pin-line ${side}`}
       aria-label={`${pinned ? "Unpin" : "Pin"} ${side}`}
     >
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -109,18 +109,18 @@ export function ConstraintsInput({
   };
 
   return (
-    <div className="retune-constraints">
+    <div className="tuna-constraints">
       {/* Left column */}
-      <div className="retune-constraints-side">
+      <div className="tuna-constraints-side">
         <NumberInput label="L" prop="left" value={left} onChange={onChange} />
       </div>
 
       {/* Center column */}
-      <div className="retune-constraints-center">
+      <div className="tuna-constraints-center">
         <NumberInput label="T" prop="top" value={top} onChange={onChange} />
 
         {/* Pin box */}
-        <div className="retune-pin-box">
+        <div className="tuna-pin-box">
           <PinLine side="top" pinned={!centered && pins.top} onClick={() => togglePin("top")} />
           <PinLine side="right" pinned={!centered && pins.right} onClick={() => togglePin("right")} />
           <PinLine side="bottom" pinned={!centered && pins.bottom} onClick={() => togglePin("bottom")} />
@@ -130,7 +130,7 @@ export function ConstraintsInput({
           <button
             type="button"
             onClick={handleCenterClick}
-            className="retune-pin-center-btn"
+            className="tuna-pin-center-btn"
             aria-label={
               centered
                 ? "Clear center alignment"
@@ -139,7 +139,7 @@ export function ConstraintsInput({
                   : "Pin all sides"
             }
           >
-            {centered && <span className="retune-pin-center-dot" />}
+            {centered && <span className="tuna-pin-center-dot" />}
           </button>
         </div>
 
@@ -147,7 +147,7 @@ export function ConstraintsInput({
       </div>
 
       {/* Right column */}
-      <div className="retune-constraints-side">
+      <div className="tuna-constraints-side">
         <NumberInput label="R" prop="right" value={right} onChange={onChange} />
       </div>
     </div>

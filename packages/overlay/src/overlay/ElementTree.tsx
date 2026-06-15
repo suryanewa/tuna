@@ -51,18 +51,18 @@ const SKIP_TAGS = new Set([
   "NOSCRIPT", "BR", "WBR", "COL",
 ]);
 
-/** Check if element is part of Retune's own overlay */
-function isRetuneElement(el: Element): boolean {
-  if (el.hasAttribute("data-retune-host")) return true;
-  if (el.hasAttribute("data-retune-highlight")) return true;
-  if (el.hasAttribute("data-retune-selection")) return true;
-  if (el.hasAttribute("data-retune-label")) return true;
-  if (el.hasAttribute("data-retune-selection-label")) return true;
-  if (el.hasAttribute("data-retune-multi-selection")) return true;
+/** Check if element is part of Tuna's own overlay */
+function isTunaElement(el: Element): boolean {
+  if (el.hasAttribute("data-tuna-host")) return true;
+  if (el.hasAttribute("data-tuna-highlight")) return true;
+  if (el.hasAttribute("data-tuna-selection")) return true;
+  if (el.hasAttribute("data-tuna-label")) return true;
+  if (el.hasAttribute("data-tuna-selection-label")) return true;
+  if (el.hasAttribute("data-tuna-multi-selection")) return true;
   return false;
 }
 
-/** Get visible children of an element, filtering out Retune overlay and skip tags.
+/** Get visible children of an element, filtering out Tuna overlay and skip tags.
  *  Uses visual order override if available (for reordered containers).
  *  Applies reparent entries: removes reparented-away children, inserts reparented-in children. */
 export function getVisibleChildren(el: Element, visualOrderMap?: Map<Element, Element[]>, reparentEntries?: ReparentEntry[]): Element[] {
@@ -75,7 +75,7 @@ export function getVisibleChildren(el: Element, visualOrderMap?: Map<Element, El
 
   for (const child of source) {
     if (SKIP_TAGS.has(child.tagName)) continue;
-    if (isRetuneElement(child)) continue;
+    if (isTunaElement(child)) continue;
     if (reparentedAway?.has(child)) continue;
     children.push(child);
   }
@@ -409,19 +409,19 @@ const TreeNode = memo(function TreeNode({
     <>
       <div
         ref={(node) => { if (node) treeNodeRefs.set(element, node); }}
-        data-retune-tree-key={getStableKey(element)}
-        className={`retune-tree-node${isSelected ? " selected" : ""}${isDescendantOfSelected ? " descendant-selected" : ""}`}
+        data-tuna-tree-key={getStableKey(element)}
+        className={`tuna-tree-node${isSelected ? " selected" : ""}${isDescendantOfSelected ? " descendant-selected" : ""}`}
         style={{ paddingLeft: 12 + depth * 20 }}
         onPointerDown={(e) => {
           // Let arrow clicks pass through
-          if ((e.target as HTMLElement).closest(".retune-tree-arrow")) return;
+          if ((e.target as HTMLElement).closest(".tuna-tree-arrow")) return;
           onDragStart(e.nativeEvent, element);
         }}
         onPointerEnter={() => { if (!isDragging) onHover(element); }}
         onPointerLeave={() => { if (!isDragging) onHover(null); }}
       >
         <span
-          className={`retune-tree-arrow${hasChildren ? "" : " empty"}${isExpanded ? " expanded" : ""}`}
+          className={`tuna-tree-arrow${hasChildren ? "" : " empty"}${isExpanded ? " expanded" : ""}`}
           onClick={(e) => {
             e.stopPropagation();
             if (hasChildren) onToggle(element);
@@ -433,11 +433,11 @@ const TreeNode = memo(function TreeNode({
             </svg>
           )}
         </span>
-        <span className={`retune-tree-icon${isComponent ? " retune-tree-icon--component" : ""}`}>
+        <span className={`tuna-tree-icon${isComponent ? " tuna-tree-icon--component" : ""}`}>
           {iconType === "svg-shape" ? <SvgShapeIcon element={element} /> : <LayerIcon type={iconType} />}
         </span>
-        <span className={`retune-tree-name${isComponent ? " retune-tree-name--component" : ""}`}>{name}</span>
-        {isReparented && <span className="retune-tree-moved">moved</span>}
+        <span className={`tuna-tree-name${isComponent ? " tuna-tree-name--component" : ""}`}>{name}</span>
+        {isReparented && <span className="tuna-tree-moved">moved</span>}
       </div>
       {isExpanded && children.map((child) => (
         <TreeNode
@@ -515,7 +515,7 @@ export function ElementTree({ selectedElement, onSelect, onHover, visualOrderMap
 
     // Scroll selected node into view after render
     requestAnimationFrame(() => {
-      const node = scrollRef.current?.querySelector(".retune-tree-node.selected");
+      const node = scrollRef.current?.querySelector(".tuna-tree-node.selected");
       node?.scrollIntoView({ block: "nearest", behavior: "smooth" });
     });
   }, [selectedElement]);
@@ -546,7 +546,7 @@ export function ElementTree({ selectedElement, onSelect, onHover, visualOrderMap
   const createGhost = useCallback((element: Element, x: number, y: number) => {
     const { name } = formatNodeLabel(element);
     const ghost = document.createElement("div");
-    ghost.className = "retune-tree-ghost";
+    ghost.className = "tuna-tree-ghost";
     ghost.textContent = name;
     ghost.style.left = `${x + 12}px`;
     ghost.style.top = `${y - 12}px`;
@@ -562,7 +562,7 @@ export function ElementTree({ selectedElement, onSelect, onHover, visualOrderMap
 
   const createIndicator = useCallback(() => {
     const indicator = document.createElement("div");
-    indicator.className = "retune-tree-drop-indicator";
+    indicator.className = "tuna-tree-drop-indicator";
     innerRef.current?.appendChild(indicator);
     return indicator;
   }, []);
@@ -618,9 +618,9 @@ export function ElementTree({ selectedElement, onSelect, onHover, visualOrderMap
     const root = scrollRef.current?.getRootNode();
     if (!(root instanceof ShadowRoot)) return null;
     const hit = root.elementFromPoint(e.clientX, e.clientY);
-    const treeNode = hit?.closest?.("[data-retune-tree-key]") as HTMLDivElement | null;
+    const treeNode = hit?.closest?.("[data-tuna-tree-key]") as HTMLDivElement | null;
     if (!treeNode) return null;
-    const key = parseInt(treeNode.getAttribute("data-retune-tree-key") || "", 10);
+    const key = parseInt(treeNode.getAttribute("data-tuna-tree-key") || "", 10);
     if (isNaN(key)) return null;
     const element = _stableKeyReverse.get(key);
     if (!element) return null;
@@ -899,8 +899,8 @@ export function ElementTree({ selectedElement, onSelect, onHover, visualOrderMap
     : [];
 
   return (
-    <div className="retune-tree" ref={scrollRef}>
-      <div className="retune-tree-inner" ref={innerRef}>
+    <div className="tuna-tree" ref={scrollRef}>
+      <div className="tuna-tree-inner" ref={innerRef}>
         {bodyChildren.map((child) => (
           <TreeNode
             key={getStableKey(child)}

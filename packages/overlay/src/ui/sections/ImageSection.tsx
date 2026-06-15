@@ -91,7 +91,7 @@ export function ImageSection({
           )}
           {isImage && element.element && (
             <Row label="Alt">
-              <div className="retune-row">
+              <div className="tuna-row">
                 <TextInput
                   prop="alt"
                   value={(element.element as HTMLImageElement).alt || ""}
@@ -165,7 +165,7 @@ export function ImageSection({
       {hasBackgroundImage && (
         <Section label="Background Image">
           <Row label="Size">
-            <div className="retune-row">
+            <div className="tuna-row">
               <ComboInput
                 label=""
                 prop="backgroundSize"
@@ -183,7 +183,7 @@ export function ImageSection({
             </div>
           </Row>
           <Row label="Position">
-            <div className="retune-row">
+            <div className="tuna-row">
               <SelectInput
                 prop="backgroundPosition"
                 value={s.backgroundPosition || "center center"}
@@ -195,7 +195,7 @@ export function ImageSection({
             </div>
           </Row>
           <Row label="Repeat">
-            <div className="retune-row">
+            <div className="tuna-row">
               <SelectInput
                 prop="backgroundRepeat"
                 value={s.backgroundRepeat || "repeat"}

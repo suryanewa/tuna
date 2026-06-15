@@ -72,7 +72,7 @@ Changes:
 ## Tech Stack
 
 - Next.js, React, TypeScript, Tailwind CSS
-- Distributed as the `retune` npm package
+- Distributed as the `tuna` npm package
 
 ## Animations
 
@@ -89,5 +89,5 @@ Follow the principles in [You Might Not Need an Effect](https://react.dev/learn/
 
 ## Notes
 
-- This project was previously called "Composer" (a standalone design tool extracted from the portfolio editor). It has been renamed to "Retune".
+- This project was previously called "Composer" (a standalone design tool extracted from the portfolio editor). It has been renamed to "Tuna".
 - The old Composer code can be fully replaced — nothing needs to be preserved.

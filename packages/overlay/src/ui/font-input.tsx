@@ -155,7 +155,7 @@ export function FontInput({ prop, value, onChange, isChanged, onReset }: FontInp
       setPickerOpen(false);
       return;
     }
-    const row = el.closest(".retune-row");
+    const row = el.closest(".tuna-row");
     const rect = row ? row.getBoundingClientRect() : el.getBoundingClientRect();
     setAnchorRect({ top: rect.top, left: rect.left, width: rect.width, height: rect.height });
     setPickerOpen(true);
@@ -237,21 +237,21 @@ export function FontInput({ prop, value, onChange, isChanged, onReset }: FontInp
 
   // Find portal target for the floating dialog
   const portalTarget = containerRef.current?.getRootNode() instanceof ShadowRoot
-    ? (containerRef.current.getRootNode() as ShadowRoot).querySelector("[data-retune-container]") as HTMLElement
+    ? (containerRef.current.getRootNode() as ShadowRoot).querySelector("[data-tuna-container]") as HTMLElement
     : null;
 
   // Track flat index for highlighting
   let flatIndex = 0;
 
   return (
-    <div className="retune-font-input" ref={containerRef}>
+    <div className="tuna-font-input" ref={containerRef}>
       <ChangeIndicator isChanged={isChanged ?? false} onReset={onReset ?? (() => {})} />
       <button
         type="button"
-        className="retune-font-input-trigger"
+        className="tuna-font-input-trigger"
         onClick={openPicker}
       >
-        <span className="retune-font-input-value" style={{ fontFamily: primaryFont || undefined }}>{primaryFont || "–"}</span>
+        <span className="tuna-font-input-value" style={{ fontFamily: primaryFont || undefined }}>{primaryFont || "–"}</span>
         <ChevronDown />
       </button>
       {pickerOpen && anchorRect && portalTarget && createPortal(
@@ -268,7 +268,7 @@ export function FontInput({ prop, value, onChange, isChanged, onReset }: FontInp
           maxHeight={400}
           minHeight={400}
         >
-          <div className="retune-font-filter">
+          <div className="tuna-font-filter">
             <SelectInput
               prop="__fontCategory"
               value={fontCategory}
@@ -276,17 +276,17 @@ export function FontInput({ prop, value, onChange, isChanged, onReset }: FontInp
               onChange={(_, val) => setFontCategory(val as any)}
             />
           </div>
-          <div ref={listRef} className="retune-font-list">
+          <div ref={listRef} className="tuna-font-list">
             {/* Project fonts */}
             {filteredProject.length > 0 && (
               <>
-                <div className="retune-font-section-title">Project fonts</div>
+                <div className="tuna-font-section-title">Project fonts</div>
                 {filteredProject.map(font => {
                   const idx = flatIndex++;
                   return (
                     <div
                       key={font}
-                      className={`retune-font-item${font === primaryFont ? " retune-font-item-active" : ""}${idx === highlightedIndex ? " retune-font-item-highlighted" : ""}`}
+                      className={`tuna-font-item${font === primaryFont ? " tuna-font-item-active" : ""}${idx === highlightedIndex ? " tuna-font-item-highlighted" : ""}`}
                       data-font-name={font}
                       data-font-index={idx}
                       style={{ fontFamily: font }}
@@ -301,13 +301,13 @@ export function FontInput({ prop, value, onChange, isChanged, onReset }: FontInp
             {/* System fonts (loaded) */}
             {filteredSystem.length > 0 && (
               <>
-                <div className="retune-font-section-title">System fonts</div>
+                <div className="tuna-font-section-title">System fonts</div>
                 {filteredSystem.map(font => {
                   const idx = flatIndex++;
                   return (
                     <div
                       key={font}
-                      className={`retune-font-item${font === primaryFont ? " retune-font-item-active" : ""}${idx === highlightedIndex ? " retune-font-item-highlighted" : ""}`}
+                      className={`tuna-font-item${font === primaryFont ? " tuna-font-item-active" : ""}${idx === highlightedIndex ? " tuna-font-item-highlighted" : ""}`}
                       data-font-name={font}
                       data-font-index={idx}
                       style={{ fontFamily: font }}
@@ -322,13 +322,13 @@ export function FontInput({ prop, value, onChange, isChanged, onReset }: FontInp
             {/* Fallback fonts */}
             {filteredFallbacks.length > 0 && (
               <>
-                <div className="retune-font-section-title">Generic</div>
+                <div className="tuna-font-section-title">Generic</div>
                 {filteredFallbacks.map(font => {
                   const idx = flatIndex++;
                   return (
                     <div
                       key={font}
-                      className={`retune-font-item${font === primaryFont ? " retune-font-item-active" : ""}${idx === highlightedIndex ? " retune-font-item-highlighted" : ""}`}
+                      className={`tuna-font-item${font === primaryFont ? " tuna-font-item-active" : ""}${idx === highlightedIndex ? " tuna-font-item-highlighted" : ""}`}
                       data-font-name={font}
                       data-font-index={idx}
                       style={{ fontFamily: font }}
@@ -341,23 +341,23 @@ export function FontInput({ prop, value, onChange, isChanged, onReset }: FontInp
             )}
 
             {allFiltered.length === 0 && (
-              <div className="retune-font-empty">No fonts found</div>
+              <div className="tuna-font-empty">No fonts found</div>
             )}
 
             {/* Load system fonts button or denied message */}
             {(fontCategory === "all" || fontCategory === "system") && (
               systemFonts === null ? (
-                <div className="retune-font-system-prompt">
+                <div className="tuna-font-system-prompt">
                   <button
-                    className="retune-font-system-btn"
+                    className="tuna-font-system-btn"
                     data-font-name="__load_system"
                   >
                     Load system fonts
                   </button>
                 </div>
               ) : fontPermissionDenied ? (
-                <div className="retune-font-system-prompt">
-                  <p className="retune-font-denied">Font access denied. Allow in site settings to try again.</p>
+                <div className="tuna-font-system-prompt">
+                  <p className="tuna-font-denied">Font access denied. Allow in site settings to try again.</p>
                 </div>
               ) : null
             )}

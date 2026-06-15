@@ -32,15 +32,15 @@ export function HeroInstallCopy() {
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const handleClick = useCallback(() => {
     playTick();
-    navigator.clipboard.writeText("npm install retune").then(() => {
+    navigator.clipboard.writeText("npm install tuna").then(() => {
       clearTimeout(timerRef.current);
       setCopied(true);
       timerRef.current = setTimeout(() => setCopied(false), 2000);
     });
   }, []);
   return (
-    <button className="hero-install" onClick={handleClick} aria-label="Copy npm install retune to clipboard">
-      <code className="hero-install-cmd">npm install retune</code>
+    <button className="hero-install" onClick={handleClick} aria-label="Copy npm install tuna to clipboard">
+      <code className="hero-install-cmd">npm install tuna</code>
       <span className="hero-install-icon">
         <span className={`copy-icon ${copied ? "copy-icon-out" : "copy-icon-in"}`}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
@@ -169,8 +169,8 @@ export function TryItButton() {
     <button
       className="cta-primary desktop-only"
       onClick={() => {
-        const host = document.querySelector("[data-retune-host]") as HTMLElement;
-        const btn = host?.shadowRoot?.querySelector(".retune-toolbar-collapse-btn") as HTMLElement;
+        const host = document.querySelector("[data-tuna-host]") as HTMLElement;
+        const btn = host?.shadowRoot?.querySelector(".tuna-toolbar-collapse-btn") as HTMLElement;
         btn?.click();
       }}
     >
@@ -871,7 +871,7 @@ export function Sidebar({ version }: { version: string }) {
           <a href="#install" className={`toc-link${activeSection === "install" ? " active" : ""}`} onClick={() => setMenuOpen(false)}>Get Started</a>
           <a href="#faq" className={`toc-link${activeSection === "faq" ? " active" : ""}`} onClick={() => setMenuOpen(false)}>FAQ</a>
           <a
-            href="https://github.com/khadgi-sujan/retune"
+            href="https://github.com/khadgi-sujan/tuna"
             className="toc-link"
             target="_blank"
             rel="noopener noreferrer"
@@ -881,7 +881,7 @@ export function Sidebar({ version }: { version: string }) {
             <svg className="external-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18.25 15.25V5.75M18.25 5.75H8.75M18.25 5.75L6 18"/></svg>
           </a>
           <a
-            href="https://www.npmjs.com/package/retune"
+            href="https://www.npmjs.com/package/tuna"
             className="toc-link"
             target="_blank"
             rel="noopener noreferrer"

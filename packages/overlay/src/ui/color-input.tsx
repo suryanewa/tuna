@@ -88,7 +88,7 @@ export function ColorInput({ prop, value, onChange, variableMatch, property, onV
     const el = swatchRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    const row = el.closest(".retune-row");
+    const row = el.closest(".tuna-row");
     if (row) {
       const rowRect = row.getBoundingClientRect();
       setAnchorRect({ top: rect.top, left: rowRect.left, width: rowRect.width, height: rect.height });
@@ -213,25 +213,25 @@ export function ColorInput({ prop, value, onChange, variableMatch, property, onV
   })();
 
   return (
-    <div className="retune-color-row">
+    <div className="tuna-color-row">
       <ChangeIndicator isChanged={isChanged ?? false} onReset={onReset ?? (() => {})} />
       {/* Left half: swatch + hex (or variable name when token applied) */}
-      <div className={`retune-color-hex-section${variableMatch ? " retune-color-variable-applied" : ""}`}>
+      <div className={`tuna-color-hex-section${variableMatch ? " tuna-color-variable-applied" : ""}`}>
         <div
           ref={swatchRef}
-          className="retune-color-swatch"
+          className="tuna-color-swatch"
           onClick={variableMatch ? handleTokenDotOpen : handleSwatchClick}
         >
-          <div className="retune-color-swatch-inner" style={swatchStyle}>
+          <div className="tuna-color-swatch-inner" style={swatchStyle}>
             {isNone && (
               <svg width="100%" height="100%" viewBox="0 0 16 16" style={{ position: "absolute", top: 0, left: 0 }}>
-                <line x1="3" y1="13" x2="13" y2="3" stroke="var(--retune-red-500)" strokeWidth="1" strokeLinecap="round" />
+                <line x1="3" y1="13" x2="13" y2="3" stroke="var(--tuna-red-500)" strokeWidth="1" strokeLinecap="round" />
               </svg>
             )}
           </div>
         </div>
         <input
-          className="retune-color-hex-input"
+          className="tuna-color-hex-input"
           value={mixed ? MIXED_LABEL : isNone ? "None" : variableMatch ? formatVarName(variableMatch.variable.className) : hexLocal}
           readOnly={!!variableMatch}
           onClick={variableMatch ? handleTokenDotOpen : undefined}
@@ -253,9 +253,9 @@ export function ColorInput({ prop, value, onChange, variableMatch, property, onV
 
       {/* Right half: opacity — hidden when variable is applied */}
       {!variableMatch && (
-        <div className="retune-color-opacity-section">
+        <div className="tuna-color-opacity-section">
           <input
-            className="retune-color-opacity-input"
+            className="tuna-color-opacity-input"
             inputMode="numeric"
             value={opacityLocal}
             onChange={(e) => setOpacityLocal(e.target.value)}
@@ -263,7 +263,7 @@ export function ColorInput({ prop, value, onChange, variableMatch, property, onV
             onBlur={commitOpacity}
             onKeyDown={handleOpacityKeyDown}
           />
-          <span className="retune-color-opacity-unit">%</span>
+          <span className="tuna-color-opacity-unit">%</span>
         </div>
       )}
 

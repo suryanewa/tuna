@@ -332,17 +332,17 @@ export function ComponentSection({ selectedElement, onRefresh, onPropChange, cha
 
   return (
     <Section label={componentName || "Component"} action={
-      sourceFile ? <span className="retune-component-source">{sourceFile.fileName.split("/").pop()}:{sourceFile.lineNumber}</span> : undefined
+      sourceFile ? <span className="tuna-component-source">{sourceFile.fileName.split("/").pop()}:{sourceFile.lineNumber}</span> : undefined
     }>
-      <div className="retune-component-grid">
+      <div className="tuna-component-grid">
         {allEntries.map((entry) => {
           const valueType = getValueType(entry.value);
           const isToggle = valueType === "boolean";
           const isChanged = entry.type === "prop" ? changedProps?.has(entry.key) : false;
 
           return (
-            <div key={entry.key} className="retune-component-field">
-              <span className="retune-component-field-label">{entry.label}</span>
+            <div key={entry.key} className="tuna-component-field">
+              <span className="tuna-component-field-label">{entry.label}</span>
               {entry.enumValues ? (
                 <SelectInput
                   prop={entry.key}
@@ -395,25 +395,25 @@ function ValueInput({ value, onChange, isChanged, onReset }: {
 
   if (type === "function") {
     return (
-      <div className="retune-prop">
-        <input className="retune-prop-input" style={{ paddingLeft: 12 }} value="fn()" readOnly />
+      <div className="tuna-prop">
+        <input className="tuna-prop-input" style={{ paddingLeft: 12 }} value="fn()" readOnly />
       </div>
     );
   }
 
   if (type === "object" || type === "null") {
     return (
-      <div className="retune-prop">
-        <input className="retune-prop-input" style={{ paddingLeft: 12 }} value={formatValue(value)} readOnly />
+      <div className="tuna-prop">
+        <input className="tuna-prop-input" style={{ paddingLeft: 12 }} value={formatValue(value)} readOnly />
       </div>
     );
   }
 
   return (
-    <div className="retune-prop">
+    <div className="tuna-prop">
       <ChangeIndicator isChanged={isChanged ?? false} onReset={onReset ?? (() => {})} />
       <input
-        className="retune-prop-input"
+        className="tuna-prop-input"
         style={{ paddingLeft: 12 }}
         type={type === "number" ? "number" : "text"}
         value={localValue}

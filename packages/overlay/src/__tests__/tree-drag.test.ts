@@ -116,11 +116,11 @@ describe("getVisibleChildren", () => {
     expect(getVisibleChildren(parent)).toEqual([div]);
   });
 
-  it("filters out retune overlay elements", () => {
+  it("filters out tuna overlay elements", () => {
     const child = mockElement("div");
-    const retuneHost = mockElement("div", { "data-retune-host": "" });
-    const retuneHighlight = mockElement("div", { "data-retune-highlight": "" });
-    const parent = mockParent([child, retuneHost, retuneHighlight]);
+    const tunaHost = mockElement("div", { "data-tuna-host": "" });
+    const tunaHighlight = mockElement("div", { "data-tuna-highlight": "" });
+    const parent = mockParent([child, tunaHost, tunaHighlight]);
     expect(getVisibleChildren(parent)).toEqual([child]);
   });
 

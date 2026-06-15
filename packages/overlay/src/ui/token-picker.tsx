@@ -123,39 +123,39 @@ export function TokenPicker({ match, onSelect, onClose, anchorRect }: TokenPicke
   return (
     <div
       ref={panelRef}
-      className="retune-token-picker"
+      className="tuna-token-picker"
       style={{ position: "fixed", top, left, width: panelWidth }}
     >
-      <div className="retune-token-picker-header">
-        <span className="retune-token-picker-title">{category || "variables"}</span>
+      <div className="tuna-token-picker-header">
+        <span className="tuna-token-picker-title">{category || "variables"}</span>
       </div>
-      <div ref={listRef} className="retune-token-picker-list">
+      <div ref={listRef} className="tuna-token-picker-list">
         {/* Current token */}
-        <div className="retune-token-picker-item retune-token-picker-item-active">
+        <div className="tuna-token-picker-item tuna-token-picker-item-active">
           {isColor && (
             <span
-              className="retune-token-picker-swatch"
+              className="tuna-token-picker-swatch"
               style={{ backgroundColor: getSwatchColor(match.variable) || "transparent" }}
             />
           )}
-          <span className="retune-token-picker-name">.{match.variable.className}</span>
-          <span className="retune-token-picker-value">{formatValue(match.variable)}</span>
+          <span className="tuna-token-picker-name">.{match.variable.className}</span>
+          <span className="tuna-token-picker-value">{formatValue(match.variable)}</span>
         </div>
         {/* Alternatives */}
         {alternatives.map((token, i) => (
           <div
             key={token.className}
-            className="retune-token-picker-item"
+            className="tuna-token-picker-item"
             data-token-index={i}
           >
             {isColor && (
               <span
-                className="retune-token-picker-swatch"
+                className="tuna-token-picker-swatch"
                 style={{ backgroundColor: getSwatchColor(token) || "transparent" }}
               />
             )}
-            <span className="retune-token-picker-name">.{token.className}</span>
-            <span className="retune-token-picker-value">{formatValue(token)}</span>
+            <span className="tuna-token-picker-name">.{token.className}</span>
+            <span className="tuna-token-picker-value">{formatValue(token)}</span>
           </div>
         ))}
       </div>

@@ -220,7 +220,7 @@ export function AudioWaveform({
   return (
     <canvas
       ref={canvasRef}
-      className="retune-comment-waveform-canvas"
+      className="tuna-comment-waveform-canvas"
     />
   );
 }

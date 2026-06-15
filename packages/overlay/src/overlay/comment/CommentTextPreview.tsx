@@ -12,7 +12,7 @@ export function renderCommentTextParts(container: HTMLElement, parts: CommentCon
   for (const part of parts) {
     if (part.type === "mention") {
       const span = document.createElement("span");
-      span.className = "retune-comment-mention";
+      span.className = "tuna-comment-mention";
       span.style.color = part.mention.color;
       span.textContent = `@${part.mention.name}`;
       container.appendChild(span);
@@ -30,7 +30,7 @@ export function CommentTextPreview({ comment }: { comment: Comment }): ReactNode
       return (
         <span
           key={index}
-          className="retune-comment-mention"
+          className="tuna-comment-mention"
           style={{ color: part.mention.color }}
         >
           @{part.mention.name}

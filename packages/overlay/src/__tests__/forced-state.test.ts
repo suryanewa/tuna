@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 
 /**
- * Tests for the pseudo-state filtering logic used in Retune.tsx's
+ * Tests for the pseudo-state filtering logic used in Tuna.tsx's
  * refreshSelectedElement and handlePropertyChange callbacks.
  *
  * The logic lives inside React callbacks, so we replicate the core algorithm

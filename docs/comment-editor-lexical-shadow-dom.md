@@ -1,6 +1,6 @@
 # Comment Editor: Lexical + Shadow DOM Bug Postmortem
 
-This document records the bugs encountered while building the inline comment editor (`CommentEditor`), how they were diagnosed and fixed, and how to avoid regressions. The editor lives inside Retune's **Shadow DOM** overlay and uses **Lexical** with a custom **`MentionNode`** for inline element references (colored `@`-style tokens).
+This document records the bugs encountered while building the inline comment editor (`CommentEditor`), how they were diagnosed and fixed, and how to avoid regressions. The editor lives inside Tuna's **Shadow DOM** overlay and uses **Lexical** with a custom **`MentionNode`** for inline element references (colored `@`-style tokens).
 
 **Primary files:**
 
@@ -8,7 +8,7 @@ This document records the bugs encountered while building the inline comment edi
 |---|---|
 | `packages/overlay/src/overlay/comment/CommentEditor.tsx` | Lexical composer, input/delete handlers, mention insertion |
 | `packages/overlay/src/overlay/comment/mention-node.ts` | Custom `MentionNode` (token mode, `contentEditable=false`) |
-| `packages/overlay/src/overlay/Retune.tsx` | Document-level keyboard handlers (must not steal keys from the editor) |
+| `packages/overlay/src/overlay/Tuna.tsx` | Document-level keyboard handlers (must not steal keys from the editor) |
 
 **Commit with fixes:** `c4db19d` — `fix(overlay): restore reliable typing and deletion in the comment editor.`
 
@@ -20,7 +20,7 @@ Understanding why these bugs happened requires three overlapping layers:
 
 ### 1. Lexical in a Shadow Root
 
-The comment popover renders inside Retune's shadow root. Lexical's default text input and deletion paths rely on browser APIs that behave differently (or fail silently) when the focused `contenteditable` is not in the light DOM:
+The comment popover renders inside Tuna's shadow root. Lexical's default text input and deletion paths rely on browser APIs that behave differently (or fail silently) when the focused `contenteditable` is not in the light DOM:
 
 - **`beforeinput`** — Lexical listens for controlled text insertion; in shadow DOM, native DOM updates and Lexical state can diverge.
 - **`Selection.modify()`** — Lexical's default `deleteCharacter` implementation uses this for collapsed caret deletions; it is unreliable when selection lives inside a shadow tree.
@@ -37,7 +37,7 @@ Spacer nodes are structural, not user-authored text. Any insertion or deletion l
 
 ### 3. Document-Level Keyboard Handlers
 
-`Retune.tsx` registers capture-phase `keydown` listeners for overlay shortcuts (delete selected element, undo, etc.). These must **bail out** when focus is in a text field inside the shadow root (`INPUT`, `TEXTAREA`, or `contentEditable`).
+`Tuna.tsx` registers capture-phase `keydown` listeners for overlay shortcuts (delete selected element, undo, etc.). These must **bail out** when focus is in a text field inside the shadow root (`INPUT`, `TEXTAREA`, or `contentEditable`).
 
 ---
 
@@ -355,7 +355,7 @@ When inserting the second mention at the caret (which already sits in a trailing
 
 ## Document-Level Keyboard Handler Interaction
 
-During debugging, a hypothesis was that `Retune.tsx`'s document `keydown` handler intercepted Backspace/Delete meant for the comment editor.
+During debugging, a hypothesis was that `Tuna.tsx`'s document `keydown` handler intercepted Backspace/Delete meant for the comment editor.
 
 **Finding:** The handler already guards correctly:
 
@@ -459,4 +459,4 @@ These were not required for the fix but would reduce fragility:
 - [Comment Editor: Mention Delete & Live Editing](./comment-editor-mention-delete-and-live-editing.md) — wrong mention on Backspace/Delete (Issue 12), live shift/alt editing (Issue 13), mention titles/colors (Issues 14–15), typecheck CI (`cf764cd`)
 - [Lexical TextNode token mode](https://lexical.dev/docs/concepts/nodes#textnode)
 - [You Might Not Need an Effect](https://react.dev/learn/you-might-not-need-an-effect) — editor state should be mutated in event handlers, not synced via Effects
-- Retune comment architecture: `packages/overlay/src/overlay/comment/comment-draft.ts` (serialization of inline mentions)
+- Tuna comment architecture: `packages/overlay/src/overlay/comment/comment-draft.ts` (serialization of inline mentions)

@@ -282,7 +282,7 @@ export function BoxModelOverlay({ element, hoveredProperty, revision }: BoxModel
       {rects.map((r, i) => (
         <div
           key={i}
-          className="retune-box-model-rect"
+          className="tuna-box-model-rect"
           style={{
             position: "fixed",
             top: r.top,

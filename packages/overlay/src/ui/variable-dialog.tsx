@@ -157,7 +157,7 @@ export function VariableDialog({ property, currentVariable, onSelect, onUnlink, 
     <Tooltip content={currentVariable ? "Unlink variable" : "No variable linked"} side="bottom" delay={300}>
       <button
         type="button"
-        className="retune-floating-dialog-close"
+        className="tuna-floating-dialog-close"
         data-dialog-action={isUnlinkDisabled ? undefined : "unlink"}
         style={isUnlinkDisabled ? { opacity: 0.3, cursor: "default" } : undefined}
       >
@@ -178,9 +178,9 @@ export function VariableDialog({ property, currentVariable, onSelect, onUnlink, 
       onHeaderAction={handleHeaderAction}
       minHeight={400}
     >
-      <div ref={listRef} className="retune-variable-dialog-list">
+      <div ref={listRef} className="tuna-variable-dialog-list">
         {filtered.length === 0 && (
-          <div className="retune-variable-dialog-empty">No variables found</div>
+          <div className="tuna-variable-dialog-empty">No variables found</div>
         )}
         {filtered.map((v, i) => {
           const isActive = currentVariable?.className === v.className;
@@ -188,17 +188,17 @@ export function VariableDialog({ property, currentVariable, onSelect, onUnlink, 
           return (
             <div
               key={v.className}
-              className={`retune-variable-dialog-item${isActive ? " retune-variable-dialog-item-active" : ""}${isHighlighted ? " retune-variable-dialog-item-highlighted" : ""}`}
+              className={`tuna-variable-dialog-item${isActive ? " tuna-variable-dialog-item-active" : ""}${isHighlighted ? " tuna-variable-dialog-item-highlighted" : ""}`}
               data-token-index={i}
             >
               {isColor && (
                 <span
-                  className="retune-variable-dialog-swatch"
+                  className="tuna-variable-dialog-swatch"
                   style={{ backgroundColor: getSwatchColor(v) || "transparent" }}
                 />
               )}
-              <span className="retune-variable-dialog-name">{formatName(v.className)}</span>
-              <span className="retune-variable-dialog-value">{formatValue(v)}</span>
+              <span className="tuna-variable-dialog-name">{formatName(v.className)}</span>
+              <span className="tuna-variable-dialog-value">{formatValue(v)}</span>
             </div>
           );
         })}

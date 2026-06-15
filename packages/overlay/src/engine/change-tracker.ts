@@ -746,7 +746,7 @@ export class ChangeTracker {
     this.persist();
   }
 
-  private static STORAGE_KEY = "retune-pending-changes";
+  private static STORAGE_KEY = "tuna-pending-changes";
 
   /** Save state to localStorage */
   persist() {

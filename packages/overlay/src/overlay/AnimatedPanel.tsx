@@ -32,5 +32,5 @@ export function AnimatedPanel({ visible, children }: { visible: boolean; childre
   if (state === "hidden") return null;
 
   const animClass = state === "entering" ? "entering" : state === "exiting" ? "exiting" : "";
-  return <div className={`retune-panel-anim ${animClass}`}>{childrenRef.current}</div>;
+  return <div className={`tuna-panel-anim ${animClass}`}>{childrenRef.current}</div>;
 }

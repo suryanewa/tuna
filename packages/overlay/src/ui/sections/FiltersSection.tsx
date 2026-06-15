@@ -94,7 +94,7 @@ export function FiltersSection({
             <Tooltip content="Add filter" side="top">
               <button
                 ref={filterMenuBtnRef}
-                className="retune-section-action"
+                className="tuna-section-action"
                 onClick={() => {
                   if (filterMenuOpen) {
                     setFilterMenuOpen(false);
@@ -167,7 +167,7 @@ export function FiltersSection({
           const renderFilterRow = (f: FilterItem) => {
             const config = FILTER_CONFIG[f.type];
             return (
-              <div className="retune-row" key={f.id}>
+              <div className="tuna-row" key={f.id}>
                 <SliderInput
                   label={config.label}
                   prop={f.id}
@@ -179,7 +179,7 @@ export function FiltersSection({
                 />
                 <div style={{ alignSelf: "center" }}>
                   <Tooltip content="Remove" side="top">
-                    <button className="retune-split-btn" onClick={() => handleRemoveFilter(f.id)}>
+                    <button className="tuna-split-btn" onClick={() => handleRemoveFilter(f.id)}>
                       <Minus />
                     </button>
                   </Tooltip>

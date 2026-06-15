@@ -1,12 +1,12 @@
 /**
- * Retune MCP Server CLI.
+ * Tuna MCP Server CLI.
  *
  * Starts a WebSocket bridge for the browser overlay and
  * connects to the AI tool via stdio transport.
  *
  * Usage:
- *   npx retune          — start the MCP server
- *   npx retune setup    — auto-configure MCP + install skill for AI tools
+ *   npx tuna          — start the MCP server
+ *   npx tuna setup    — auto-configure MCP + install skill for AI tools
  */
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
@@ -20,7 +20,7 @@ import { createServer } from "./server.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const port = parseInt(process.env.RETUNE_WS_PORT || "9223", 10);
+const port = parseInt(process.env.TUNA_WS_PORT || "9223", 10);
 
 /** Auto-sync bundled skill file to installed location on startup */
 function syncSkill() {
@@ -29,8 +29,8 @@ function syncSkill() {
   if (!existsSync(bundledPath)) return;
 
   const targets = [
-    join(homedir(), ".claude", "skills", "retune-visual-changes", "SKILL.md"),
-    join(homedir(), ".cursor", "skills", "retune-visual-changes", "SKILL.md"),
+    join(homedir(), ".claude", "skills", "tuna-visual-changes", "SKILL.md"),
+    join(homedir(), ".cursor", "skills", "tuna-visual-changes", "SKILL.md"),
   ];
 
   const bundled = readFileSync(bundledPath, "utf-8");
@@ -42,7 +42,7 @@ function syncSkill() {
       if (installed !== bundled) {
         mkdirSync(dirname(target), { recursive: true });
         writeFileSync(target, bundled);
-        console.error(`[Retune MCP] Skill synced: ${target}`);
+        console.error(`[Tuna MCP] Skill synced: ${target}`);
       }
     } catch {
       // Permission error or similar — skip silently
@@ -65,7 +65,7 @@ async function startServer() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
 
-  console.error("[Retune MCP] Server running. Waiting for AI tool connection...");
+  console.error("[Tuna MCP] Server running. Waiting for AI tool connection...");
 
   // Graceful shutdown
   process.on("SIGINT", () => {
@@ -92,6 +92,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error("[Retune MCP] Fatal error:", err);
+  console.error("[Tuna MCP] Fatal error:", err);
   process.exit(1);
 });

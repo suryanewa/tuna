@@ -138,7 +138,7 @@ export function SizeSection({
           <Tooltip content="Add constraint" side="top">
             <button
               ref={sizeMenuBtnRef}
-              className="retune-section-action"
+              className="tuna-section-action"
               onClick={() => {
                 if (sizeMenuOpen) {
                   setSizeMenuOpen(false);
@@ -248,14 +248,14 @@ export function SizeSection({
         </Field>
         <Tooltip content={aspectLocked ? "Unlock aspect ratio" : "Lock aspect ratio"} side="top">
         <button
-          className={`retune-split-btn${aspectLocked ? " active" : ""}`}
+          className={`tuna-split-btn${aspectLocked ? " active" : ""}`}
           onClick={() => {
             if (!aspectLocked && element.element) {
               const rect = element.element.getBoundingClientRect();
               if (rect.height > 0) aspectRatioRef.current = rect.width / rect.height;
-              element.element.setAttribute("data-retune-aspect-locked", "true");
+              element.element.setAttribute("data-tuna-aspect-locked", "true");
             } else if (element.element) {
-              element.element.removeAttribute("data-retune-aspect-locked");
+              element.element.removeAttribute("data-tuna-aspect-locked");
             }
             setAspectLocked(v => !v);
           }}
@@ -273,8 +273,8 @@ export function SizeSection({
         </Tooltip>
       </Row>
       {visibleSizeExtras.has("min") && (
-        <div className="retune-section-row">
-          <div className="retune-row">
+        <div className="tuna-section-row">
+          <div className="tuna-row">
             <Field label="Min W">
               <NumberInput prop="minWidth" value={s.minWidth === "0px" || s.minWidth === "auto" ? "" : s.minWidth} placeholder="–" onChange={(p, v) => {
                 if (!v) onPropertyChange(p, "0px");
@@ -288,7 +288,7 @@ export function SizeSection({
               }} {...changeProps("minHeight")} />
             </Field>
             <Tooltip content="Remove min size" side="top">
-              <button className="retune-split-btn" onClick={() => {
+              <button className="tuna-split-btn" onClick={() => {
                 onPropertyChange("minWidth", "0px");
                 onPropertyChange("minHeight", "0px");
                 setSizeExtras((prev) => { const next = new Set(prev); next.delete("min"); return next; });
@@ -300,8 +300,8 @@ export function SizeSection({
         </div>
       )}
       {visibleSizeExtras.has("max") && (
-        <div className="retune-section-row">
-          <div className="retune-row">
+        <div className="tuna-section-row">
+          <div className="tuna-row">
             <Field label="Max W">
               <NumberInput prop="maxWidth" value={s.maxWidth === "none" ? "" : s.maxWidth} placeholder="–" onChange={(p, v) => {
                 if (!v) onPropertyChange(p, "none");
@@ -315,7 +315,7 @@ export function SizeSection({
               }} {...changeProps("maxHeight")} />
             </Field>
             <Tooltip content="Remove max size" side="top">
-              <button className="retune-split-btn" onClick={() => {
+              <button className="tuna-split-btn" onClick={() => {
                 onPropertyChange("maxWidth", "none");
                 onPropertyChange("maxHeight", "none");
                 setSizeExtras((prev) => { const next = new Set(prev); next.delete("max"); return next; });

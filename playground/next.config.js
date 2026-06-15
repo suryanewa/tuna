@@ -5,9 +5,9 @@ const fs = require("fs");
 const overlayPkg = path.join(__dirname, "..", "packages", "overlay");
 const overlayDist = path.join(overlayPkg, "dist");
 
-function readRetuneVersion() {
+function readTunaVersion() {
   const candidates = [
-    path.join(__dirname, "node_modules", "retune", "package.json"),
+    path.join(__dirname, "node_modules", "tuna", "package.json"),
     path.join(overlayPkg, "package.json"),
   ];
 
@@ -22,10 +22,10 @@ function readRetuneVersion() {
 }
 
 const nextConfig = {
-  transpilePackages: ["retune"],
+  transpilePackages: ["tuna"],
   outputFileTracingRoot: path.join(__dirname, ".."),
   env: {
-    RETUNE_VERSION: readRetuneVersion(),
+    TUNA_VERSION: readTunaVersion(),
   },
   webpack: (config, { dev }) => {
     if (dev) {
@@ -39,7 +39,7 @@ const nextConfig = {
       };
       config.snapshot = {
         ...config.snapshot,
-        managedPaths: [/^(.+?[\\/]node_modules[\\/])(?!retune)/],
+        managedPaths: [/^(.+?[\\/]node_modules[\\/])(?!tuna)/],
       };
     }
     return config;

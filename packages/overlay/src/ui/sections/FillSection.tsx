@@ -162,23 +162,23 @@ export function FillSection({
           <Row label="Corner radius">
             {radiusExpanded ? (
               <>
-                <div className="retune-row">
+                <div className="tuna-row">
                   <NumberInput label={<Tooltip content="Top left corner radius" side="top" sideOffset={14}><RadiusTopLeft /></Tooltip>} prop="borderTopLeftRadius" value={s.borderTopLeftRadius} onChange={onPropertyChange} min={0} {...variableProps("borderTopLeftRadius")} {...changeProps("borderTopLeftRadius")} />
                   <NumberInput label={<Tooltip content="Top right corner radius" side="top" sideOffset={14}><RadiusTopRight /></Tooltip>} prop="borderTopRightRadius" value={s.borderTopRightRadius} onChange={onPropertyChange} min={0} {...variableProps("borderTopRightRadius")} {...changeProps("borderTopRightRadius")} />
                   <Tooltip content="Collapse to single" side="top">
-                    <button className="retune-split-btn active" onClick={() => setRadiusExpanded(false)}>
+                    <button className="tuna-split-btn active" onClick={() => setRadiusExpanded(false)}>
                       <AlPaddingSides />
                     </button>
                   </Tooltip>
                 </div>
-                <div className="retune-row">
+                <div className="tuna-row">
                   <NumberInput label={<Tooltip content="Bottom left corner radius" side="top" sideOffset={14}><RadiusBottomLeft /></Tooltip>} prop="borderBottomLeftRadius" value={s.borderBottomLeftRadius} onChange={onPropertyChange} min={0} {...variableProps("borderBottomLeftRadius")} {...changeProps("borderBottomLeftRadius")} />
                   <NumberInput label={<Tooltip content="Bottom right corner radius" side="top" sideOffset={14}><RadiusBottomRight /></Tooltip>} prop="borderBottomRightRadius" value={s.borderBottomRightRadius} onChange={onPropertyChange} min={0} {...variableProps("borderBottomRightRadius")} {...changeProps("borderBottomRightRadius")} />
                   <div style={{ width: 32 }} />
                 </div>
               </>
             ) : (
-              <div className="retune-row">
+              <div className="tuna-row">
                 <ShorthandInput
                   label={<Tooltip content="Corner radius (TL, TR, BR, BL)" side="top" sideOffset={14}><RadiusTopLeft /></Tooltip>}
                   props={["borderTopLeftRadius", "borderTopRightRadius", "borderBottomRightRadius", "borderBottomLeftRadius"]}
@@ -189,7 +189,7 @@ export function FillSection({
                   {...shorthandChangeProps(["borderTopLeftRadius", "borderTopRightRadius", "borderBottomRightRadius", "borderBottomLeftRadius"])}
                 />
                 <Tooltip content="Edit individual corners" side="top">
-                  <button className="retune-split-btn" onClick={() => setRadiusExpanded(true)}>
+                  <button className="tuna-split-btn" onClick={() => setRadiusExpanded(true)}>
                     <AlPaddingSides />
                   </button>
                 </Tooltip>
@@ -210,14 +210,14 @@ export function FillSection({
         return (
           <Section label="Fill" action={
             hasSvgFill ? (
-              <Tooltip content="Remove fill" side="top"><button className="retune-section-action" onClick={() => onPropertyChange("fill", "none")}><Minus /></button></Tooltip>
+              <Tooltip content="Remove fill" side="top"><button className="tuna-section-action" onClick={() => onPropertyChange("fill", "none")}><Minus /></button></Tooltip>
             ) : (
-              <Tooltip content="Add fill" side="top"><button className="retune-section-action" onClick={() => onPropertyChange("fill", "#000000")}><Plus /></button></Tooltip>
+              <Tooltip content="Add fill" side="top"><button className="tuna-section-action" onClick={() => onPropertyChange("fill", "#000000")}><Plus /></button></Tooltip>
             )
           }>
             {hasSvgFill && (
               <Row label="Color">
-                <div className="retune-row">
+                <div className="tuna-row">
                   <ColorInput prop="fill" value={s.fill} onChange={onPropertyChange} {...variableProps("fill")} {...changeProps("fill")} />
                 </div>
               </Row>
@@ -232,11 +232,11 @@ export function FillSection({
         return (
           <Section label="Stroke" action={
             hasStrokeColor ? (
-              <Tooltip content="Remove stroke" side="top"><button className="retune-section-action" onClick={() => { onPropertyChange("stroke", "none"); }}><Minus /></button></Tooltip>
+              <Tooltip content="Remove stroke" side="top"><button className="tuna-section-action" onClick={() => { onPropertyChange("stroke", "none"); }}><Minus /></button></Tooltip>
             ) : null
           }>
             <Row label="Color">
-              <div className="retune-row">
+              <div className="tuna-row">
                 <ColorInput prop="stroke" value={hasStrokeColor ? s.stroke : "transparent"} onChange={(prop, val) => {
                   onPropertyChange(prop, val);
                   if (!s.strokeWidth || s.strokeWidth === "0") onPropertyChange("strokeWidth", "1");
@@ -244,7 +244,7 @@ export function FillSection({
               </div>
             </Row>
             <Row label="Width">
-              <div className="retune-row">
+              <div className="tuna-row">
                 <NumberInput label="" prop="strokeWidth" value={s.strokeWidth || "0"} onChange={onPropertyChange} min={0} step={0.5} {...variableProps("strokeWidth")} {...changeProps("strokeWidth")} />
               </div>
             </Row>
@@ -275,9 +275,9 @@ export function FillSection({
                   />
                 )}
                 {hasFill || fillHasVariable ? (
-                  <Tooltip content="Remove fill" side="top"><button className="retune-section-action" onClick={handleRemoveFill}><Minus /></button></Tooltip>
+                  <Tooltip content="Remove fill" side="top"><button className="tuna-section-action" onClick={handleRemoveFill}><Minus /></button></Tooltip>
                 ) : (
-                  <Tooltip content="Add fill" side="top"><button className="retune-section-action" onClick={handleAddFill}><Plus /></button></Tooltip>
+                  <Tooltip content="Add fill" side="top"><button className="tuna-section-action" onClick={handleAddFill}><Plus /></button></Tooltip>
                 )}
               </div>
             }

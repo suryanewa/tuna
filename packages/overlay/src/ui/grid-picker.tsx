@@ -66,38 +66,38 @@ export function GridPicker({ columns, rows, onChange }: GridPickerProps) {
   const previewRows = isHovering ? hoverRow : rows;
 
   return (
-    <div className="retune-grid-picker-wrap" ref={containerRef}>
+    <div className="tuna-grid-picker-wrap" ref={containerRef}>
       {/* Rested state: compact preview */}
       <button
         type="button"
-        className="retune-grid-picker-preview"
+        className="tuna-grid-picker-preview"
         onClick={() => setOpen(!open)}
         aria-label={`Grid: ${displayCols} × ${displayRows}`}
       >
         <div
-          className="retune-grid-picker-mini"
+          className="tuna-grid-picker-mini"
           style={{
             gridTemplateColumns: `repeat(${displayCols}, 1fr)`,
             gridTemplateRows: `repeat(${displayRows}, 1fr)`,
           }}
         >
           {Array.from({ length: displayCols * displayRows }, (_, i) => (
-            <div key={i} className="retune-grid-picker-mini-cell" />
+            <div key={i} className="tuna-grid-picker-mini-cell" />
           ))}
-          <span className="retune-grid-picker-label">{displayCols} × {displayRows}</span>
+          <span className="tuna-grid-picker-label">{displayCols} × {displayRows}</span>
         </div>
       </button>
 
       {/* Expanded state: picker dialog */}
       {open && (
-        <div className="retune-grid-picker-dialog">
-          <div className="retune-grid-picker-dialog-header">
+        <div className="tuna-grid-picker-dialog">
+          <div className="tuna-grid-picker-dialog-header">
             {previewCols > 0 && previewRows > 0
               ? `${previewCols} × ${previewRows}`
               : "Select grid size"}
           </div>
           <div
-            className="retune-grid-picker-grid"
+            className="tuna-grid-picker-grid"
             onMouseLeave={() => setIsHovering(false)}
             onClick={handleSelect}
           >
@@ -110,7 +110,7 @@ export function GridPicker({ columns, rows, onChange }: GridPickerProps) {
                 return (
                   <div
                     key={`${r}-${c}`}
-                    className={`retune-grid-picker-cell${isSelected ? " selected" : ""}${isPreview ? " preview" : ""}`}
+                    className={`tuna-grid-picker-cell${isSelected ? " selected" : ""}${isPreview ? " preview" : ""}`}
                     onMouseEnter={() => {
                       setIsHovering(true);
                       setHoverCol(col);

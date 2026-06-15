@@ -281,7 +281,7 @@ describe("CommentStore dual-write", () => {
         ],
         nextId: 2,
       };
-      storage.set("retune-comments", JSON.stringify(legacy));
+      storage.set("tuna-comments", JSON.stringify(legacy));
       store.restore();
       const comment = store.get(1);
       expect(comment?.content?.version).toBe(1);

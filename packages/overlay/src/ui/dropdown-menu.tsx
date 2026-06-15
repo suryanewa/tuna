@@ -144,12 +144,12 @@ export const DropdownMenu = forwardRef<HTMLDivElement, DropdownMenuProps>(
 
     return (
       <div
-        className="retune-menu-wrapper"
+        className="tuna-menu-wrapper"
         style={{ minWidth, ...style }}
       >
         <div
           ref={setRefs}
-          className="retune-menu-scroll"
+          className="tuna-menu-scroll"
           role="listbox"
           aria-label="Options"
           onScroll={updateOverflow}
@@ -161,16 +161,16 @@ export const DropdownMenu = forwardRef<HTMLDivElement, DropdownMenuProps>(
             return (
               <Fragment key={`${index}-${option.value}`}>
                 {option.separatorBefore && (
-                  <div className="retune-menu-separator">
-                    <div className="retune-menu-separator-line" />
+                  <div className="tuna-menu-separator">
+                    <div className="tuna-menu-separator-line" />
                   </div>
                 )}
                 {option.headingBefore && (
-                  <div className="retune-menu-heading">
+                  <div className="tuna-menu-heading">
                     {option.headingBefore}
                   </div>
                 )}
-                <div className="retune-menu-item-wrap">
+                <div className="tuna-menu-item-wrap">
                   <button
                     type="button"
                     onClick={() => onSelect(option)}
@@ -178,7 +178,7 @@ export const DropdownMenu = forwardRef<HTMLDivElement, DropdownMenuProps>(
                     onMouseLeave={() => { handleHighlight(-1); onItemHover?.(null); }}
                     disabled={option.disabled}
                     className={
-                      "retune-menu-item" +
+                      "tuna-menu-item" +
                       (isHighlighted ? " highlighted" : "") +
                       (isSelected ? " selected" : "") +
                       (option.disabled ? " disabled" : "") +
@@ -188,15 +188,15 @@ export const DropdownMenu = forwardRef<HTMLDivElement, DropdownMenuProps>(
                     aria-selected={isSelected}
                   >
                     {showCheckmark && isSelected && (
-                      <span className="retune-menu-check">
+                      <span className="tuna-menu-check">
                         <CheckIcon />
                       </span>
                     )}
-                    <span className="retune-menu-item-label">
+                    <span className="tuna-menu-item-label">
                       {renderLabel ? renderLabel(option) : option.label}
                     </span>
                     {option.shortcut && (
-                      <span className="retune-menu-item-shortcut">
+                      <span className="tuna-menu-item-shortcut">
                         {option.shortcut}
                       </span>
                     )}
@@ -206,12 +206,12 @@ export const DropdownMenu = forwardRef<HTMLDivElement, DropdownMenuProps>(
             );
           })}
           {options.length === 0 && (
-            <div className="retune-menu-empty">No options available</div>
+            <div className="tuna-menu-empty">No options available</div>
           )}
         </div>
         {showTop && (
           <div
-            className="retune-menu-scroll-indicator top"
+            className="tuna-menu-scroll-indicator top"
             onMouseEnter={() => startScrolling("up")}
             onMouseLeave={stopScrolling}
             aria-hidden="true"
@@ -222,7 +222,7 @@ export const DropdownMenu = forwardRef<HTMLDivElement, DropdownMenuProps>(
         )}
         {showBottom && (
           <div
-            className="retune-menu-scroll-indicator bottom"
+            className="tuna-menu-scroll-indicator bottom"
             onMouseEnter={() => startScrolling("down")}
             onMouseLeave={stopScrolling}
             aria-hidden="true"

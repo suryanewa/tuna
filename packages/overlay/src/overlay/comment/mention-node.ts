@@ -19,7 +19,7 @@ export class MentionNode extends TextNode {
   __selector: string;
 
   static getType(): string {
-    return "retune-mention";
+    return "tuna-mention";
   }
 
   static clone(node: MentionNode): MentionNode {
@@ -48,7 +48,7 @@ export class MentionNode extends TextNode {
 
   createDOM(config: EditorConfig): HTMLElement {
     const dom = super.createDOM(config);
-    dom.className = "retune-comment-mention";
+    dom.className = "tuna-comment-mention";
     dom.style.color = this.__color;
     dom.dataset.mention = "true";
     dom.dataset.mentionSelector = this.__selector;

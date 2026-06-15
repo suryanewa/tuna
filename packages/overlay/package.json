@@ -1,12 +1,12 @@
 {
-  "name": "retune",
+  "name": "tuna",
   "version": "0.7.6",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/khadgi-sujan/retune"
+    "url": "https://github.com/khadgi-sujan/tuna"
   },
-  "homepage": "https://retune.dev",
+  "homepage": "https://tuna.dev",
   "license": "PolyForm-Shield-1.0.0",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -17,7 +17,7 @@
     }
   },
   "bin": {
-    "retune": "./dist/cli.js"
+    "tuna": "./dist/cli.js"
   },
   "files": [
     "dist",

@@ -323,24 +323,24 @@ export function ComboInput({ label, prop, value, options, onChange, variableMatc
 
   // Portal target for variable picker dialog
   const portalTarget = containerRef.current?.getRootNode() instanceof ShadowRoot
-    ? (containerRef.current.getRootNode() as ShadowRoot).querySelector("[data-retune-container]") as HTMLElement
+    ? (containerRef.current.getRootNode() as ShadowRoot).querySelector("[data-tuna-container]") as HTMLElement
     : null;
 
   // Variable-applied transformation: render as number-input-like display
   if (variableMatch) {
     return (
-      <div className="retune-combo" ref={containerRef}>
+      <div className="tuna-combo" ref={containerRef}>
         <ChangeIndicator isChanged={isChanged ?? false} onReset={onReset ?? (() => {})} />
         {label && (
           <span
             ref={labelRef}
-            className="retune-combo-label"
+            className="tuna-combo-label"
           >
             {label}
           </span>
         )}
         <input
-          className="retune-combo-input retune-combo-variable-applied"
+          className="tuna-combo-input tuna-combo-variable-applied"
           style={label ? undefined : { paddingLeft: 8 }}
           value={displayValue}
           readOnly
@@ -348,7 +348,7 @@ export function ComboInput({ label, prop, value, options, onChange, variableMatc
           spellCheck={false}
         />
         <Tooltip content="Unlink variable" side="top" delay={300}>
-          <span ref={unlinkRef} className="retune-variable-action retune-variable-unlink">
+          <span ref={unlinkRef} className="tuna-variable-action tuna-variable-unlink">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
               <path d="M12.3533 14.646C12.5485 14.8412 12.5484 15.1578 12.3533 15.3531L11.3534 16.353C10.3297 17.3765 8.67028 17.3766 7.64665 16.353C6.62317 15.3294 6.62317 13.6699 7.64665 12.6462L8.64654 11.6463C8.84181 11.4512 9.15844 11.4511 9.35364 11.6463C9.54883 11.8415 9.54874 12.1582 9.35364 12.3534L8.35375 13.3533C7.7208 13.9865 7.7208 15.0128 8.35375 15.6459C8.98687 16.279 10.0132 16.2789 10.6463 15.6459L11.6462 14.646C11.8414 14.451 12.1581 14.4511 12.3533 14.646ZM8.0002 9.00021C8.27634 9.00021 8.50015 9.22401 8.50015 9.50015C8.49994 9.77612 8.27622 10.0001 8.0002 10.0001H6.50036C6.22434 10.0001 6.00061 9.77612 6.00041 9.50015C6.00041 9.22401 6.22422 9.00021 6.50036 9.00021H8.0002ZM14.5002 15.5002C14.7763 15.5002 15.0001 15.724 15.0001 16.0001V17.5C15 17.776 14.7763 17.9999 14.5002 17.9999C14.2241 17.9999 14.0004 17.776 14.0002 17.5V16.0001C14.0002 15.724 14.2241 15.5002 14.5002 15.5002ZM9.50073 5.99984C9.77664 6.00011 10.0007 6.22381 10.0007 6.49978V7.99962C10.0007 8.2756 9.77664 8.4993 9.50073 8.49957C9.22459 8.49957 9.00078 8.27576 9.00078 7.99962V6.49978C9.00078 6.22364 9.22459 5.99984 9.50073 5.99984ZM17.5006 13.9997C17.7765 13.9998 18.0004 14.2237 18.0005 14.4996C18.0005 14.7757 17.7766 14.9994 17.5006 14.9996H16.0007C15.7246 14.9996 15.5008 14.7758 15.5008 14.4996C15.5009 14.2235 15.7246 13.9997 16.0007 13.9997H17.5006ZM16.3543 7.64676C17.3774 8.67043 17.3776 10.33 16.3543 11.3535L15.3544 12.3534C15.1592 12.5486 14.8426 12.5484 14.6473 12.3534C14.452 12.1582 14.452 11.8416 14.6473 11.6463L15.6472 10.6464C16.28 10.0134 16.2798 8.98702 15.6472 8.35387C15.0141 7.72075 13.9871 7.72018 13.3539 8.35317L12.354 9.35307C12.1588 9.54825 11.8422 9.54808 11.6469 9.35307C11.4519 9.15779 11.4517 8.84114 11.6469 8.64596L12.6468 7.64607C13.6705 6.62254 15.3306 6.62312 16.3543 7.64676Z" fill="currentColor" fillOpacity={0.9} />
             </svg>
@@ -370,12 +370,12 @@ export function ComboInput({ label, prop, value, options, onChange, variableMatc
   }
 
   return (
-    <div className="retune-combo" ref={containerRef}>
+    <div className="tuna-combo" ref={containerRef}>
       <ChangeIndicator isChanged={isChanged ?? false} onReset={onReset ?? (() => {})} />
       {label && (
         <span
           ref={labelRef}
-          className="retune-combo-label"
+          className="tuna-combo-label"
           onPointerDown={handleLabelPointerDown}
           onPointerMove={handleLabelPointerMove}
           onPointerUp={handleLabelPointerUp}
@@ -385,7 +385,7 @@ export function ComboInput({ label, prop, value, options, onChange, variableMatc
       )}
       <input
         ref={comboInputRef}
-        className="retune-combo-input"
+        className="tuna-combo-input"
         style={label ? undefined : { paddingLeft: 8 }}
         value={displayValue}
         placeholder="–"
@@ -400,7 +400,7 @@ export function ComboInput({ label, prop, value, options, onChange, variableMatc
       />
       <button
         type="button"
-        className="retune-combo-trigger"
+        className="tuna-combo-trigger"
         onClick={() => { open ? closeDropdown() : openDropdown(); }}
         aria-label="Toggle options"
       >
@@ -408,7 +408,7 @@ export function ComboInput({ label, prop, value, options, onChange, variableMatc
       </button>
       {open && menuPos && (
         <div
-          className="retune-combo-dropdown-anchor"
+          className="tuna-combo-dropdown-anchor"
           style={{ top: menuPos.top, left: menuPos.left, width: menuPos.width }}
         >
           <DropdownMenu

@@ -34,8 +34,8 @@ export function ChangeIndicator({ isChanged, onReset }: ChangeIndicatorProps) {
 
   return (
     <Tooltip content="Reset property" side="top" delay={200}>
-      <span ref={dotRef} className="retune-change-dot">
-        <span className="retune-change-dot-inner" />
+      <span ref={dotRef} className="tuna-change-dot">
+        <span className="tuna-change-dot-inner" />
       </span>
     </Tooltip>
   );

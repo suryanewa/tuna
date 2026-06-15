@@ -95,7 +95,7 @@ export function PanelBanner({
         <div
           style={{
             padding: "12px 16px",
-            background: "var(--retune-blue)",
+            background: "var(--tuna-blue)",
             display: "flex",
             flexDirection: "column",
             gap: "8px",
@@ -105,14 +105,14 @@ export function PanelBanner({
         >
           <div style={{
             fontFamily: "inherit", fontSize: "12px", fontWeight: 600,
-            lineHeight: "16px", letterSpacing: "-0.06px", color: "var(--retune-white)",
+            lineHeight: "16px", letterSpacing: "-0.06px", color: "var(--tuna-white)",
           }}>
             {title}
           </div>
           {body && (
             <div style={{
               fontFamily: "inherit", fontSize: "11px", lineHeight: "16px",
-              color: "var(--retune-white)", opacity: 0.85,
+              color: "var(--tuna-white)", opacity: 0.85,
             }}>
               {body}
             </div>
@@ -122,7 +122,7 @@ export function PanelBanner({
               ref={btnRef}
               onClick={handleCopy}
               style={{
-                background: "var(--retune-white)",
+                background: "var(--tuna-white)",
                 border: "none",
                 borderRadius: "6px",
                 padding: 0,
@@ -132,7 +132,7 @@ export function PanelBanner({
                 fontWeight: 500,
                 lineHeight: "16px",
                 letterSpacing: "-0.055px",
-                color: "var(--retune-always-black)",
+                color: "var(--tuna-always-black)",
                 whiteSpace: "nowrap",
                 position: "relative",
                 overflow: "hidden",
@@ -208,7 +208,7 @@ export function PanelBanner({
                 fontWeight: 500,
                 lineHeight: "16px",
                 letterSpacing: "-0.055px",
-                color: "var(--retune-white)",
+                color: "var(--tuna-white)",
                 whiteSpace: "nowrap",
                 opacity: copied ? 0 : 0.9,
                 filter: copied ? "blur(2px)" : "blur(0)",

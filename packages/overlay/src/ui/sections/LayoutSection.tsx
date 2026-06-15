@@ -68,8 +68,8 @@ export function LayoutSection({
       </Row>
       {isFlex && (
         <>
-          <div className="retune-section-row">
-            <div className="retune-row" style={{ alignItems: "flex-start" }}>
+          <div className="tuna-section-row">
+            <div className="tuna-row" style={{ alignItems: "flex-start" }}>
               <div style={{ flex: 1 }}>
                 <Field label="Alignment">
                   <AlignmentGrid

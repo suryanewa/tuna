@@ -1,11 +1,11 @@
 import { useEffect, useRef } from "react";
 
-export function RetuneLogo({ size = 20 }: { size?: number }) {
+export function TunaLogo({ size = 20 }: { size?: number }) {
   const gRef = useRef<SVGGElement>(null);
 
   useEffect(() => {
     const g = gRef.current;
-    const btn = g?.closest(".retune-toolbar-collapse-btn");
+    const btn = g?.closest(".tuna-toolbar-collapse-btn");
     if (!g || !btn) return;
     const logoGroup = g;
 
@@ -58,7 +58,7 @@ export function RetuneLogo({ size = 20 }: { size?: number }) {
             if (!el) return;
             el.style.transition = "none";
             el.style.fill = color;
-            el.setAttribute("filter", "url(#retune-bloom)");
+            el.setAttribute("filter", "url(#tuna-bloom)");
             el.getBoundingClientRect();
             el.style.transition = `fill ${flash}ms ease-out`;
             el.style.fill = "";
@@ -92,7 +92,7 @@ export function RetuneLogo({ size = 20 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 20 20" fill="none">
       <defs>
-        <filter id="retune-bloom" x="-100%" y="-100%" width="300%" height="300%" colorInterpolationFilters="sRGB">
+        <filter id="tuna-bloom" x="-100%" y="-100%" width="300%" height="300%" colorInterpolationFilters="sRGB">
           <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="wideBlur"/>
           <feColorMatrix in="wideBlur" type="matrix" result="wideGlow"
             values="1.8 0 0 0 0  0 1.8 0 0 0  0 0 1.8 0 0  0 0 0 0.6 0"/>

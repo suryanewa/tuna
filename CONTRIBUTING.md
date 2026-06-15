@@ -1,10 +1,10 @@
-# Contributing to Retune
+# Contributing to Tuna
 
 ## Getting Started
 
 ```bash
-git clone https://github.com/khadgi-sujan/retune.git
-cd retune
+git clone https://github.com/khadgi-sujan/tuna.git
+cd tuna
 npm install
 ```
 
@@ -97,14 +97,14 @@ The property panel uses consistent spacing:
 
 - `overlay.css` is the source of truth -- never edit `overlay-css.ts`
 - Run `node scripts/build-css.js` after CSS changes
-- Use existing CSS variables (`--retune-text`, `--retune-surface-hover`, etc.)
-- Text hierarchy: `--retune-text` (90%), `--retune-text-secondary` (70%), `--retune-text-tertiary` (50%)
+- Use existing CSS variables (`--tuna-text`, `--tuna-surface-hover`, etc.)
+- Text hierarchy: `--tuna-text` (90%), `--tuna-text-secondary` (70%), `--tuna-text-tertiary` (50%)
 
 ## Architecture Overview
 
 ```
 packages/overlay/src/
-  overlay/          — Main UI (Retune.tsx, PropertyPanel.tsx, ElementTree.tsx)
+  overlay/          — Main UI (Tuna.tsx, PropertyPanel.tsx, ElementTree.tsx)
   selector/         — Element picking, identification, fiber access (picker.ts, identifier.ts)
   engine/           — Change tracking, output formatting, live preview
   ui/               — Reusable input components (ColorInput, SelectInput, NumberInput, etc.)
@@ -125,4 +125,4 @@ packages/overlay/src/
 
 ## Questions?
 
-Open an issue at https://github.com/khadgi-sujan/retune/issues
+Open an issue at https://github.com/khadgi-sujan/tuna/issues

@@ -33,10 +33,10 @@ export class Bridge {
   /** Check npm registry for the latest version (non-blocking) */
   private async checkForUpdates() {
     // Test override — skip registry fetch
-    const testVersion = process.env.RETUNE_TEST_LATEST_VERSION;
+    const testVersion = process.env.TUNA_TEST_LATEST_VERSION;
     if (testVersion) {
       this.latestVersion = testVersion;
-      console.error(`[Retune MCP] Update check: using test version ${testVersion}`);
+      console.error(`[Tuna MCP] Update check: using test version ${testVersion}`);
       return;
     }
 
@@ -56,7 +56,7 @@ export class Bridge {
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 5000);
-      const res = await fetch("https://registry.npmjs.org/retune/latest", {
+      const res = await fetch("https://registry.npmjs.org/tuna/latest", {
         signal: controller.signal,
         headers: { "Accept": "application/json" },
       });
@@ -66,7 +66,7 @@ export class Bridge {
         if (data.version) {
           this.latestVersion = data.version;
           if (data.version !== this.currentVersion) {
-            console.error(`[Retune MCP] Update available: ${this.currentVersion} → ${data.version}`);
+            console.error(`[Tuna MCP] Update available: ${this.currentVersion} → ${data.version}`);
           }
         }
       }
@@ -79,7 +79,7 @@ export class Bridge {
   start(): Promise<void> {
     return new Promise((resolve, reject) => {
       this.wss = new WebSocketServer({ port: this.port }, () => {
-        console.error(`[Retune MCP] WebSocket bridge listening on port ${this.port}`);
+        console.error(`[Tuna MCP] WebSocket bridge listening on port ${this.port}`);
         resolve();
       });
 
@@ -100,14 +100,14 @@ export class Bridge {
 
       this.wss.on("connection", (ws: WebSocket, _req: IncomingMessage) => {
         // Require a handshake before accepting the connection.
-        // The browser overlay sends { method: "handshake", params: { client: "retune-overlay" } }
+        // The browser overlay sends { method: "handshake", params: { client: "tuna-overlay" } }
         // as its first message. Connections that don't handshake within 5s are closed.
         // This prevents non-overlay clients (e.g. ChatGPT desktop, other tools)
         // from hijacking the WebSocket slot.
         let verified = false;
         const handshakeTimeout = setTimeout(() => {
           if (!verified) {
-            console.error("[Retune MCP] Closing unverified connection (no handshake)");
+            console.error("[Tuna MCP] Closing unverified connection (no handshake)");
             ws.close();
           }
         }, 5000);
@@ -117,10 +117,10 @@ export class Bridge {
             const msg = JSON.parse(data.toString());
 
             // Handle handshake
-            if (!verified && msg.method === "handshake" && msg.params?.client === "retune-overlay") {
+            if (!verified && msg.method === "handshake" && msg.params?.client === "tuna-overlay") {
               verified = true;
               clearTimeout(handshakeTimeout);
-              console.error("[Retune MCP] Browser overlay connected (verified)");
+              console.error("[Tuna MCP] Browser overlay connected (verified)");
 
               // Replace existing client
               if (this.client && this.client !== ws) {
@@ -162,14 +162,14 @@ export class Bridge {
               ws.send(JSON.stringify({ id: msg.id, result: { ok: true } }));
             }
           } catch (err) {
-            console.error("[Retune MCP] Failed to parse message:", err);
+            console.error("[Tuna MCP] Failed to parse message:", err);
           }
         });
 
         ws.on("close", () => {
           clearTimeout(handshakeTimeout);
           if (verified) {
-            console.error("[Retune MCP] Browser overlay disconnected");
+            console.error("[Tuna MCP] Browser overlay disconnected");
             if (this.client === ws) this.client = null;
           }
         });

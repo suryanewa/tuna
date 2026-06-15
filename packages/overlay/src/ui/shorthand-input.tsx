@@ -187,11 +187,11 @@ export function ShorthandInput({ label, props, values, onChange, placeholder, mi
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div ref={wrapperRef} className={`retune-prop${variableMatch ? " retune-prop-variable-applied" : ""}`}>
+    <div ref={wrapperRef} className={`tuna-prop${variableMatch ? " tuna-prop-variable-applied" : ""}`}>
       <ChangeIndicator isChanged={isChanged ?? false} onReset={onReset ?? (() => {})} />
       {label && (
         <span
-          className="retune-prop-label"
+          className="tuna-prop-label"
           onClick={handleInputClick}
           onPointerDown={variableMatch ? undefined : handleLabelPointerDown}
           onPointerMove={variableMatch ? undefined : handleLabelPointerMove}
@@ -201,7 +201,7 @@ export function ShorthandInput({ label, props, values, onChange, placeholder, mi
         </span>
       )}
       <input
-        className="retune-prop-input"
+        className="tuna-prop-input"
         value={localValue}
         placeholder={placeholder || "–"}
         readOnly={!!variableMatch}

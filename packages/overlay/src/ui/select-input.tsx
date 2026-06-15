@@ -111,23 +111,23 @@ export function SelectInput({ label, prop, value, options, onChange, isChanged, 
   };
 
   return (
-    <div className="retune-select" ref={containerRef}>
+    <div className="tuna-select" ref={containerRef}>
       <ChangeIndicator isChanged={isChanged ?? false} onReset={onReset ?? (() => {})} />
       <button
         type="button"
-        className="retune-select-button"
+        className="tuna-select-button"
         onClick={() => { open ? closeDropdown() : openDropdown(); }}
         onKeyDown={handleKeyDown}
       >
-        {label && <span className="retune-select-label">{label}</span>}
-        <span className="retune-select-value" style={label ? undefined : { paddingLeft: 8 }}>{displayValue}</span>
-        <span className="retune-select-chevron">
+        {label && <span className="tuna-select-label">{label}</span>}
+        <span className="tuna-select-value" style={label ? undefined : { paddingLeft: 8 }}>{displayValue}</span>
+        <span className="tuna-select-chevron">
           <ChevronDown />
         </span>
       </button>
       {open && menuPos && (
         <div
-          className="retune-select-dropdown-anchor"
+          className="tuna-select-dropdown-anchor"
           style={{ top: menuPos.top, right: window.innerWidth - menuPos.left - menuPos.width, minWidth: menuPos.width }}
         >
           <DropdownMenu

@@ -25,8 +25,8 @@ const ALT = isMac ? "⌥" : "Alt";
 const DEL = isMac ? "⌫" : "Del";
 
 const SHORTCUTS: Array<{ label: string; keys: string[] }> = [
-  { label: "Toggle Retune", keys: [ALT, "D"] },
-  { label: "Toggle Retune", keys: [MOD, "⇧", "D"] },
+  { label: "Toggle Tuna", keys: [ALT, "D"] },
+  { label: "Toggle Tuna", keys: [MOD, "⇧", "D"] },
   { label: "Select", keys: ["V"] },
   { label: "Draw", keys: ["D"] },
   { label: "Edit", keys: ["E"] },
@@ -48,7 +48,7 @@ const SHORTCUTS: Array<{ label: string; keys: string[] }> = [
 
 function KeyBadge({ children }: { children: string }) {
   const isWide = children.length > 1;
-  return <span className={`retune-key${isWide ? " wide" : ""}`}>{children}</span>;
+  return <span className={`tuna-key${isWide ? " wide" : ""}`}>{children}</span>;
 }
 
 const ChevronRight = () => (
@@ -120,11 +120,11 @@ export function SettingsPanel({
   const isMain = view === "main";
 
   return (
-    <div ref={panelRef} className={`retune-settings-panel ${side}${exiting ? " exiting" : ""}`}>
-      <div className="retune-settings-clip">
+    <div ref={panelRef} className={`tuna-settings-panel ${side}${exiting ? " exiting" : ""}`}>
+      <div className="tuna-settings-clip">
       {/* ── Main settings view ── */}
       <div
-        className="retune-settings-view-container"
+        className="tuna-settings-view-container"
         style={{
           opacity: isMain ? 1 : 0,
           transition: `opacity ${isMain ? EASE_OUT : EASE_IN_OUT}${isMain ? " 30ms" : ""}`,
@@ -133,18 +133,18 @@ export function SettingsPanel({
           top: 0, left: 0, right: 0,
         }}
       >
-        <div className="retune-settings-header">
-          <span className="retune-settings-title">Settings</span>
+        <div className="tuna-settings-header">
+          <span className="tuna-settings-title">Settings</span>
           {version && (
-            <span className="retune-settings-version">
-              {updateAvailable && <span className="retune-settings-version-dot" aria-hidden />}
+            <span className="tuna-settings-version">
+              {updateAvailable && <span className="tuna-settings-version-dot" aria-hidden />}
               v{version}
             </span>
           )}
         </div>
-        <div className="retune-settings-body">
-          <div className="retune-settings-row">
-            <span className="retune-settings-label">Theme</span>
+        <div className="tuna-settings-body">
+          <div className="tuna-settings-row">
+            <span className="tuna-settings-label">Theme</span>
             <div style={{ width: 96 }}>
               <SelectInput
                 prop="theme"
@@ -154,8 +154,8 @@ export function SettingsPanel({
               />
             </div>
           </div>
-          <div className="retune-settings-row">
-            <span className="retune-settings-label">Output Detail</span>
+          <div className="tuna-settings-row">
+            <span className="tuna-settings-label">Output Detail</span>
             <div style={{ width: 96 }}>
               <SelectInput
                 prop="fidelity"
@@ -165,19 +165,19 @@ export function SettingsPanel({
               />
             </div>
           </div>
-          <div className="retune-settings-row">
-            <span className="retune-settings-label">Hide Retune for this session</span>
-            <div className="retune-switch-wrap">
-              <button className="retune-switch" onClick={onHide}>
-                <span className="retune-switch-knob" />
+          <div className="tuna-settings-row">
+            <span className="tuna-settings-label">Hide Tuna for this session</span>
+            <div className="tuna-switch-wrap">
+              <button className="tuna-switch" onClick={onHide}>
+                <span className="tuna-switch-knob" />
               </button>
             </div>
           </div>
           <div
-            className="retune-settings-row clickable"
+            className="tuna-settings-row clickable"
             onClick={() => animateHeight("shortcuts")}
           >
-            <span className="retune-settings-label">Keyboard shortcuts</span>
+            <span className="tuna-settings-label">Keyboard shortcuts</span>
             <ChevronRight />
           </div>
         </div>
@@ -185,7 +185,7 @@ export function SettingsPanel({
 
       {/* ── Keyboard shortcuts view ── */}
       <div
-        className="retune-settings-view-container"
+        className="tuna-settings-view-container"
         style={{
           opacity: !isMain ? 1 : 0,
           transition: `opacity ${!isMain ? EASE_OUT : EASE_IN_OUT}${!isMain ? " 30ms" : ""}`,
@@ -194,15 +194,15 @@ export function SettingsPanel({
           top: 0, left: 0, right: 0,
         }}
       >
-        <div className="retune-settings-header retune-settings-back" onClick={() => animateHeight("main")}>
+        <div className="tuna-settings-header tuna-settings-back" onClick={() => animateHeight("main")}>
           <ChevronLeft />
-          <span className="retune-settings-title" style={{ padding: "8px 0" }}>Keyboard shortcuts</span>
+          <span className="tuna-settings-title" style={{ padding: "8px 0" }}>Keyboard shortcuts</span>
         </div>
-        <div className="retune-settings-body">
+        <div className="tuna-settings-body">
           {SHORTCUTS.map((s, i) => (
-            <div className="retune-settings-row" key={`${s.label}-${i}`}>
-              <span className="retune-settings-label">{s.label}</span>
-              <div className="retune-key-group">
+            <div className="tuna-settings-row" key={`${s.label}-${i}`}>
+              <span className="tuna-settings-label">{s.label}</span>
+              <div className="tuna-key-group">
                 {s.keys.map((k, i) => (
                   <KeyBadge key={i}>{k}</KeyBadge>
                 ))}

@@ -97,12 +97,12 @@ export function Tooltip({
   const tooltipEl = visible ? (
     <div
       ref={tooltipRef}
-      className={`retune-tooltip retune-tooltip-${side}`}
+      className={`tuna-tooltip tuna-tooltip-${side}`}
       style={coords ? { top: coords.top, left: coords.left, opacity: 1 } : { opacity: 0 }}
     >
-      <span className="retune-tooltip-text">{content}</span>
+      <span className="tuna-tooltip-text">{content}</span>
       {shortcut && (
-        <span className="retune-tooltip-shortcut">{shortcut}</span>
+        <span className="tuna-tooltip-shortcut">{shortcut}</span>
       )}
     </div>
   ) : null;
@@ -110,7 +110,7 @@ export function Tooltip({
   return (
     <div
       ref={triggerRef}
-      className="retune-tooltip-trigger"
+      className="tuna-tooltip-trigger"
       onPointerEnter={show}
       onPointerLeave={hide}
       onPointerDown={hide}

@@ -275,7 +275,7 @@ export function useCommentMode({
   }, [pickerRef, selectedElementRef, selectedElementsRef]);
 
   const shakePopover = useCallback(() => {
-    const el = overlayRootRef.current?.root.querySelector(".retune-comment-popover") as HTMLElement | null;
+    const el = overlayRootRef.current?.root.querySelector(".tuna-comment-popover") as HTMLElement | null;
     if (!el) return;
     if (el.classList.contains("shaking")) return;
     el.classList.add("shaking");
@@ -424,10 +424,10 @@ export function useCommentMode({
 
     const handlePointerDown = (e: PointerEvent) => {
       const path = e.composedPath();
-      const fromRetuneHost = path.some(
-        (entry) => entry instanceof HTMLElement && entry.hasAttribute("data-retune-host"),
+      const fromTunaHost = path.some(
+        (entry) => entry instanceof HTMLElement && entry.hasAttribute("data-tuna-host"),
       );
-      if (fromRetuneHost) return;
+      if (fromTunaHost) return;
       if (shouldBlockForPopoverRef.current()) return;
       if (e.shiftKey || e.altKey) return;
       e.preventDefault();

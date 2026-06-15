@@ -31,7 +31,7 @@ export type ContainedCommentElement = {
   textContent: string | null;
 };
 
-const DRAW_COLOR_ATTR = "data-retune-draw-color";
+const DRAW_COLOR_ATTR = "data-tuna-draw-color";
 
 export function getDrawingMentionName(orderIndex: number): string {
   return `Drawing ${orderIndex}`;
@@ -79,7 +79,7 @@ export function buildDrawingCommentTarget(
 ): CommentElementTarget {
   const target: CommentElementTarget = {
     tagName: "drawing",
-    selector: `retune-drawing:${orderIndex}`,
+    selector: `tuna-drawing:${orderIndex}`,
     componentName: getDrawingMentionName(orderIndex),
     componentPath: [],
     classes: [],
@@ -507,7 +507,7 @@ export function scanContainedElements(area: { x: number; y: number; width: numbe
   for (let x = area.x + step / 2; x < area.x + area.width; x += step) {
     for (let y = area.y + step / 2; y < area.y + area.height; y += step) {
       const el = document.elementFromPoint(x, y);
-      if (el && !seen.has(el) && !el.closest?.("[data-retune-host]")) {
+      if (el && !seen.has(el) && !el.closest?.("[data-tuna-host]")) {
         seen.add(el);
         containedElements.push({
           tagName: el.tagName.toLowerCase(),

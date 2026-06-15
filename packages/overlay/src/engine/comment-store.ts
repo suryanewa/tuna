@@ -73,7 +73,7 @@ export interface Comment {
 
 export type CommentPatch = Partial<Omit<Comment, "id" | "timestamp">>;
 
-const STORAGE_KEY = "retune-comments";
+const STORAGE_KEY = "tuna-comments";
 
 // ── Comment Store ──
 
