@@ -1,7 +1,8 @@
 {
-  "name": "tuna-chrome-extension",
+  "name": "@tuna/chrome-extension",
   "version": "0.7.6",
   "private": true,
+  "description": "Manifest V3 Chrome extension bundle for opening Tuna on arbitrary webpages.",
   "type": "module",
   "scripts": {
     "build": "npm run build:css -w tuna && tsup",

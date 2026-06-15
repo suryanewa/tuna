@@ -4,6 +4,10 @@ The visual layer for vibe coding.
 
 Select, tweak, restructure — directly in your running app. Your AI agent writes the changes to source. No more prompting for pixels.
 
+![Tuna selecting an element and preparing agent output](../../docs/assets/readme/tuna-overlay-selection.png)
+
+![Tuna property panel editing a selected element](../../docs/assets/readme/tuna-property-panel.png)
+
 ## Quick Start
 
 ```bash
@@ -34,6 +38,22 @@ export default function Layout({ children }) {
 ```
 
 Press **Alt+D** (or **Option+D** on macOS) to toggle edit mode, then click any element to start tweaking.
+
+### Chrome Extension
+
+This monorepo also includes a private Manifest V3 Chrome extension package for opening Tuna on arbitrary webpages without adding `<Tuna />` to the page source.
+
+```bash
+npm run build:extension
+```
+
+Load `packages/chrome-extension/dist` from `chrome://extensions` with Developer Mode enabled, then click the Tuna extension action on any `http`, `https`, or `file` page. Copy-to-clipboard output and MCP handoff use the same overlay implementation and the same local `ws://localhost:9223/ws` bridge as the React package.
+
+Run the MCP server as usual when you want agent handoff:
+
+```bash
+npx tuna
+```
 
 ### Monorepo Setup
 
@@ -196,6 +216,8 @@ Tuna includes a built-in MCP server. Configure your AI tool to use it:
   fidelity="standard"      // Output detail: "minimal" | "standard" | "full"
   position="bottom-right"  // Toolbar position
   force                    // Show in production (default: false)
+  defaultOpen              // Open toolbar immediately on mount (default: false)
+  loadRemoteFonts={false}  // Disable remote Inter stylesheet injection
 />
 ```
 
@@ -216,16 +238,17 @@ Tuna uses layered identification to help AI agents find elements in your code:
 
 ## Tech Stack
 
-React, TypeScript. Single package with two entry points:
+React, TypeScript, Next.js, and a Manifest V3 extension bundle. The overlay package has two public entry points:
 
 - `import { Tuna } from "tuna"` — React overlay component
 - `npx tuna` — MCP server for AI tool integration
 
 ## Development
 
-This fork is a monorepo:
+This repository is a private npm workspaces monorepo:
 
-- `packages/overlay` — the `tuna` npm package
+- `packages/overlay` — the published `tuna` npm package and MCP server
+- `packages/chrome-extension` — the private Chrome extension bundle
 - `playground` — the [Tuna marketing site](https://github.com/khadgi-sujan/tuna-site), wired to the local overlay
 
 ```bash
@@ -233,6 +256,11 @@ npm install
 npm run dev              # overlay + CSS watch + playground at http://localhost:3001
 npm run dev:overlay      # overlay package only (CSS + TypeScript watch)
 npm run dev:playground   # playground only (requires overlay watch in another terminal)
+npm run build:overlay    # build the npm package
+npm run build:extension  # build packages/chrome-extension/dist
+npm run build:playground # production-build the playground
+npm run typecheck        # typecheck all workspaces that expose typecheck
+npm test                 # run all Vitest tests
 ```
 
 `npm run dev` runs both watchers together. Overlay CSS changes rebuild automatically, and the playground watches the linked `tuna` package for faster hot reload.
