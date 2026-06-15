@@ -15,9 +15,9 @@ export interface MountResult {
   sheet: CSSStyleSheet;
 }
 
-export function mountOverlay(): MountResult {
+export function mountOverlay(options: { loadRemoteFonts?: boolean } = {}): MountResult {
   // Load Inter font if not already present
-  if (!document.querySelector('link[data-tuna-font]')) {
+  if (options.loadRemoteFonts !== false && !document.querySelector('link[data-tuna-font]')) {
     const preconnect = document.createElement("link");
     preconnect.rel = "preconnect";
     preconnect.href = "https://rsms.me/";

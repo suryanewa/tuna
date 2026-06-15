@@ -101,6 +101,8 @@ const DEFAULT_CONFIG: Required<TunaConfig> = {
   fidelity: "standard",
   position: "bottom-right",
   force: false,
+  defaultOpen: false,
+  loadRemoteFonts: true,
 };
 
 function serializeInspectedElement(element: InspectedElement) {
@@ -285,7 +287,7 @@ export function Tuna(props: TunaConfig = {}) {
 function TunaInner(props: TunaConfig) {
   const config = { ...DEFAULT_CONFIG, ...props };
 
-  const [active, setActive] = useState(false);
+  const [active, setActive] = useState(() => config.defaultOpen);
   const activeRef = useRef(false);
   activeRef.current = active;
   const [editPanelOpen, setEditPanelOpen] = useState(false);
@@ -540,7 +542,7 @@ function TunaInner(props: TunaConfig) {
 
   // Initialize on mount
   useEffect(() => {
-    const mount = mountOverlay();
+    const mount = mountOverlay({ loadRemoteFonts: config.loadRemoteFonts });
     mountRef.current = mount;
     setPortalTarget(mount.container);
 
@@ -1261,6 +1263,7 @@ function TunaInner(props: TunaConfig) {
   }, [active]);
 
   const activateOverlay = useCallback(() => {
+    setSessionHidden(false);
     setActive(true);
   }, []);
 
@@ -1282,12 +1285,31 @@ function TunaInner(props: TunaConfig) {
   }, [clearForcedInlineStyles]);
 
   const toggleOverlay = useCallback(() => {
+    setSessionHidden(false);
     if (active) {
       deactivateOverlay();
       return;
     }
     setActive(true);
   }, [active, deactivateOverlay]);
+
+  useEffect(() => {
+    const handleActivate = () => activateOverlay();
+    const handleDeactivate = () => {
+      setSessionHidden(false);
+      deactivateOverlay();
+    };
+    const handleToggle = () => toggleOverlay();
+
+    window.addEventListener("tuna:activate", handleActivate);
+    window.addEventListener("tuna:deactivate", handleDeactivate);
+    window.addEventListener("tuna:toggle", handleToggle);
+    return () => {
+      window.removeEventListener("tuna:activate", handleActivate);
+      window.removeEventListener("tuna:deactivate", handleDeactivate);
+      window.removeEventListener("tuna:toggle", handleToggle);
+    };
+  }, [activateOverlay, deactivateOverlay, toggleOverlay]);
 
   const syncTrackerState = useCallback(() => {
     const tracker = trackerRef.current;

@@ -9,6 +9,10 @@ export interface TunaConfig {
   position?: "top-left" | "top-right" | "bottom-left" | "bottom-right";
   /** Show overlay even in production (default: false) */
   force?: boolean;
+  /** Open the toolbar immediately on first mount (default: false) */
+  defaultOpen?: boolean;
+  /** Load Tuna's remote Inter font stylesheet (default: true) */
+  loadRemoteFonts?: boolean;
 }
 
 export interface InspectedElement {

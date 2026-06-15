@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "Tuna",
+  "version": "0.7.6",
+  "description": "Open the Tuna visual editing overlay on any webpage and hand visual context to AI coding agents.",
+  "action": {
+    "default_title": "Open Tuna"
+  },
+  "background": {
+    "service_worker": "background.global.js"
+  },
+  "permissions": [
+    "activeTab",
+    "clipboardWrite",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*",
+        "file://*/*"
+      ],
+      "js": [
+        "content.global.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
