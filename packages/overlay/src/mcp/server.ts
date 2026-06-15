@@ -119,7 +119,7 @@ export function createServer(bridge: Bridge): McpServer {
     "Get pending visual changes formatted as structured markdown, ready to apply to source code. Includes element identification (CSS selector, React component, text content) and exact before/after values for each changed property. Changes are automatically cleared after retrieval unless clear is set to false.",
     {
       fidelity: z.enum(["minimal", "standard", "full"]).optional()
-        .describe("Level of context detail. 'minimal' = selector + diffs only. 'standard' = adds component tree and classes. 'full' = adds computed styles, parent layout, siblings. Default: standard."),
+        .describe("Level of context detail. 'minimal' = compact element context and diffs. 'standard' = adds component tree and classes. 'full' = adds richer layout and page context. Default: standard."),
       clear: z.boolean().optional()
         .describe("Whether to clear changes after retrieval. Default: true."),
     },

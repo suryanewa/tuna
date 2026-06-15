@@ -576,6 +576,7 @@ function TunaInner(props: TunaConfig) {
               activeSelector: activeSelectorRef.current,
               drawings,
               visualSnapshot,
+              comments: commentStoreRef.current.getAll(),
             }),
             selectedElements: elements.map(serializeInspectedElement),
             drawings,
@@ -3409,6 +3410,7 @@ function TunaInner(props: TunaConfig) {
       activeSelector: activeSelectorRef.current,
       drawings,
       visualSnapshot,
+      comments: commentStoreRef.current.getAll(),
     }));
     showCopiedFeedback();
   }, [getDrawingAnnotations, selectedDrawPaths, showCopiedFeedback]);
@@ -3552,6 +3554,7 @@ function TunaInner(props: TunaConfig) {
             activeSelector: activeSelectorRef.current,
             drawings,
             visualSnapshot,
+            comments: commentStoreRef.current.getAll(),
           }),
           selectedElements: elements.map(serializeInspectedElement),
           drawings,

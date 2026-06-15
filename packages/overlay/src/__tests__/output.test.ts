@@ -8,7 +8,7 @@ import {
   formatSelectionPrompt,
 } from "../engine/output";
 import type { PropertyChange, InspectedElement } from "../types";
-import type { CommentElementTarget } from "../engine/comment-store";
+import type { Comment, CommentElementTarget } from "../engine/comment-store";
 import type { VisualSnapshot } from "../engine/output";
 
 function makeChange(property: string, from: string, to: string): PropertyChange {
@@ -321,6 +321,35 @@ function makeDrawingTarget(overrides: Partial<CommentElementTarget> = {}): Comme
   };
 }
 
+function makeElementComment(overrides: Partial<Comment> = {}): Comment {
+  return {
+    id: 1,
+    text: "Make this card cleaner and reduce the boxed feeling.",
+    position: { x: 420, y: 260 },
+    type: "element",
+    selector: ".demo-card",
+    elementInfo: {
+      tagName: "article",
+      componentName: "PlaygroundWorkbench",
+      componentPath: ["PlaygroundWorkbench"],
+      classes: ["demo-card"],
+      textContent: "Launch checklist",
+      domPath: "body > main#main-content > section#playground > div.demo-surface > article.demo-card",
+      selectedElements: [{
+        tagName: "article",
+        selector: ".demo-card",
+        componentName: "PlaygroundWorkbench",
+        componentPath: ["PlaygroundWorkbench"],
+        classes: ["demo-card"],
+        textContent: "Launch checklist",
+        domPath: "body > main#main-content > section#playground > div.demo-surface > article.demo-card",
+      }],
+    },
+    timestamp: 1,
+    ...overrides,
+  };
+}
+
 function makeVisualSnapshot(): VisualSnapshot {
   return {
     kind: "dom-spatial-snapshot",
@@ -391,5 +420,28 @@ describe("visual prompt formatting", () => {
     expect(output).toContain('Element: <button> "Get Started"');
     expect(output).toContain("## Drawing Annotations");
     expect(output).toContain("tuna-drawing:1");
+  });
+
+  it("includes Tuna comments when copying selected element context", () => {
+    const output = formatSelectionPrompt([
+      makeInspectedElement({
+        selector: ".demo-card",
+        tagName: "ARTICLE",
+        textContent: "Launch checklist",
+        classes: ["demo-card"],
+        reactComponents: ["PlaygroundWorkbench"],
+        sourceFile: null,
+      }),
+    ], {
+      activeSelector: ".demo-card",
+      comments: [makeElementComment()],
+    });
+
+    expect(output).toContain("Selected element from Tuna:");
+    expect(output).toContain("# Comments (1)");
+    expect(output).toContain("## Comment #1 on `<article>` \"Launch checklist\"");
+    expect(output).toContain("Make this card cleaner and reduce the boxed feeling.");
+    expect(output).toContain("Selected target:");
+    expect(output).toContain("`<article>` `demo-card` \"Launch checklist\" (PlaygroundWorkbench) — `.demo-card`");
   });
 });

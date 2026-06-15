@@ -321,6 +321,77 @@ function pushInlineMentionContext(lines: string[], comment: Comment, targets: Co
   }).join(", ")}`);
 }
 
+function pushCommentsSection(lines: string[], comments: Comment[], options?: { includeDivider?: boolean }): void {
+  if (comments.length === 0) return;
+  if (options?.includeDivider) {
+    lines.push("");
+    lines.push("---");
+    lines.push("");
+  }
+  lines.push(`# Comments (${comments.length})`);
+  lines.push("");
+  comments.forEach((comment, idx) => {
+    const commentTargets = getCommentTargets(comment);
+    if (comment.type === "element" && comment.elementInfo) {
+      const info = comment.elementInfo;
+      const textHint = info.textContent ? ` "${truncate(info.textContent, 60)}"` : "";
+      if (commentTargets.length > 1) {
+        lines.push(`## Comment #${idx + 1} on ${commentTargets.length} selected targets`);
+      } else {
+        lines.push(`## Comment #${idx + 1} on \`<${info.tagName}>\`${textHint}`);
+      }
+      lines.push("");
+      if (commentTargets.length > 0) {
+        pushTargetList(lines, commentTargets.length > 1 ? "Selected targets" : "Selected target", commentTargets);
+        pushInlineMentionContext(lines, comment, commentTargets);
+        lines.push("");
+      } else {
+        if (info.componentPath && info.componentPath.length > 0) {
+          lines.push(`**Component:** ${info.componentPath.join(" → ")}`);
+        } else if (info.componentName) {
+          lines.push(`**Component:** ${info.componentName}`);
+        }
+        if (comment.selector) {
+          lines.push(`**Selector:** \`${comment.selector}\``);
+        }
+        if (info.classes.length > 0) {
+          lines.push(`**Classes:** \`${info.classes.join(" ")}\``);
+        }
+        if (info.source) {
+          lines.push(`**Source:** \`${info.source}\``);
+        }
+        if (info.domPath) {
+          lines.push(`**DOM Path:** \`${info.domPath}\``);
+        }
+      }
+      lines.push(`**Marker position:** (${Math.round(comment.position.x)}, ${Math.round(comment.position.y)}) on viewport`);
+    } else if (comment.type === "area" && comment.area) {
+      const a = comment.area;
+      lines.push(`## Comment #${idx + 1} on area`);
+      lines.push("");
+      lines.push(`**Region:** (${Math.round(a.x)}, ${Math.round(a.y)}) ${Math.round(a.width)}×${Math.round(a.height)}px`);
+      if (commentTargets.length > 0) {
+        pushTargetList(lines, "Referenced targets", commentTargets);
+        pushInlineMentionContext(lines, comment, commentTargets);
+      }
+      const contained = comment.elementInfo?.containedElements;
+      if (contained && contained.length > 0) {
+        const items = contained.slice(0, 8).map(el => {
+          const text = el.textContent ? ` "${truncate(el.textContent, 30)}"` : "";
+          const comp = el.componentName ? ` (${el.componentName})` : "";
+          return `\`<${el.tagName}>\` ${el.selector}${text}${comp}`;
+        });
+        lines.push(`**Contains:** ${items.join(", ")}`);
+      }
+    } else {
+      lines.push(`## Comment #${idx + 1}`);
+    }
+    lines.push("");
+    lines.push(`> ${comment.text.split("\n").join("\n> ")}`);
+    lines.push("");
+  });
+}
+
 export function formatDrawingAnnotations(
   drawings: DrawingAnnotation[],
   options?: { title?: string; visualSnapshot?: VisualSnapshot | null },
@@ -360,10 +431,12 @@ export function formatSelectionPrompt(
     activeSelector?: string | null;
     drawings?: DrawingAnnotation[];
     visualSnapshot?: VisualSnapshot | null;
+    comments?: Comment[];
   },
 ): string {
   const drawings = options?.drawings ?? [];
-  if (elements.length === 0 && drawings.length === 0) return "No Tuna selection.";
+  const comments = options?.comments ?? [];
+  if (elements.length === 0 && drawings.length === 0 && comments.length === 0) return "No Tuna selection.";
 
   const lines: string[] = [];
   if (elements.length > 0 && drawings.length > 0) {
@@ -372,8 +445,10 @@ export function formatSelectionPrompt(
     lines.push(`${elements.length} selected elements from Tuna:`);
   } else if (elements.length === 1) {
     lines.push("Selected element from Tuna:");
-  } else {
+  } else if (drawings.length > 0) {
     lines.push(`${drawings.length} drawing annotation${drawings.length === 1 ? "" : "s"} from Tuna:`);
+  } else {
+    lines.push(`${comments.length} comment${comments.length === 1 ? "" : "s"} from Tuna:`);
   }
   lines.push("");
   pushVisualFrame(lines);
@@ -400,6 +475,10 @@ export function formatSelectionPrompt(
     lines.push("");
     pushDrawingAnnotationBlocks(lines, drawings);
   }
+
+  pushCommentsSection(lines, comments, {
+    includeDivider: elements.length > 0 || drawings.length > 0,
+  });
 
   return lines.join("\n").trim();
 }
@@ -486,76 +565,7 @@ export function formatChanges(
     lines.push(sections.join("\n---\n\n"));
   }
 
-  // Comments section
-  if (comments && comments.length > 0) {
-    if (changes.length > 0) {
-      lines.push("");
-      lines.push("---");
-      lines.push("");
-    }
-    lines.push(`# Comments (${comments.length})`);
-    lines.push("");
-    comments.forEach((comment, idx) => {
-      const commentTargets = getCommentTargets(comment);
-      if (comment.type === "element" && comment.elementInfo) {
-        const info = comment.elementInfo;
-        const textHint = info.textContent ? ` "${truncate(info.textContent, 60)}"` : "";
-        if (commentTargets.length > 1) {
-          lines.push(`## Comment #${idx + 1} on ${commentTargets.length} selected targets`);
-        } else {
-          lines.push(`## Comment #${idx + 1} on \`<${info.tagName}>\`${textHint}`);
-        }
-        lines.push("");
-        if (commentTargets.length > 0) {
-          pushTargetList(lines, commentTargets.length > 1 ? "Selected targets" : "Selected target", commentTargets);
-          pushInlineMentionContext(lines, comment, commentTargets);
-          lines.push("");
-        } else {
-          if (info.componentPath && info.componentPath.length > 0) {
-            lines.push(`**Component:** ${info.componentPath.join(" → ")}`);
-          } else if (info.componentName) {
-            lines.push(`**Component:** ${info.componentName}`);
-          }
-          if (comment.selector) {
-            lines.push(`**Selector:** \`${comment.selector}\``);
-          }
-          if (info.classes.length > 0) {
-            lines.push(`**Classes:** \`${info.classes.join(" ")}\``);
-          }
-          if (info.source) {
-            lines.push(`**Source:** \`${info.source}\``);
-          }
-          if (info.domPath) {
-            lines.push(`**DOM Path:** \`${info.domPath}\``);
-          }
-        }
-        lines.push(`**Marker position:** (${Math.round(comment.position.x)}, ${Math.round(comment.position.y)}) on viewport`);
-      } else if (comment.type === "area" && comment.area) {
-        const a = comment.area;
-        lines.push(`## Comment #${idx + 1} on area`);
-        lines.push("");
-        lines.push(`**Region:** (${Math.round(a.x)}, ${Math.round(a.y)}) ${Math.round(a.width)}×${Math.round(a.height)}px`);
-        if (commentTargets.length > 0) {
-          pushTargetList(lines, "Referenced targets", commentTargets);
-          pushInlineMentionContext(lines, comment, commentTargets);
-        }
-        const contained = comment.elementInfo?.containedElements;
-        if (contained && contained.length > 0) {
-          const items = contained.slice(0, 8).map(el => {
-            const text = el.textContent ? ` "${truncate(el.textContent, 30)}"` : "";
-            const comp = el.componentName ? ` (${el.componentName})` : "";
-            return `\`<${el.tagName}>\` ${el.selector}${text}${comp}`;
-          });
-          lines.push(`**Contains:** ${items.join(", ")}`);
-        }
-      } else {
-        lines.push(`## Comment #${idx + 1}`);
-      }
-      lines.push("");
-      lines.push(`> ${comment.text.split("\n").join("\n> ")}`);
-      lines.push("");
-    });
-  }
+  pushCommentsSection(lines, comments ?? [], { includeDivider: changes.length > 0 });
 
   return lines.join("\n");
 }
