@@ -3686,11 +3686,6 @@ function TunaInner(props: TunaConfig) {
             className="tuna-toolbar-collapse-btn"
             onClick={activateOverlay}
           >
-            <span className="tuna-toggle-bubbles" aria-hidden="true">
-              {Array.from({ length: 12 }).map((_, index) => (
-                <span className="tuna-toggle-bubble" key={index} />
-              ))}
-            </span>
             <span className="tuna-logo-wrapper">
               <TunaLogo size={20} />
             </span>

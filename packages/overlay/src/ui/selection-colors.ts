@@ -1,6 +1,6 @@
 /** Distinct colors shared by multi-select outlines and inline comment mentions. */
 export const SELECTION_COLORS = [
-  "#0D99FF",
+  "#E89999",
   "#FF6B6B",
   "#51CF66",
   "#FAB005",

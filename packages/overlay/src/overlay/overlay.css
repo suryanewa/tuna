@@ -120,6 +120,7 @@
 
   /* ── Brand ── */
   --tuna-brand: #e89999;
+  --tuna-selection-highlight: color-mix(in srgb, var(--tuna-brand) 30%, transparent);
 }
 
 /* ══════════════════════════════════════
@@ -189,6 +190,17 @@ input, textarea, [contenteditable] {
 .tuna-toolbar.collapsed {
   --tuna-toggle-active: 0;
   --tuna-toggle-play: paused;
+  --tuna-candy-edge: #dc777f;
+  --tuna-candy-glow: rgba(232, 153, 153, 0.46);
+  --tuna-candy-glow-strong: rgba(232, 153, 153, 0.64);
+  --tuna-candy-inner: rgba(255, 255, 255, 0.62);
+  --tuna-candy-bg:
+    radial-gradient(
+      80% 110% at 50% 116%,
+      rgba(254, 218, 218, calc(0.22 + (var(--tuna-toggle-active) * 0.34))),
+      transparent 62%
+    ),
+    radial-gradient(95% 72% at 50% 76%, #d66f78 0%, var(--tuna-brand) 58%, #f2b4b4 100%);
 
   isolation: isolate;
   padding: 0;
@@ -196,205 +208,21 @@ input, textarea, [contenteditable] {
   width: 44px;
   cursor: pointer;
   overflow: visible;
-  background:
-    radial-gradient(
-      80% 100% at 50% 115%,
-      color-mix(in srgb, var(--tuna-brand) calc(12% + (var(--tuna-toggle-active) * 38%)), transparent),
-      transparent 68%
-    ),
-    var(--tuna-surface);
-  transform: scale(calc(1 + (var(--tuna-toggle-active) * 0.07)));
+  border-radius: 14px;
+  background: var(--tuna-candy-bg);
+  filter: brightness(calc(1 + (var(--tuna-toggle-active) * 0.04))) saturate(calc(1 + (var(--tuna-toggle-active) * 0.04)));
+  transform: scale(calc(1 + (var(--tuna-toggle-active) * 0.055)));
   box-shadow:
-    0 2px 12px rgba(0, 0, 0, 0.08),
-    0 0 calc(var(--tuna-toggle-active) * 22px) calc(var(--tuna-toggle-active) * 2px) color-mix(in srgb, var(--tuna-brand) 58%, transparent),
-    0 0 0 calc(1px + (var(--tuna-toggle-active) * 0.5px)) color-mix(in srgb, var(--tuna-brand) calc(12% + (var(--tuna-toggle-active) * 76%)), transparent);
-  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
-              background 0.2s cubic-bezier(0.23, 1, 0.32, 1),
-              box-shadow 0.2s cubic-bezier(0.23, 1, 0.32, 1);
-}
-
-.tuna-toggle-bubbles {
-  position: absolute;
-  inset: -26px;
-  z-index: 3;
-  pointer-events: none;
-  overflow: visible;
-}
-
-.tuna-toggle-bubble {
-  --bubble-size: 4.5px;
-  --bubble-x: 50%;
-  --bubble-y: 50%;
-  --bubble-drift-x: 0px;
-  --bubble-drift-y: -28px;
-  --bubble-delay: 0ms;
-  --bubble-duration: 1200ms;
-  --bubble-alpha: 0.72;
-
-  position: absolute;
-  left: var(--bubble-x);
-  top: var(--bubble-y);
-  width: var(--bubble-size);
-  height: var(--bubble-size);
-  transform: translate(-50%, -50%);
-  transform-origin: center;
-  animation: tuna-toggle-bubble-float var(--bubble-duration) linear infinite both;
-  animation-delay: var(--bubble-delay);
-  animation-play-state: var(--tuna-toggle-play);
-  will-change: transform;
-}
-
-.tuna-toggle-bubble::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border: 0.9px solid color-mix(in srgb, var(--tuna-brand) 82%, transparent);
-  border-radius: 50%;
-  opacity: 0;
-  background:
-    radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--tuna-always-white) 70%, transparent) 0 16%, transparent 18%),
-    color-mix(in srgb, var(--tuna-brand) 12%, transparent);
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--tuna-always-white) 36%, transparent),
-    0 2px 7px color-mix(in srgb, var(--tuna-brand) 34%, transparent);
-  transform: scale(0.42);
-  transform-origin: center;
-  animation: tuna-toggle-bubble-pop var(--bubble-duration) cubic-bezier(0.22, 1, 0.36, 1) infinite both;
-  animation-delay: var(--bubble-delay);
-  animation-play-state: var(--tuna-toggle-play);
-  will-change: opacity, transform, border-width;
-}
-
-.tuna-toggle-bubble:nth-child(1) {
-  --bubble-size: 3.5px;
-  --bubble-x: 50%;
-  --bubble-y: 27%;
-  --bubble-drift-x: 0px;
-  --bubble-drift-y: -23px;
-  --bubble-delay: -70ms;
-  --bubble-duration: 1180ms;
-  --bubble-alpha: 0.66;
-}
-
-.tuna-toggle-bubble:nth-child(2) {
-  --bubble-size: 5.5px;
-  --bubble-x: 62%;
-  --bubble-y: 31%;
-  --bubble-drift-x: 12px;
-  --bubble-drift-y: -21px;
-  --bubble-delay: -440ms;
-  --bubble-duration: 1420ms;
-  --bubble-alpha: 0.76;
-}
-
-.tuna-toggle-bubble:nth-child(3) {
-  --bubble-size: 3px;
-  --bubble-x: 69%;
-  --bubble-y: 38%;
-  --bubble-drift-x: 21px;
-  --bubble-drift-y: -12px;
-  --bubble-delay: -760ms;
-  --bubble-duration: 1060ms;
-  --bubble-alpha: 0.54;
-}
-
-.tuna-toggle-bubble:nth-child(4) {
-  --bubble-size: 5px;
-  --bubble-x: 73%;
-  --bubble-y: 50%;
-  --bubble-drift-x: 23px;
-  --bubble-drift-y: 0px;
-  --bubble-delay: -1040ms;
-  --bubble-duration: 1320ms;
-  --bubble-alpha: 0.62;
-}
-
-.tuna-toggle-bubble:nth-child(5) {
-  --bubble-size: 4.5px;
-  --bubble-x: 69%;
-  --bubble-y: 62%;
-  --bubble-drift-x: 21px;
-  --bubble-drift-y: 12px;
-  --bubble-delay: -1260ms;
-  --bubble-duration: 1500ms;
-  --bubble-alpha: 0.58;
-}
-
-.tuna-toggle-bubble:nth-child(6) {
-  --bubble-size: 2.75px;
-  --bubble-x: 62%;
-  --bubble-y: 69%;
-  --bubble-drift-x: 12px;
-  --bubble-drift-y: 21px;
-  --bubble-delay: -210ms;
-  --bubble-duration: 980ms;
-  --bubble-alpha: 0.48;
-}
-
-.tuna-toggle-bubble:nth-child(7) {
-  --bubble-size: 5.5px;
-  --bubble-x: 50%;
-  --bubble-y: 73%;
-  --bubble-drift-x: 0px;
-  --bubble-drift-y: 23px;
-  --bubble-delay: -910ms;
-  --bubble-duration: 1620ms;
-  --bubble-alpha: 0.7;
-}
-
-.tuna-toggle-bubble:nth-child(8) {
-  --bubble-size: 3.75px;
-  --bubble-x: 38%;
-  --bubble-y: 69%;
-  --bubble-drift-x: -12px;
-  --bubble-drift-y: 21px;
-  --bubble-delay: -610ms;
-  --bubble-duration: 1180ms;
-  --bubble-alpha: 0.5;
-}
-
-.tuna-toggle-bubble:nth-child(9) {
-  --bubble-size: 3.25px;
-  --bubble-x: 31%;
-  --bubble-y: 62%;
-  --bubble-drift-x: -21px;
-  --bubble-drift-y: 12px;
-  --bubble-delay: -1510ms;
-  --bubble-duration: 1370ms;
-  --bubble-alpha: 0.56;
-}
-
-.tuna-toggle-bubble:nth-child(10) {
-  --bubble-size: 5px;
-  --bubble-x: 27%;
-  --bubble-y: 50%;
-  --bubble-drift-x: -23px;
-  --bubble-drift-y: 0px;
-  --bubble-delay: -330ms;
-  --bubble-duration: 1540ms;
-  --bubble-alpha: 0.64;
-}
-
-.tuna-toggle-bubble:nth-child(11) {
-  --bubble-size: 2.75px;
-  --bubble-x: 31%;
-  --bubble-y: 38%;
-  --bubble-drift-x: -21px;
-  --bubble-drift-y: -12px;
-  --bubble-delay: -1130ms;
-  --bubble-duration: 920ms;
-  --bubble-alpha: 0.44;
-}
-
-.tuna-toggle-bubble:nth-child(12) {
-  --bubble-size: 4.25px;
-  --bubble-x: 38%;
-  --bubble-y: 31%;
-  --bubble-drift-x: -12px;
-  --bubble-drift-y: -21px;
-  --bubble-delay: -1370ms;
-  --bubble-duration: 1460ms;
-  --bubble-alpha: 0.52;
+    0 7px 28px -14px var(--tuna-candy-glow),
+    0 0 calc(var(--tuna-toggle-active) * 34px) calc(var(--tuna-toggle-active) * 3px) var(--tuna-candy-glow-strong),
+    inset 0 1px 8px -4px var(--tuna-candy-inner),
+    inset 0 -10px 18px -18px rgba(105, 41, 48, 0.64),
+    0 0 0 1px color-mix(in srgb, var(--tuna-candy-edge) 70%, transparent);
+  transition:
+    filter 0.18s ease,
+    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    background 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.18s ease;
 }
 
 .tuna-toolbar.collapsed:active {
@@ -406,48 +234,6 @@ input, textarea, [contenteditable] {
 .tuna-toolbar.collapsed .tuna-toolbar-collapse-btn:focus-visible {
   --tuna-toggle-active: 1;
   --tuna-toggle-play: running;
-}
-
-@keyframes tuna-toggle-bubble-float {
-  0% {
-    transform: translate(-50%, -50%);
-  }
-  100% {
-    transform: translate(calc(-50% + var(--bubble-drift-x)), calc(-50% + var(--bubble-drift-y)));
-  }
-}
-
-@keyframes tuna-toggle-bubble-pop {
-  0% {
-    opacity: 0;
-    border-width: 0.9px;
-    transform: scale(0.42);
-  }
-  4% {
-    opacity: calc(var(--bubble-alpha) * var(--tuna-toggle-active));
-    border-width: 0.9px;
-    transform: scale(0.76);
-  }
-  18% {
-    opacity: calc(var(--bubble-alpha) * 0.86 * var(--tuna-toggle-active));
-    border-width: 0.9px;
-    transform: scale(0.95);
-  }
-  56% {
-    opacity: calc(var(--bubble-alpha) * 0.68 * var(--tuna-toggle-active));
-    border-width: 0.85px;
-    transform: scale(1.04);
-  }
-  84% {
-    opacity: calc(var(--bubble-alpha) * 0.36 * var(--tuna-toggle-active));
-    border-width: 0.65px;
-    transform: scale(1.28);
-  }
-  100% {
-    opacity: 0;
-    border-width: 0;
-    transform: scale(2.45);
-  }
 }
 
 /* Tuna logo wrapper */
@@ -469,6 +255,10 @@ input, textarea, [contenteditable] {
   will-change: transform;
 }
 
+.tuna-toolbar.collapsed .tuna-logo-svg {
+  color: var(--tuna-always-white);
+}
+
 /* Glow SVG icon path on hover */
 .tuna-logo-fish-glow {
   color: var(--tuna-brand);
@@ -486,7 +276,7 @@ input, textarea, [contenteditable] {
 }
 
 .tuna-toolbar.collapsed:hover .tuna-logo-fish {
-  color: var(--tuna-brand);
+  color: var(--tuna-always-white);
 }
 
 /* Upright pivot groups for S-curve wave bending */
@@ -556,7 +346,7 @@ input, textarea, [contenteditable] {
   align-items: center;
   justify-content: center;
   border: none;
-  border-radius: 50%;
+  border-radius: 14px;
   cursor: pointer;
   color: var(--tuna-text);
   padding: 12px;
@@ -578,14 +368,28 @@ input, textarea, [contenteditable] {
   position: absolute;
   inset: 0;
   z-index: 1;
-  border-radius: 16px;
-  background:
-    radial-gradient(
-      80% 100% at 50% 115%,
-      color-mix(in srgb, var(--tuna-brand) calc(12% + (var(--tuna-toggle-active) * 38%)), transparent),
-      transparent 68%
-    ),
-    var(--tuna-surface);
+  border: 1px solid rgba(255, 255, 255, calc(0.42 + (var(--tuna-toggle-active) * 0.25)));
+  border-radius: inherit;
+  background: var(--tuna-candy-bg);
+  box-shadow:
+    inset 0 1px 8px -4px var(--tuna-candy-inner),
+    inset 0 -10px 18px -18px rgba(105, 41, 48, 0.64);
+  pointer-events: none;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.tuna-toolbar-collapse-btn::after {
+  content: "";
+  position: absolute;
+  top: 1px;
+  right: 20%;
+  z-index: 1;
+  width: 60%;
+  height: 1px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.76), transparent);
   pointer-events: none;
 }
 
@@ -649,10 +453,19 @@ input, textarea, [contenteditable] {
   padding: 6px;
   flex-shrink: 0;
   position: relative;
-  transition: background 0.12s ease;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
 }
 
-.tuna-toolbar-btn:hover { background: var(--tuna-surface-hover); }
+.tuna-toolbar-btn:hover {
+  background: color-mix(in srgb, var(--tuna-brand) 14%, transparent);
+  color: var(--tuna-brand);
+}
+
+.tuna-toolbar-btn.active {
+  color: var(--tuna-brand);
+}
 
 .tuna-toolbar-btn.disabled,
 .tuna-toolbar-btn:disabled {
@@ -1750,7 +1563,7 @@ input, textarea, [contenteditable] {
 }
 
 .tuna-prop-input:first-child { padding-left: 12px; }
-.tuna-prop-input::selection { background: var(--tuna-blue-bg); color: var(--tuna-text); }
+.tuna-prop-input::selection { background: var(--tuna-selection-highlight); color: var(--tuna-text); }
 .tuna-prop-input:focus { outline: none; }
 
 /* ── Color Input (split: [swatch|hex] [opacity%]) ── */
@@ -1810,7 +1623,7 @@ input, textarea, [contenteditable] {
   outline: 1px solid var(--tuna-border);
   outline-offset: -1px;
 }
-.tuna-color-hex-input::selection { background: var(--tuna-blue-bg); color: var(--tuna-text); }
+.tuna-color-hex-input::selection { background: var(--tuna-selection-highlight); color: var(--tuna-text); }
 
 .tuna-color-opacity-section {
   display: flex;
@@ -2164,7 +1977,7 @@ input, textarea, [contenteditable] {
   box-shadow: 0 0 0 1.5px rgba(59, 130, 246, 0.5);
 }
 
-.tuna-cp-input::selection { background: var(--tuna-blue-bg); color: var(--tuna-text); }
+.tuna-cp-input::selection { background: var(--tuna-selection-highlight); color: var(--tuna-text); }
 
 /* ── Gradient Editor ── */
 .tuna-gradient-editor {
@@ -2735,7 +2548,7 @@ input, textarea, [contenteditable] {
   padding: 0 8px;
 }
 
-.tuna-text-input-field::selection { background: var(--tuna-blue-bg); color: var(--tuna-text); }
+.tuna-text-input-field::selection { background: var(--tuna-selection-highlight); color: var(--tuna-text); }
 .tuna-text-input-field:focus { outline: none; }
 
 /* ── ComboInput ── */
@@ -2793,7 +2606,7 @@ input, textarea, [contenteditable] {
   outline: 1px solid var(--tuna-border-hover);
   outline-offset: -1px;
 }
-.tuna-combo-input::selection { background: var(--tuna-blue-bg); color: var(--tuna-text); }
+.tuna-combo-input::selection { background: var(--tuna-selection-highlight); color: var(--tuna-text); }
 
 .tuna-combo-trigger {
   width: 32px;
@@ -4147,10 +3960,12 @@ input, textarea, [contenteditable] {
   line-height: 1;
 }
 .tuna-toolbar-btn.active {
-  background: var(--tuna-surface-hover);
+  background: color-mix(in srgb, var(--tuna-brand) 14%, transparent);
+  color: var(--tuna-brand);
 }
 .tuna-toolbar-btn.active:hover {
-  background: var(--tuna-surface-hover);
+  background: color-mix(in srgb, var(--tuna-brand) 18%, transparent);
+  color: var(--tuna-brand);
 }
 .tuna-toolbar-divider {
   width: 1px;
@@ -4219,8 +4034,6 @@ input, textarea, [contenteditable] {
 
 @media (prefers-reduced-motion: reduce) {
   .tuna-toolbar,
-  .tuna-toggle-bubble,
-  .tuna-toggle-bubble::before,
   .tuna-toolbar-collapse-btn,
   .tuna-toolbar-collapse-btn::before,
   .tuna-logo-svg,
@@ -4252,8 +4065,6 @@ input, textarea, [contenteditable] {
 
   .tuna-panel-anim.entering .tuna-panel,
   .tuna-panel-anim.exiting .tuna-panel,
-  .tuna-toggle-bubble,
-  .tuna-toggle-bubble::before,
   .tuna-floating-dialog,
   .tuna-dropdown-menu,
   .tuna-tooltip,

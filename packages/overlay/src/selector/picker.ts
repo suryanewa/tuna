@@ -106,7 +106,7 @@ export function createPicker(
     pointer-events: none;
     z-index: 2147483645;
     border: 1px dashed ${PICKER_OUTLINE_COLOR};
-    background: rgba(13, 153, 255, 0.06);
+    background: rgba(232, 153, 153, 0.06);
     display: none;
   `;
   shadowRoot.appendChild(marqueeBox);
@@ -166,7 +166,7 @@ export function createPicker(
   aspectLine.style.cssText = `
     position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;display:none;overflow:hidden;
   `;
-  aspectLine.innerHTML = `<svg width="100%" height="100%" style="position:absolute;top:0;left:0"><line x1="0" y1="0" x2="100%" y2="100%" stroke="#0D99FF" stroke-width="1" stroke-dasharray="1 3" stroke-linecap="round" opacity="0.6"/></svg>`;
+  aspectLine.innerHTML = `<svg width="100%" height="100%" style="position:absolute;top:0;left:0"><line x1="0" y1="0" x2="100%" y2="100%" stroke="${PICKER_OUTLINE_COLOR}" stroke-width="1" stroke-dasharray="1 3" stroke-linecap="round" opacity="0.6"/></svg>`;
   selection.appendChild(aspectLine);
 
   // Parent indicator (dotted outline, no fill — shown during fill snap)
@@ -174,7 +174,7 @@ export function createPicker(
   parentIndicator.setAttribute("data-tuna-parent-indicator", "");
   parentIndicator.style.cssText = `
     position:fixed;display:none;pointer-events:none;z-index:2147483644;
-    border:1px dotted #0D99FF;background:none;border-radius:0;
+    border:1px dotted ${PICKER_OUTLINE_COLOR};background:none;border-radius:0;
   `;
   shadowRoot.appendChild(parentIndicator);
 
@@ -184,7 +184,7 @@ export function createPicker(
     const outline = document.createElement("div");
     outline.style.cssText = `
       position:fixed;display:none;pointer-events:none;z-index:2147483644;
-      border:1px dotted #0D99FF;background:none;
+      border:1px dotted ${PICKER_OUTLINE_COLOR};background:none;
     `;
     shadowRoot.appendChild(outline);
     siblingOutlinePool.push(outline);
@@ -236,7 +236,7 @@ export function createPicker(
     const outline = document.createElement("div");
     outline.style.cssText = `
       position:fixed;display:none;pointer-events:none;z-index:2147483643;
-      border:1px solid #0D99FF;background:none;
+      border:1px solid ${PICKER_OUTLINE_COLOR};background:none;
       transition: background 0.25s cubic-bezier(0.23, 1, 0.32, 1), border-color 0.25s cubic-bezier(0.23, 1, 0.32, 1);
     `;
     shadowRoot.appendChild(outline);
@@ -346,7 +346,7 @@ export function createPicker(
         position:fixed;display:block;pointer-events:none;z-index:2147483644;
         top:${parentRect.top}px;left:${elCenterX}px;
         width:0;height:${elRect.top - parentRect.top}px;
-        border-left:1px dashed #0D99FF;
+        border-left:1px dashed ${PICKER_OUTLINE_COLOR};
       `;
     } else {
       pinLines.top.style.display = "none";
@@ -358,7 +358,7 @@ export function createPicker(
         position:fixed;display:block;pointer-events:none;z-index:2147483644;
         top:${elRect.bottom}px;left:${elCenterX}px;
         width:0;height:${parentRect.bottom - elRect.bottom}px;
-        border-left:1px dashed #0D99FF;
+        border-left:1px dashed ${PICKER_OUTLINE_COLOR};
       `;
     } else {
       pinLines.bottom.style.display = "none";
@@ -370,7 +370,7 @@ export function createPicker(
         position:fixed;display:block;pointer-events:none;z-index:2147483644;
         top:${elCenterY}px;left:${parentRect.left}px;
         width:${elRect.left - parentRect.left}px;height:0;
-        border-top:1px dashed #0D99FF;
+        border-top:1px dashed ${PICKER_OUTLINE_COLOR};
       `;
     } else {
       pinLines.left.style.display = "none";
@@ -382,7 +382,7 @@ export function createPicker(
         position:fixed;display:block;pointer-events:none;z-index:2147483644;
         top:${elCenterY}px;left:${elRect.right}px;
         width:${parentRect.right - elRect.right}px;height:0;
-        border-top:1px dashed #0D99FF;
+        border-top:1px dashed ${PICKER_OUTLINE_COLOR};
       `;
     } else {
       pinLines.right.style.display = "none";
@@ -492,7 +492,7 @@ export function createPicker(
     h.style.cssText = `
       position:fixed;pointer-events:auto;display:none;box-sizing:border-box;
       width:${HANDLE_SIZE}px;height:${HANDLE_SIZE}px;
-      background:#fff;border:1px solid #0D99FF;border-radius:1px;
+      background:#fff;border:1px solid ${PICKER_OUTLINE_COLOR};border-radius:1px;
       z-index:2147483645;cursor:${HANDLE_CURSORS[pos]};
     `;
     shadowRoot.appendChild(h);
@@ -619,13 +619,13 @@ export function createPicker(
         // Always show dotted parent indicator
         parentIndicator.style.cssText = `
           position:fixed;display:block;pointer-events:none;z-index:2147483644;
-          border:1px dotted #0D99FF;background:none;
+          border:1px dotted ${PICKER_OUTLINE_COLOR};background:none;
           top:${pr.top}px;left:${pr.left}px;width:${pr.width}px;height:${pr.height}px;
         `;
 
         if (hasPadding) {
           // Show padding stripe rects
-          const PADDING_BG = "repeating-linear-gradient(-45deg, transparent, transparent 3px, rgba(13, 153, 255, 0.5) 3px, rgba(13, 153, 255, 0.5) 4px)";
+          const PADDING_BG = "repeating-linear-gradient(-45deg, transparent, transparent 3px, rgba(232, 153, 153, 0.5) 3px, rgba(232, 153, 153, 0.5) 4px)";
 
           if (guide.axis === "x") {
             if (pad.left > 0 && poolIdx < snapGuidePool.length) {
@@ -1523,8 +1523,8 @@ export function createPicker(
       hl.setAttribute("data-tuna-drag-ghost", "");
       hl.style.cssText = `
         position:fixed;pointer-events:none;z-index:2147483646;
-        border:1px solid #0D99FF;
-        background:rgba(13,153,255,0.04);
+        border:1px solid ${PICKER_OUTLINE_COLOR};
+        background:rgba(232,153,153,0.04);
       `;
       document.body.appendChild(hl);
       dragState.reparentHighlight = hl;
@@ -1541,7 +1541,7 @@ export function createPicker(
     if (!line) {
       line = document.createElement("div");
       line.setAttribute("data-tuna-reparent-line", "");
-      line.style.cssText = `position:absolute;background:#0D99FF;pointer-events:none;border-radius:1px;`;
+      line.style.cssText = `position:absolute;background:${PICKER_OUTLINE_COLOR};pointer-events:none;border-radius:1px;`;
       hl.appendChild(line);
     }
     // Inset relative to container size (3%), clamped between 3-12px
@@ -2549,7 +2549,7 @@ export function createPicker(
     box.style.width = `${rect.width}px`;
     box.style.height = `${rect.height}px`;
     box.style.border = `1px ${borderStyle} ${PICKER_OUTLINE_COLOR}`;
-    box.style.background = `rgba(13, 153, 255, ${bgAlpha})`;
+    box.style.background = `rgba(232, 153, 153, ${bgAlpha})`;
     box.style.display = "";
   }
 
@@ -2649,7 +2649,7 @@ export function createPicker(
       const pr = parent.getBoundingClientRect();
       parentIndicator.style.cssText = `
         position:fixed;display:block;pointer-events:none;z-index:2147483644;
-        border:1px dotted #0D99FF;background:none;
+        border:1px dotted ${PICKER_OUTLINE_COLOR};background:none;
         top:${pr.top}px;left:${pr.left}px;width:${pr.width}px;height:${pr.height}px;
       `;
 

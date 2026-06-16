@@ -1,6 +1,6 @@
-export const PICKER_OUTLINE_COLOR = "#0D99FF";
+export const PICKER_OUTLINE_COLOR = "#E89999";
 /** Light fill on the selected element: same hue as the outline, much lower opacity. */
-export const SELECTION_FILL_ALPHA = "0.08";
+export const SELECTION_FILL_ALPHA = "0.045";
 
 export const MULTI_SELECT_POOL_SIZE = 20;
 
