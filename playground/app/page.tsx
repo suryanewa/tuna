@@ -1,4 +1,5 @@
 import "./styles.css";
+import { BentoCell } from "./bento-cell";
 import { CopyCommandButton, TryItButton } from "./components";
 import { FaqAccordion } from "./faq-accordion";
 
@@ -219,35 +220,6 @@ export default function Home() {
         </p>
       </footer>
     </main>
-  );
-}
-
-function BentoCell({
-  label,
-  value,
-  icon,
-  visual,
-  className,
-}: {
-  label: string;
-  value: string;
-  icon?: React.ReactNode;
-  visual?: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <article className={`bento-cell ${className || ""}`}>
-      <h3 className="bento-cell-label">
-        <span>{label}</span>
-        {icon && <span className="bento-cell-icon">{icon}</span>}
-      </h3>
-      {visual && (
-        <div className="bento-cell-demo" aria-hidden="true">
-          {visual}
-        </div>
-      )}
-      <p className="bento-cell-copy">{value}</p>
-    </article>
   );
 }
 
