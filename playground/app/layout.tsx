@@ -83,7 +83,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 name: "Sujan Khadgi",
                 url: "https://x.com/___sujan",
               },
-              license: "https://opensource.org/licenses/MIT",
+              license: "https://polyformproject.org/licenses/shield/1.0.0/",
             }),
           }}
         />

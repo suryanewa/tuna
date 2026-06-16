@@ -8,14 +8,15 @@
     "start": "next start -p 3001"
   },
   "dependencies": {
+    "@suryanewa/tuna": "file:../packages/overlay",
     "@types/node": "25.3.5",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vercel/analytics": "^1.6.1",
+    "motion": "^12.40.0",
     "next": "^16.3.0-canary.47",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "@suryanewa/tuna": "file:../packages/overlay",
     "typescript": "^5.5.0"
   }
 }
