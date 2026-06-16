@@ -61,39 +61,45 @@ export default function Home() {
 
         <div className="bento-grid">
           <BentoCell
-            label="Context"
-            className="bento-context"
-            icon={<BentoSettingsIcon />}
-            value="Minimal keeps context compact. Standard adds component tree, classes, and text. Full adds richer layout and page context."
+            label="Speak"
+            className="bento-speak"
+            icon={<BentoMicIcon />}
+            visual={<BentoSpeakDemo />}
+            value="Dictate visual feedback while you work. Tuna turns spoken notes into targeted comments that stay attached to the selected element."
           />
           <BentoCell
             label="Select"
             className="bento-select"
             icon={<BentoCursorIcon />}
+            visual={<BentoSelectDemo />}
             value="Click an element while Tuna is active. The overlay captures selector, text, classes, bounds, and React ancestry."
           />
           <BentoCell
             label="Draw"
             className="bento-draw"
             icon={<BentoPencilIcon />}
+            visual={<BentoDrawDemo />}
             value="Sketch directly over the page to mark areas, call out alignment issues, and capture visual annotations your agent can inspect."
-          />
-          <BentoCell
-            label="Tune"
-            className="bento-tune"
-            icon={<BentoWrenchIcon />}
-            value="Adjust spacing, typography, color, radius, layout, image fit, position, opacity, and shadows with live preview."
           />
           <BentoCell
             label="Comment"
             className="bento-comment"
             icon={<BentoCommentIcon />}
+            visual={<BentoCommentDemo />}
             value="Leave targeted notes on elements or drawn areas. Comments travel with selector and component context alongside visual changes."
+          />
+          <BentoCell
+            label="Tune"
+            className="bento-tune"
+            icon={<BentoWrenchIcon />}
+            visual={<BentoTuneDemo />}
+            value="Adjust spacing, typography, color, radius, layout, image fit, position, opacity, and shadows with live preview."
           />
           <BentoCell
             label="Handoff"
             className="bento-handoff"
             icon={<BentoCopyIcon />}
+            visual={<BentoHandoffDemo />}
             value="Copy or stream a structured diff through MCP with enough context for your coding agent to find the source."
           />
         </div>
@@ -216,15 +222,190 @@ export default function Home() {
   );
 }
 
-function BentoCell({ label, value, icon, className }: { label: string; value: string; icon?: React.ReactNode; className?: string }) {
+function BentoCell({
+  label,
+  value,
+  icon,
+  visual,
+  className,
+}: {
+  label: string;
+  value: string;
+  icon?: React.ReactNode;
+  visual?: React.ReactNode;
+  className?: string;
+}) {
   return (
     <article className={`bento-cell ${className || ""}`}>
       <h3 className="bento-cell-label">
         <span>{label}</span>
         {icon && <span className="bento-cell-icon">{icon}</span>}
       </h3>
+      {visual && (
+        <div className="bento-cell-demo" aria-hidden="true">
+          {visual}
+        </div>
+      )}
       <p className="bento-cell-copy">{value}</p>
     </article>
+  );
+}
+
+function BentoSpeakDemo() {
+  return (
+    <div className="bento-mini-ui speak-ui">
+      <span className="speak-waveform">
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+      </span>
+    </div>
+  );
+}
+
+function BentoSelectDemo() {
+  return (
+    <div className="bento-mini-ui select-ui">
+      <span className="select-target" />
+      <span className="select-box">
+        <i />
+        <i />
+        <i />
+        <i />
+      </span>
+      <span className="select-tooltip">button.btn-primary</span>
+      <svg className="select-cursor" viewBox="0 0 24 24">
+        <path d="M3.45158 4.72779L9.06387 20.5551C9.36964 21.4174 10.577 21.4503 10.9293 20.6059L13.6196 14.157C13.721 13.9138 13.9143 13.7205 14.1575 13.6191L20.6064 10.9288C21.4508 10.5765 21.4179 9.36915 20.5556 9.06338L4.72828 3.45109C3.93501 3.1698 3.17029 3.93452 3.45158 4.72779Z" />
+      </svg>
+    </div>
+  );
+}
+
+function BentoDrawDemo() {
+  return (
+    <div className="bento-mini-ui draw-ui">
+      <svg className="draw-canvas" viewBox="0 0 220 112">
+        <rect className="draw-page-block draw-page-block-main" x="52" y="22" width="116" height="40" rx="5" />
+        <rect className="draw-page-block draw-page-block-small" x="71" y="72" width="78" height="14" rx="4" />
+        <circle className="draw-fill" cx="110" cy="62" r="26" />
+        <circle className="draw-ink draw-ink-line" pathLength={1} cx="110" cy="62" r="26" />
+      </svg>
+      <svg className="draw-pencil-icon" viewBox="0 0 24 24">
+        <path className="draw-pencil-body" d="M18.9142 3.41415L20.5858 5.08573C21.3668 5.86678 21.3668 7.13311 20.5858 7.91416L17.75 10.7499L7.83579 20.6642C7.46071 21.0392 6.95201 21.2499 6.42157 21.2499H2.75V17.5784C2.75 17.0479 2.96071 16.5392 3.33579 16.1642L13.25 6.24994L16.0858 3.41416C16.8668 2.63311 18.1332 2.63311 18.9142 3.41415Z" />
+        <path className="draw-pencil-seam" d="M13.25 6.25L17.75 10.75" />
+      </svg>
+    </div>
+  );
+}
+
+function BentoTuneDemo() {
+  return (
+    <div className="bento-mini-ui tune-ui">
+      <div className="tune-row tune-row-spacing">
+        <span className="tune-track">
+          <i />
+        </span>
+      </div>
+      <div className="tune-row tune-row-radius">
+        <span className="tune-track">
+          <i />
+        </span>
+      </div>
+      <div className="tune-row tune-row-fill">
+        <span className="tune-track">
+          <i />
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function BentoCommentDemo() {
+  return (
+    <div className="bento-mini-ui comment-ui">
+      <div className="comment-page">
+        <span className="comment-target" />
+        <span className="comment-select-box">
+          <i />
+          <i />
+          <i />
+          <i />
+        </span>
+        <span className="comment-trigger">
+          <svg viewBox="0 0 20 20" aria-hidden="true" className="comment-trigger-icon">
+            <path d="M3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10C17 13.866 13.866 17 10 17H4C3.44772 17 3 16.5523 3 16V10Z" />
+          </svg>
+        </span>
+      </div>
+      <div className="comment-box">
+        <div className="comment-top-row">
+          <span className="comment-close" />
+          <div className="comment-input">
+            <span className="comment-mention">@Button</span>
+            <span className="comment-typing-wrap">
+              <span className="comment-typed">tighten the padding</span>
+              <span className="comment-caret" />
+            </span>
+          </div>
+          <span className="comment-dictate">
+            <svg viewBox="0 0 20 20" aria-hidden="true">
+              <path d="M10 3.75C8.89543 3.75 8 4.64543 8 5.75V9.25C8 10.3546 8.89543 11.25 10 11.25C11.1046 11.25 12 10.3546 12 9.25V5.75C12 4.64543 11.1046 3.75 10 3.75Z" />
+              <path d="M5.75 9.25C5.75 11.5972 7.65279 13.5 10 13.5C12.3472 13.5 14.25 11.5972 14.25 9.25" />
+              <path d="M10 13.5V16.25" />
+            </svg>
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BentoHandoffDemo() {
+  return (
+    <div className="bento-mini-ui handoff-ui">
+      <div className="handoff-flow">
+        <div className="handoff-node handoff-visual">
+          <span className="handoff-visual-box" />
+        </div>
+        <div className="handoff-path">
+          <span className="handoff-packet" />
+        </div>
+        <div className="handoff-node handoff-code">
+          <span className="handoff-code-line" />
+          <span className="handoff-code-line short" />
+          <span className="handoff-code-line" />
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -272,11 +453,12 @@ function BentoCopyIcon() {
   );
 }
 
-function BentoSettingsIcon() {
+function BentoMicIcon() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="settings-icon">
-      <path className="gear-outer" d="M7.878 5.21415L7.17474 5.05186C6.58003 4.91462 5.95657 5.09343 5.525 5.525C5.09343 5.95657 4.91462 6.58003 5.05186 7.17474L5.21415 7.878C5.40122 8.6886 5.06696 9.53036 4.37477 9.99182L3.51965 10.5619C3.03881 10.8825 2.75 11.4221 2.75 12C2.75 12.5779 3.03881 13.1175 3.51965 13.4381L4.37477 14.0082C5.06696 14.4696 5.40122 15.3114 5.21415 16.122L5.05186 16.8253C4.91462 17.42 5.09343 18.0434 5.525 18.475C5.95657 18.9066 6.58003 19.0854 7.17474 18.9481L7.878 18.7858C8.6886 18.5988 9.53036 18.933 9.99182 19.6252L10.5619 20.4804C10.8825 20.9612 11.4221 21.25 12 21.25C12.5779 21.25 13.1175 20.9612 13.4381 20.4804L14.0082 19.6252C14.4696 18.933 15.3114 18.5988 16.122 18.7858L16.8253 18.9481C17.42 19.0854 18.0434 18.9066 18.475 18.475C18.9066 18.0434 19.0854 17.42 18.9481 16.8253L18.7858 16.122C18.5988 15.3114 18.933 14.4696 19.6252 14.0082L20.4804 13.4381C20.9612 13.1175 21.25 12.5779 21.25 12C21.25 11.4221 20.9612 10.8825 20.4804 10.5619L19.6252 9.99182C18.933 9.53036 18.5988 8.6886 18.7858 7.878L18.9481 7.17473C19.0854 6.58003 18.9066 5.95657 18.475 5.525C18.0434 5.09343 17.42 4.91462 16.8253 5.05186L16.122 5.21415C15.3114 5.40122 14.4696 5.06696 14.0082 4.37477L13.4381 3.51965C13.1175 3.03881 12.5779 2.75 12 2.75C11.4221 2.75 10.8825 3.03881 10.5619 3.51965L9.99182 4.37477C9.53036 5.06696 8.6886 5.40122 7.878 5.21415Z" />
-      <path className="gear-inner" d="M14.75 12C14.75 13.5188 13.5188 14.75 12 14.75C10.4812 14.75 9.25 13.5188 9.25 12C9.25 10.4812 10.4812 9.25 12 9.25C13.5188 9.25 14.75 10.4812 14.75 12Z" />
+    <svg viewBox="4 2 16 20" aria-hidden="true" className="mic-icon">
+      <path d="M12 3.75C10.8954 3.75 10 4.64543 10 5.75V12.25C10 13.3546 10.8954 14.25 12 14.25C13.1046 14.25 14 13.3546 14 12.25V5.75C14 4.64543 13.1046 3.75 12 3.75Z" />
+      <path d="M6.75 11.75C6.75 14.6495 9.10051 17 12 17C14.8995 17 17.25 14.6495 17.25 11.75" />
+      <path d="M12 17V20.25" />
     </svg>
   );
 }

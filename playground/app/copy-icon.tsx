@@ -206,3 +206,38 @@ export const CopyIcon = forwardRef<CopyIconHandle, CopyIconProps>(
 );
 
 CopyIcon.displayName = "CopyIcon";
+
+interface ParentHoverCopyIconProps extends CopyIconProps {
+  hoverTargetSelector: string;
+}
+
+export function ParentHoverCopyIcon({
+  hoverTargetSelector,
+  ...props
+}: ParentHoverCopyIconProps) {
+  const iconRef = useRef<CopyIconHandle>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    const hoverTarget = root?.closest(hoverTargetSelector);
+    if (!hoverTarget) return;
+
+    const startAnimation = () => iconRef.current?.startAnimation();
+    const stopAnimation = () => iconRef.current?.stopAnimation();
+
+    hoverTarget.addEventListener("mouseenter", startAnimation);
+    hoverTarget.addEventListener("mouseleave", stopAnimation);
+
+    return () => {
+      hoverTarget.removeEventListener("mouseenter", startAnimation);
+      hoverTarget.removeEventListener("mouseleave", stopAnimation);
+    };
+  }, [hoverTargetSelector]);
+
+  return (
+    <div ref={rootRef} className="parent-hover-copy-icon">
+      <CopyIcon ref={iconRef} {...props} />
+    </div>
+  );
+}
