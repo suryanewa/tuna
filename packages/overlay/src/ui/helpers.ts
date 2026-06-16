@@ -54,9 +54,7 @@ export function getToggleHotkeys(customHotkey = "alt+d"): string[] {
 /** Label for toggle hotkeys in tooltips. */
 export function formatToggleHotkeyShortcut(customHotkey = "alt+d"): string {
   const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(navigator.platform);
-  const primary = customHotkey === "alt+d" ? (isMac ? "⌥D" : "Alt+D") : customHotkey;
-  const secondary = isMac ? "⌘⇧D" : "Ctrl+Shift+D";
-  return `${primary} / ${secondary}`;
+  return customHotkey === "alt+d" ? (isMac ? "⌥D" : "Alt+D") : customHotkey;
 }
 
 /** Check if a keyboard event matches a hotkey string like "alt+d" */

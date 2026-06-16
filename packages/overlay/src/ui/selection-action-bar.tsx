@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { IconSquareBehindSquare6 } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconSquareBehindSquare6";
 import { IconCheckCircle2 } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconCheckCircle2";
-import { IconBroom } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconBroom";
+import { IconWrench } from "./IconWrench";
 import { IconCrossMedium } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconCrossMedium";
 import { Tooltip } from "./tooltip";
 import { computeSelectionChromeLayout, type SelectionChromeLayout } from "../selector/selection-chrome-layout";
@@ -108,12 +108,12 @@ export function SelectionActionBar({
       style={{ top: pos.top, left: pos.left }}
       onPointerDown={(e) => e.stopPropagation()}
     >
-      <Tooltip content="Comment" side="top">
+      <Tooltip content="Comment" shortcut="C" side="top">
         <button type="button" className="tuna-selection-action-btn" onClick={onComment}>
           <IconComment />
         </button>
       </Tooltip>
-      <Tooltip content="Copy" side="top">
+      <Tooltip content="Copy" shortcut="⌘C" side="top">
         <button
           type="button"
           className="tuna-selection-action-btn"
@@ -130,13 +130,13 @@ export function SelectionActionBar({
         </button>
       </Tooltip>
       {onToggleEdit && (
-        <Tooltip content={editMode ? "Exit edit mode" : "Edit"} side="top">
+        <Tooltip content={editMode ? "Exit tune mode" : "Tune"} shortcut="T" side="top">
           <button
             type="button"
             className={`tuna-selection-action-btn${editMode ? " active" : ""}`}
             onClick={onToggleEdit}
           >
-            <IconBroom size={18} />
+            <IconWrench size={18} />
           </button>
         </Tooltip>
       )}

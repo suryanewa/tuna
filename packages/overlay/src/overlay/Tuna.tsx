@@ -50,7 +50,7 @@ import { IconSquareBehindSquare6 } from "@central-icons-react/round-outlined-rad
 import { IconStepBack } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconStepBack";
 import { IconCrossMedium } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconCrossMedium";
 import { IconArrowRotateClockwise } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconArrowRotateClockwise";
-import { IconBroom } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconBroom";
+import { IconWrench } from "../ui/IconWrench";
 import { IconCheckCircle2 } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconCheckCircle2";
 import { IconSettingsGear2 } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconSettingsGear2";
 import { IconCursor1 } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconCursor1";
@@ -1294,6 +1294,28 @@ function TunaInner(props: TunaConfig) {
     setActive(true);
   }, [active, deactivateOverlay]);
 
+  const openSettingsPanel = useCallback(() => {
+    if (settingsTimerRef.current) clearTimeout(settingsTimerRef.current);
+    setSettingsOpen(true);
+    setSettingsVisible(true);
+    setSettingsExiting(false);
+  }, []);
+
+  const closeSettingsPanel = useCallback(() => {
+    if (settingsTimerRef.current) clearTimeout(settingsTimerRef.current);
+    setSettingsOpen(false);
+    setSettingsExiting(true);
+    settingsTimerRef.current = setTimeout(() => {
+      setSettingsVisible(false);
+      setSettingsExiting(false);
+    }, 250);
+  }, []);
+
+  const toggleSettingsPanel = useCallback(() => {
+    if (settingsOpen) closeSettingsPanel();
+    else openSettingsPanel();
+  }, [closeSettingsPanel, openSettingsPanel, settingsOpen]);
+
   useEffect(() => {
     const handleActivate = () => activateOverlay();
     const handleDeactivate = () => {
@@ -1371,7 +1393,7 @@ function TunaInner(props: TunaConfig) {
     }
   }, [editPanelOpen, selectedElement, selectedElements]);
 
-  // Mode shortcuts: V for select, D for draw, E for edit, C for comment (when toolbar is active)
+  // Mode shortcuts: V for select, D for draw, T for tune, C for comment (when toolbar is active)
   useEffect(() => {
     if (!active) return;
     const handleModeKey = (e: KeyboardEvent) => {
@@ -1393,7 +1415,7 @@ function TunaInner(props: TunaConfig) {
         setActiveCommentId(null);
         pickerRef.current?.setCommentMode(false);
         closeEditPanel();
-      } else if (e.key === "e" || e.key === "E") {
+      } else if (e.key === "t" || e.key === "T") {
         e.preventDefault();
         setMode("edit");
         dismissCommentDraft();
@@ -3015,6 +3037,24 @@ function TunaInner(props: TunaConfig) {
         e.preventDefault();
         toggleOverlay();
       }
+      if (active && (e.metaKey || e.ctrlKey) && e.key === ",") {
+        if (isEditableKeyboardTarget(e)) return;
+        e.preventDefault();
+        openSettingsPanel();
+      }
+      if (active && e.key === "Escape" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        if (isEditableKeyboardTarget(e)) return;
+        if (shouldBlockForPopoverRef.current()) return;
+        const hasSelection =
+          !!selectedElementRef.current ||
+          selectedElementsRef.current.length > 0 ||
+          selectedDrawPathsRef.current.length > 0;
+        if (!hasSelection) {
+          e.preventDefault();
+          e.stopPropagation();
+          deactivateOverlay();
+        }
+      }
       if (active && (e.metaKey || e.ctrlKey) && e.key === "z") {
         if (isEditableKeyboardTarget(e)) return;
         e.preventDefault();
@@ -3113,7 +3153,7 @@ function TunaInner(props: TunaConfig) {
     }
     document.addEventListener("keydown", handleKeyDown, true);
     return () => document.removeEventListener("keydown", handleKeyDown, true);
-  }, [active, config.hotkey, toggleOverlay, handleUndo, handleRedo, handleDelete, handleReorderByKey]);
+  }, [active, config.hotkey, deactivateOverlay, openSettingsPanel, toggleOverlay, handleUndo, handleRedo, handleDelete, handleReorderByKey]);
 
   const handleReset = useCallback(() => {
     const tracker = trackerRef.current;
@@ -3687,7 +3727,7 @@ function TunaInner(props: TunaConfig) {
               <IconPencil size={20} />
             </button>
           </Tooltip>
-          <Tooltip content="Edit" shortcut="E" side="top">
+          <Tooltip content="Tune" shortcut="T" side="top">
             <button
               className={`tuna-toolbar-btn${mode === "edit" ? " active" : ""}`}
               onClick={() => {
@@ -3701,7 +3741,7 @@ function TunaInner(props: TunaConfig) {
                 }
               }}
             >
-              <IconBroom size={20} />
+              <IconWrench size={20} />
             </button>
           </Tooltip>
           <Tooltip content="Comment" shortcut="C" side="top">
@@ -3743,29 +3783,15 @@ function TunaInner(props: TunaConfig) {
               <IconArrowRotateClockwise size={20} />
             </button>
           </Tooltip>
-          <Tooltip content="Settings" side="top">
+          <Tooltip content="Settings" shortcut="⌘," side="top">
             <button
               className="tuna-toolbar-btn"
-              onClick={() => {
-                if (settingsTimerRef.current) clearTimeout(settingsTimerRef.current);
-                if (!settingsOpen) {
-                  setSettingsOpen(true);
-                  setSettingsVisible(true);
-                  setSettingsExiting(false);
-                } else {
-                  setSettingsOpen(false);
-                  setSettingsExiting(true);
-                  settingsTimerRef.current = setTimeout(() => {
-                    setSettingsVisible(false);
-                    setSettingsExiting(false);
-                  }, 250);
-                }
-              }}
+              onClick={toggleSettingsPanel}
             >
               <IconSettingsGear2 size={20} />
             </button>
           </Tooltip>
-          <Tooltip content="Close" side="top">
+          <Tooltip content="Close" shortcut="Esc" side="top">
             <button
               className="tuna-toolbar-btn"
               onClick={handleClose}
