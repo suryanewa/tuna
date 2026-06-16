@@ -30,7 +30,7 @@
 
 *::selection {
   color: var(--fg);
-  background: var(--brand);
+  background: color-mix(in srgb, var(--brand) 32%, transparent);
 }
 
 html {
@@ -308,47 +308,13 @@ code {
   background: var(--try-candy-bg);
 }
 
-.sparkle-action-icon,
 .sparkle-action-text {
   position: relative;
   z-index: 5;
 }
 
-.sparkle-action-icon {
-  width: 14px;
-  height: 14px;
-  flex: 0 0 auto;
-  overflow: visible;
-  color: rgb(42 25 25 / calc(0.72 + (var(--sparkle-active) * 0.2)));
-}
-
-.sparkle-action-icon path {
-  fill: currentColor;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  transform-box: fill-box;
-  transform-origin: center;
-  transition: color 180ms ease;
-}
-
-.sparkle-action-icon path:nth-child(1) {
-  --sparkle-scale: 0.62;
-  --sparkle-delay: 90ms;
-}
-
-.sparkle-action-icon path:nth-child(2) {
-  --sparkle-scale: 1.35;
-  --sparkle-delay: 160ms;
-}
-
-.sparkle-action-icon path:nth-child(3) {
-  --sparkle-scale: 1.8;
-  --sparkle-delay: 240ms;
-}
-
 .sparkle-action-text {
-  color: rgb(31 31 31 / calc(0.9 + (var(--sparkle-active) * 0.1)));
+  color: #fff;
   white-space: nowrap;
 }
 
@@ -444,170 +410,10 @@ code {
   transform: scale(0.97);
 }
 
-.sparkle-action-particles {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  z-index: -1;
-  width: 210%;
-  aspect-ratio: 1;
-  opacity: 0;
-  pointer-events: none;
-  transform: translate(-50%, -50%);
-  transition: opacity 180ms ease;
-  -webkit-mask: radial-gradient(white, transparent 68%);
-  mask: radial-gradient(white, transparent 68%);
-}
-
-.sparkle-action-particle {
-  position: absolute;
-  top: calc(var(--particle-y) * 1%);
-  left: calc(var(--particle-x) * 1%);
-  width: calc(var(--particle-size) * 1px);
-  height: calc(var(--particle-size) * 1px);
-  color: rgb(224 116 126 / var(--particle-alpha));
-  overflow: visible;
-  transform-origin: var(--particle-origin-x) var(--particle-origin-y);
-  animation: sparkle-action-float calc(var(--particle-duration) * 1s) linear infinite;
-  animation-delay: calc(var(--particle-delay) * -1s);
-  animation-play-state: paused;
-}
-
-.sparkle-action-particle path {
-  fill: currentColor;
-}
-
-.sparkle-action-particle:nth-child(1) {
-  --particle-x: 23;
-  --particle-y: 45;
-  --particle-size: 7;
-  --particle-alpha: 0.62;
-  --particle-duration: 11;
-  --particle-delay: 2;
-  --particle-origin-x: -560%;
-  --particle-origin-y: 420%;
-}
-
-.sparkle-action-particle:nth-child(2) {
-  --particle-x: 78;
-  --particle-y: 32;
-  --particle-size: 5;
-  --particle-alpha: 0.55;
-  --particle-duration: 15;
-  --particle-delay: 8;
-  --particle-origin-x: 640%;
-  --particle-origin-y: -380%;
-}
-
-.sparkle-action-particle:nth-child(3) {
-  --particle-x: 60;
-  --particle-y: 78;
-  --particle-size: 8;
-  --particle-alpha: 0.5;
-  --particle-duration: 18;
-  --particle-delay: 3;
-  --particle-origin-x: 520%;
-  --particle-origin-y: 580%;
-}
-
-.sparkle-action-particle:nth-child(4) {
-  --particle-x: 35;
-  --particle-y: 71;
-  --particle-size: 4;
-  --particle-alpha: 0.72;
-  --particle-duration: 9;
-  --particle-delay: 5;
-  --particle-origin-x: -470%;
-  --particle-origin-y: 620%;
-}
-
-.sparkle-action-particle:nth-child(5) {
-  --particle-x: 67;
-  --particle-y: 21;
-  --particle-size: 6;
-  --particle-alpha: 0.42;
-  --particle-duration: 13;
-  --particle-delay: 1;
-  --particle-origin-x: 620%;
-  --particle-origin-y: -460%;
-}
-
-.sparkle-action-particle:nth-child(6) {
-  --particle-x: 18;
-  --particle-y: 62;
-  --particle-size: 5;
-  --particle-alpha: 0.58;
-  --particle-duration: 17;
-  --particle-delay: 9;
-  --particle-origin-x: -690%;
-  --particle-origin-y: 360%;
-}
-
-.sparkle-action-particle:nth-child(7) {
-  --particle-x: 48;
-  --particle-y: 18;
-  --particle-size: 4;
-  --particle-alpha: 0.48;
-  --particle-duration: 12;
-  --particle-delay: 6;
-  --particle-origin-x: 310%;
-  --particle-origin-y: -610%;
-}
-
-.sparkle-action-particle:nth-child(8) {
-  --particle-x: 84;
-  --particle-y: 58;
-  --particle-size: 7;
-  --particle-alpha: 0.46;
-  --particle-duration: 20;
-  --particle-delay: 11;
-  --particle-origin-x: 770%;
-  --particle-origin-y: 420%;
-}
-
-.sparkle-action-particle:nth-child(9) {
-  --particle-x: 42;
-  --particle-y: 84;
-  --particle-size: 6;
-  --particle-alpha: 0.64;
-  --particle-duration: 16;
-  --particle-delay: 7;
-  --particle-origin-x: -360%;
-  --particle-origin-y: 710%;
-}
-
-.sparkle-action-particle:nth-child(10) {
-  --particle-x: 72;
-  --particle-y: 70;
-  --particle-size: 4;
-  --particle-alpha: 0.52;
-  --particle-duration: 10;
-  --particle-delay: 4;
-  --particle-origin-x: 560%;
-  --particle-origin-y: 520%;
-}
-
-.sparkle-action-particle:nth-child(even) {
-  animation-direction: reverse;
-}
-
 .primary-action.try-tuna-button:focus-visible {
   --sparkle-active: 1;
   --sparkle-play: running;
   filter: brightness(1.04) saturate(1.04);
-}
-
-.primary-action.try-tuna-button:focus-visible .sparkle-action-icon path {
-  animation: sparkle-action-bounce 620ms ease both;
-  animation-delay: var(--sparkle-delay);
-}
-
-.primary-action.try-tuna-button:focus-visible + .sparkle-action-particles {
-  opacity: 1;
-}
-
-.primary-action.try-tuna-button:focus-visible + .sparkle-action-particles .sparkle-action-particle {
-  animation-play-state: running;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -615,19 +421,6 @@ code {
     --sparkle-active: 1;
     --sparkle-play: running;
     filter: brightness(1.04) saturate(1.04);
-  }
-
-  .primary-action.try-tuna-button:hover .sparkle-action-icon path {
-    animation: sparkle-action-bounce 620ms ease both;
-    animation-delay: var(--sparkle-delay);
-  }
-
-  .primary-action.try-tuna-button:hover + .sparkle-action-particles {
-    opacity: 1;
-  }
-
-  .primary-action.try-tuna-button:hover + .sparkle-action-particles .sparkle-action-particle {
-    animation-play-state: running;
   }
 }
 
@@ -642,19 +435,6 @@ code {
 }
 
 @keyframes sparkle-action-flip {
-  to {
-    rotate: 360deg;
-  }
-}
-
-@keyframes sparkle-action-bounce {
-  35%,
-  65% {
-    scale: var(--sparkle-scale);
-  }
-}
-
-@keyframes sparkle-action-float {
   to {
     rotate: 360deg;
   }
@@ -1105,6 +885,7 @@ code {
 .draw-fill {
   fill: var(--brand);
   opacity: 0;
+  transition: opacity 160ms ease;
 }
 
 .draw-ink {
@@ -1737,7 +1518,8 @@ code {
   }
 
   .bento-draw:hover .draw-fill {
-    animation: bento-draw-fill 120ms var(--bento-ease-out) 240ms both;
+    opacity: 0.14;
+    transition-delay: 240ms;
   }
 
   .bento-draw:hover .draw-pencil-icon {
@@ -1847,16 +1629,6 @@ code {
   }
 }
 
-@keyframes bento-draw-fill {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 0.14;
-  }
-}
-
 @keyframes bento-draw-pencil {
   0% {
     transform: translate(0, 0) rotate(-28deg) translateZ(0);
@@ -1934,6 +1706,14 @@ code {
   border: 1px solid var(--border);
   border-radius: var(--radius-large);
   background: var(--bg);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.code-card:hover {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand) 34%, transparent);
 }
 
 .code-card pre {
