@@ -375,10 +375,18 @@ function TunaInner(props: TunaConfig) {
     } catch {}
     return "tuna";
   });
-  const handleThemeChange = useCallback((t: "tuna" | "light" | "dark") => {
+  const applyTheme = useCallback((t: "tuna" | "light" | "dark") => {
+    document.documentElement.setAttribute("data-theme", t);
     setTheme(t);
-    try { localStorage.setItem("tuna-theme", t); } catch {}
+    try {
+      localStorage.setItem("theme", t);
+      localStorage.setItem("tuna-theme", t);
+    } catch {}
+    window.dispatchEvent(new CustomEvent("tuna:color-mode-change", { detail: { theme: t } }));
   }, []);
+  const handleThemeChange = useCallback((t: "tuna" | "light" | "dark") => {
+    applyTheme(t);
+  }, [applyTheme]);
   const togglePageAndTunaColorMode = useCallback(() => {
     const root = document.documentElement;
     const currentTheme = root.getAttribute("data-theme");
@@ -388,14 +396,8 @@ function TunaInner(props: TunaConfig) {
     const nextTheme: "tuna" | "light" | "dark" =
       normalizedTheme === "dark" ? "tuna" : "dark";
 
-    root.setAttribute("data-theme", nextTheme);
-    try {
-      localStorage.setItem("theme", nextTheme);
-      localStorage.setItem("tuna-theme", nextTheme);
-    } catch {}
-    setTheme(nextTheme);
-    window.dispatchEvent(new CustomEvent("tuna:color-mode-change", { detail: { theme: nextTheme } }));
-  }, []);
+    applyTheme(nextTheme);
+  }, [applyTheme]);
 
   // Toggle dark class on host element based on theme
   useEffect(() => {
