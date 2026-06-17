@@ -119,13 +119,16 @@ export function createServer(bridge: Bridge): McpServer {
     "Get pending visual changes formatted as structured markdown, ready to apply to source code. Includes element identification (CSS selector, React component, text content) and exact before/after values for each changed property. Changes are automatically cleared after retrieval unless clear is set to false.",
     {
       fidelity: z.enum(["minimal", "standard", "full"]).optional()
-        .describe("Level of context detail. 'minimal' = compact element context and diffs. 'standard' = adds component tree and classes. 'full' = adds richer layout and page context. Default: standard."),
+        .describe("Level of context detail. 'minimal' = compact element context and diffs. 'standard' = adds component tree and classes. 'full' = adds richer layout and page context. Defaults to the overlay's current Output Detail setting."),
       clear: z.boolean().optional()
         .describe("Whether to clear changes after retrieval. Default: true."),
     },
     async ({ fidelity, clear }) => {
       try {
-        const output = await bridge.request("getFormattedChanges", { fidelity: fidelity || "standard" });
+        const output = await bridge.request(
+          "getFormattedChanges",
+          fidelity ? { fidelity } : undefined,
+        );
         if (clear !== false) {
           await bridge.request("clearChanges");
         }
