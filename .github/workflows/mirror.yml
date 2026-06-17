@@ -1,0 +1,48 @@
+name: Mirror repository
+
+on:
+  push:
+    branches:
+      - "**"
+    tags:
+      - "**"
+
+concurrency:
+  group: mirror-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    if: github.repository == 'suryanewa/retune' || github.repository == 'suryanewa/tuna'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push ref to mirror
+        env:
+          MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          case "${GITHUB_REPOSITORY}" in
+            suryanewa/retune)
+              target_repo="suryanewa/tuna"
+              ;;
+            suryanewa/tuna)
+              target_repo="suryanewa/retune"
+              ;;
+            *)
+              echo "No mirror target configured for ${GITHUB_REPOSITORY}."
+              exit 0
+              ;;
+          esac
+
+          git remote add mirror "https://x-access-token:${MIRROR_TOKEN}@github.com/${target_repo}.git"
+
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            git push mirror "refs/tags/${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}"
+          else
+            git push mirror "HEAD:refs/heads/${GITHUB_REF_NAME}"
+          fi
