@@ -198,3 +198,39 @@ export function HiddenSmall({ size }: P) {
 export function Rotate({ size }: P) {
   return <I size={size}><path fillRule="evenodd" clipRule="evenodd" d="M10.2322 6.47491C11.2085 5.4986 12.7915 5.4986 13.7678 6.47491L15.2929 8.00003H14C13.7239 8.00003 13.5 8.22389 13.5 8.50003C13.5 8.77618 13.7239 9.00003 14 9.00003H16.5C16.7761 9.00003 17 8.77618 17 8.50003V6.00003C17 5.72389 16.7761 5.50003 16.5 5.50003C16.2239 5.50003 16 5.72389 16 6.00003V7.29293L14.4749 5.7678C13.108 4.40097 10.892 4.40097 9.52513 5.7678L7.14645 8.14648C6.95118 8.34174 6.95118 8.65833 7.14645 8.85359C7.34171 9.04885 7.65829 9.04885 7.85355 8.85359L10.2322 6.47491ZM13.0607 9.64648C12.4749 9.0607 11.5251 9.06069 10.9393 9.64648L7.64645 12.9394C7.06066 13.5252 7.06066 14.4749 7.64645 15.0607L10.9393 18.3536C11.5251 18.9394 12.4749 18.9394 13.0607 18.3536L16.3536 15.0607C16.9393 14.4749 16.9393 13.5252 16.3536 12.9394L13.0607 9.64648ZM11.6464 10.3536C11.8417 10.1583 12.1583 10.1583 12.3536 10.3536L15.6464 13.6465C15.8417 13.8417 15.8417 14.1583 15.6464 14.3536L12.3536 17.6465C12.1583 17.8417 11.8417 17.8417 11.6464 17.6465L8.35355 14.3536C8.15829 14.1583 8.15829 13.8417 8.35355 13.6465L11.6464 10.3536Z" fill="currentColor" fillOpacity={0.9}/></I>;
 }
+
+export function IconCursorClick({ size }: P) {
+  return <I size={size}><path d="M8.25 4.75L16.25 12.15L12.62 12.79L14.82 17.08L12.84 18.1L10.7 13.92L8.25 16.45V4.75Z" stroke="currentColor" strokeWidth={1.5} strokeLinejoin="round"/><path d="M16.7 5.25L18.25 3.7M18.75 8.9H20.9M13.2 3.1V1.25" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round"/></I>;
+}
+
+export function IconSquareBehindSquare6({ size }: P) {
+  return <I size={size}><rect x="5.75" y="8.75" width="9.5" height="9.5" rx="1.75" stroke="currentColor" strokeWidth={1.5}/><path d="M8.75 5.75H16.5C17.4665 5.75 18.25 6.5335 18.25 7.5V15.25" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round"/></I>;
+}
+
+export function IconStepBack({ size }: P) {
+  return <I size={size}><path d="M18 5L10 12L18 19V5Z" stroke="currentColor" strokeWidth={1.5} strokeLinejoin="round"/><path d="M6 5V19" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round"/></I>;
+}
+
+export function IconCrossMedium({ size }: P) {
+  return <I size={size}><path d="M6.75 6.75L17.25 17.25M17.25 6.75L6.75 17.25" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round"/></I>;
+}
+
+export function IconArrowRotateClockwise({ size }: P) {
+  return <I size={size}><path d="M18.5 8.5V4.75H14.75" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/><path d="M18.05 8.85C16.95 6.63 14.66 5.1 12 5.1C8.19 5.1 5.1 8.19 5.1 12C5.1 15.81 8.19 18.9 12 18.9C15.03 18.9 17.61 16.95 18.54 14.24" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round"/></I>;
+}
+
+export function IconCheckCircle2({ size }: P) {
+  return <I size={size}><path d="M21 11.08V12C20.9988 14.1564 20.3005 16.2547 19.0093 17.9818C17.7182 19.709 15.9033 20.9725 13.8354 21.5839C11.7674 22.1953 9.55726 22.1219 7.53447 21.3746C5.51168 20.6273 3.78465 19.2461 2.61096 17.4371C1.43727 15.628 0.879791 13.4881 1.02168 11.3363C1.16356 9.18455 1.99721 7.13631 3.39828 5.49706C4.79935 3.85781 6.69279 2.71537 8.79619 2.24013C10.8996 1.7649 13.1003 1.98232 15.07 2.86" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/><path d="M21 4L12 13.01L9.3 10.31" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/></I>;
+}
+
+export function IconSettingsGear2({ size }: P) {
+  return <I size={size}><path d="M12 15.25C13.7949 15.25 15.25 13.7949 15.25 12C15.25 10.2051 13.7949 8.75 12 8.75C10.2051 8.75 8.75 10.2051 8.75 12C8.75 13.7949 10.2051 15.25 12 15.25Z" stroke="currentColor" strokeWidth={1.5}/><path d="M19.35 13.35C19.43 12.91 19.47 12.46 19.47 12C19.47 11.54 19.43 11.09 19.35 10.65L21.1 9.3L19.45 6.45L17.4 7.28C16.71 6.71 15.93 6.25 15.07 5.96L14.75 3.75H11.25L10.93 5.96C10.07 6.25 9.29 6.71 8.6 7.28L6.55 6.45L4.9 9.3L6.65 10.65C6.57 11.09 6.53 11.54 6.53 12C6.53 12.46 6.57 12.91 6.65 13.35L4.9 14.7L6.55 17.55L8.6 16.72C9.29 17.29 10.07 17.75 10.93 18.04L11.25 20.25H14.75L15.07 18.04C15.93 17.75 16.71 17.29 17.4 16.72L19.45 17.55L21.1 14.7L19.35 13.35Z" stroke="currentColor" strokeWidth={1.5} strokeLinejoin="round"/></I>;
+}
+
+export function IconCursor1({ size }: P) {
+  return <I size={size}><path d="M7.5 4.75L16.75 13.25L12.5 14L14.75 18.45L12.65 19.5L10.45 15.15L7.5 18.25V4.75Z" stroke="currentColor" strokeWidth={1.5} strokeLinejoin="round"/></I>;
+}
+
+export function IconPencil({ size }: P) {
+  return <I size={size}><path d="M4.75 16.25L4 20L7.75 19.25L18.38 8.62C19.21 7.79 19.21 6.46 18.38 5.63C17.55 4.79 16.21 4.79 15.38 5.63L4.75 16.25Z" stroke="currentColor" strokeWidth={1.5} strokeLinejoin="round"/><path d="M14.25 6.75L17.25 9.75" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round"/></I>;
+}

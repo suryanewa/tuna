@@ -1,6 +1,6 @@
-import { IconCrossMedium } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconCrossMedium";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEventHandler } from "react";
 import type { Comment } from "../../engine/comment-store";
+import { IconCrossMedium } from "../../ui/icons";
 import { useCommentDictation } from "../use-comment-dictation";
 import { AudioWaveform } from "./AudioWaveform";
 import {

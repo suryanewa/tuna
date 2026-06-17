@@ -10,7 +10,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@central-icons-react/round-outlined-radius-2-stroke-1.5": "^1.1.153",
     "@lexical/react": "^0.45.0",
     "@medv/finder": "^3.2.0",
     "@modelcontextprotocol/sdk": "^1.12.1",

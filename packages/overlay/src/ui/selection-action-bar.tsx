@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { IconSquareBehindSquare6 } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconSquareBehindSquare6";
-import { IconCheckCircle2 } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconCheckCircle2";
 import { IconWrench } from "./IconWrench";
-import { IconCrossMedium } from "@central-icons-react/round-outlined-radius-2-stroke-1.5/IconCrossMedium";
+import { IconCheckCircle2, IconCrossMedium, IconSquareBehindSquare6 } from "./icons";
 import { Tooltip } from "./tooltip";
 import { computeSelectionChromeLayout, type SelectionChromeLayout } from "../selector/selection-chrome-layout";
 
