@@ -16,5 +16,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci --ignore-scripts
-      - run: npm run typecheck -w retune
-      - run: npm test -w retune
+      - run: npm run typecheck
+      - run: npm run build:overlay
+      - run: npm run build:extension
+      - run: npm run build:playground
+      - run: npm test

@@ -47,7 +47,7 @@ This monorepo also includes a private Manifest V3 Chrome extension package for o
 npm run build:extension
 ```
 
-Load `packages/chrome-extension/dist` from `chrome://extensions` with Developer Mode enabled, then click the Tuna extension action on any `http`, `https`, or `file` page. Copy-to-clipboard output and MCP handoff use the same overlay implementation and the same local `ws://localhost:9223/ws` bridge as the React package.
+Load `packages/chrome-extension/dist` from `chrome://extensions` with Developer Mode enabled, then click the Tuna extension action on any `http`, `https`, or `file` page. Copy-to-clipboard output and MCP handoff use the same overlay implementation and the same local `ws://127.0.0.1:9223/ws` bridge as the React package.
 
 Run the MCP server as usual when you want agent handoff:
 

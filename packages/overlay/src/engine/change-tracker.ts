@@ -503,7 +503,7 @@ export class ChangeTracker {
   }
 
   /** Migrate pending changes from one selector to another.
-   *  Moves diffed properties (original vs current) to the target selector,
+   *  Moves diffed edits (original vs current) to the target selector,
    *  resets the source selector back to its original state. */
   migrateChanges(fromSelector: string, toSelector: string): Array<{ property: string; value: string }> {
     const from = this.tracked.get(fromSelector);
@@ -511,11 +511,18 @@ export class ChangeTracker {
     if (!from || !to) return [];
 
     const migrated: Array<{ property: string; value: string }> = [];
+    const movedProperties = new Set<string>();
+
+    const markMoved = (property: string, value: string) => {
+      migrated.push({ property, value });
+      movedProperties.add(property);
+      movedProperties.add(property.replace(/-([a-z])/g, (_, c) => c.toUpperCase()));
+    };
 
     for (const [prop, currentVal] of Object.entries(from.currentStyles)) {
       const originalVal = from.originalStyles[prop] || "";
       if (currentVal !== originalVal) {
-        migrated.push({ property: prop, value: currentVal });
+        markMoved(prop, currentVal);
         // Apply to target
         to.currentStyles[prop] = currentVal;
         // Reset source back to original
@@ -523,16 +530,71 @@ export class ChangeTracker {
       }
     }
 
-    // Migrate variable associations for properties that were actually migrated
+    if (from.breakpointStyles) {
+      if (!to.breakpointStyles) to.breakpointStyles = new Map();
+      for (const [bp, fromBpStyles] of from.breakpointStyles) {
+        let toBpStyles = to.breakpointStyles.get(bp);
+        if (!toBpStyles) {
+          toBpStyles = {
+            original: { ...to.currentStyles },
+            current: { ...to.currentStyles },
+          };
+          to.breakpointStyles.set(bp, toBpStyles);
+        }
+        for (const [prop, currentVal] of Object.entries(fromBpStyles.current)) {
+          const originalVal = fromBpStyles.original[prop] || "";
+          if (currentVal !== originalVal) {
+            markMoved(prop, currentVal);
+            toBpStyles.current[prop] = currentVal;
+            fromBpStyles.current[prop] = originalVal;
+          }
+        }
+      }
+    }
+
+    if (from.originalProps && from.currentProps) {
+      if (!to.originalProps) to.originalProps = {};
+      if (!to.currentProps) to.currentProps = { ...to.originalProps };
+      for (const [prop, currentVal] of Object.entries(from.currentProps)) {
+        const originalVal = from.originalProps[prop];
+        if (currentVal !== originalVal) {
+          if (!(prop in to.originalProps)) {
+            to.originalProps[prop] = to.currentProps[prop] ?? originalVal;
+          }
+          to.currentProps[prop] = currentVal;
+          from.currentProps[prop] = originalVal;
+        }
+      }
+    }
+
+    if (from.originalAttrs && from.currentAttrs) {
+      if (!to.originalAttrs) to.originalAttrs = {};
+      if (!to.currentAttrs) to.currentAttrs = { ...to.originalAttrs };
+      for (const [attr, currentVal] of Object.entries(from.currentAttrs)) {
+        const originalVal = from.originalAttrs[attr] || "";
+        if (currentVal !== originalVal) {
+          if (!(attr in to.originalAttrs)) {
+            to.originalAttrs[attr] = to.currentAttrs[attr] ?? originalVal;
+          }
+          to.currentAttrs[attr] = currentVal;
+          from.currentAttrs[attr] = originalVal;
+        }
+      }
+    }
+
+    if (from.unlinkedVariables && from.unlinkedVariables.size > 0) {
+      if (!to.unlinkedVariables) to.unlinkedVariables = new Set();
+      for (const prop of from.unlinkedVariables) {
+        to.unlinkedVariables.add(prop);
+        movedProperties.add(prop);
+      }
+      from.unlinkedVariables.clear();
+    }
+
+    // Migrate variable associations for properties that were actually moved.
     if (from.variableAssociations) {
       if (!to.variableAssociations) to.variableAssociations = {};
-      for (const { property } of migrated) {
-        const camelProp = property.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
-        if (from.variableAssociations[camelProp]) {
-          to.variableAssociations[camelProp] = from.variableAssociations[camelProp];
-          delete from.variableAssociations[camelProp];
-        }
-        // Also check kebab-case key
+      for (const property of movedProperties) {
         if (from.variableAssociations[property]) {
           to.variableAssociations[property] = from.variableAssociations[property];
           delete from.variableAssociations[property];

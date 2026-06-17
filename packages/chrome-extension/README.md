@@ -20,7 +20,7 @@ Run the Tuna MCP server as usual:
 npx @suryanewa/tuna
 ```
 
-The injected overlay connects to `ws://localhost:9223/ws` using the same `tuna-overlay` handshake as app-embedded Tuna.
+The injected overlay connects to `ws://127.0.0.1:9223/ws` using the same `tuna-overlay` handshake as app-embedded Tuna.
 
 ## Notes
 

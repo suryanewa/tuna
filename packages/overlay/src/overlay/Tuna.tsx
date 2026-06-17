@@ -81,6 +81,7 @@ import { AnimatedPanel } from "./AnimatedPanel";
 import { TunaLogo } from "./TunaLogo";
 import { AreaOutline, CommentMarker, IconComment } from "./comment/CommentMarkers";
 import { buildScopeLevels, type ScopeLevel } from "./scope-levels";
+import { getPlainTextFromEditableHtml, setElementPlainTextWithLineBreaks } from "./text-editing";
 
 declare const __TUNA_VERSION__: string;
 
@@ -896,9 +897,8 @@ function TunaInner(props: TunaConfig) {
                 // (otherwise it would destroy the children)
                 const hasChildElements = el.querySelector("*") !== null;
                 if (!hasChildElements) {
-                  // Convert \n back to <br> for line breaks
-                  el.innerHTML = c.to.replace(/\n/g, "<br>");
-                  textStackRef.current.push({ element: el, originalHTML, newHTML: el.innerHTML });
+                  setElementPlainTextWithLineBreaks(el, c.to);
+                  textStackRef.current.push({ element: el, originalHTML, newText: c.to });
                 }
               }
             } catch {}
@@ -1142,18 +1142,10 @@ function TunaInner(props: TunaConfig) {
 
           // Convert innerHTML to text preserving line breaks
           // contentEditable inserts <br>, <div>, or <p> for line breaks depending on browser
-          const newText = el.innerHTML
-            .replace(/<br\s*\/?>/gi, "\n")
-            .replace(/<\/div><div>/gi, "\n")
-            .replace(/<\/p><p>/gi, "\n")
-            .replace(/<[^>]+>/g, "")
-            .replace(/&nbsp;/g, " ")
-            .replace(/&amp;/g, "&")
-            .replace(/&lt;/g, "<")
-            .replace(/&gt;/g, ">")
-            .trim();
+          const newText = getPlainTextFromEditableHtml(el.innerHTML);
 
           if (newText !== originalText) {
+            setElementPlainTextWithLineBreaks(el, newText);
             const editSelector = getSelector(el);
             const tracker = trackerRef.current;
             if (tracker) {
@@ -1170,11 +1162,12 @@ function TunaInner(props: TunaConfig) {
               tracker.recordChange(editSelector, "__text", newText);
               tracker.persist();
             }
-            // Store for undo (use innerHTML for faithful restore)
-            textStackRef.current.push({ element: el, originalHTML, newHTML: el.innerHTML });
+            textStackRef.current.push({ element: el, originalHTML, newText });
             textRedoStackRef.current = [];
             syncTrackerStateRef.current();
             setChangeRevision((r) => r + 1);
+          } else if (el.innerHTML !== originalHTML) {
+            el.innerHTML = originalHTML;
           }
           cleanup();
         };
@@ -2010,9 +2003,9 @@ function TunaInner(props: TunaConfig) {
   const deleteStackRef = useRef<Array<{ element: Element; parent: Node; nextSibling: Node | null }>>([]);
   const deleteRedoStackRef = useRef<Array<{ element: Element; parent: Node; nextSibling: Node | null }>>([]);
 
-  // Text change stack for undo/redo: stores original HTML so text edits can be reverted
-  const textStackRef = useRef<Array<{ element: HTMLElement; originalHTML: string; newHTML: string }>>([]);
-  const textRedoStackRef = useRef<Array<{ element: HTMLElement; originalHTML: string; newHTML: string }>>([]);
+  // Text change stack for undo/redo: original markup is restored, edited text is rendered as plain text.
+  const textStackRef = useRef<Array<{ element: HTMLElement; originalHTML: string; newText: string }>>([]);
+  const textRedoStackRef = useRef<Array<{ element: HTMLElement; originalHTML: string; newText: string }>>([]);
 
   // Delete selected element
   const handleDelete = useCallback(() => {
@@ -2258,7 +2251,7 @@ function TunaInner(props: TunaConfig) {
     if (entries.some(e => e.property === "__text")) {
       const entry = textRedoStackRef.current.pop();
       if (entry) {
-        entry.element.innerHTML = entry.newHTML;
+        setElementPlainTextWithLineBreaks(entry.element, entry.newText);
         textStackRef.current.push(entry);
       }
       syncTrackerStateRef.current();
@@ -3808,7 +3801,9 @@ function TunaInner(props: TunaConfig) {
         {/* Collapsed: single activate button */}
         <Tooltip content={formatToggleHotkeyShortcut(config.hotkey)} side="top">
           <button
+            type="button"
             className="tuna-toolbar-collapse-btn"
+            aria-label={`Open Tuna (${formatToggleHotkeyShortcut(config.hotkey)})`}
             onClick={activateOverlay}
           >
             <span className="tuna-logo-wrapper">
@@ -3841,8 +3836,11 @@ function TunaInner(props: TunaConfig) {
           )}
           <Tooltip content="Select" shortcut="V" side="top">
             <button
+              type="button"
               ref={(node) => { modeButtonRefs.current.select = node; }}
               className={`tuna-toolbar-btn tuna-toolbar-mode-btn${mode === "select" ? " active" : ""}`}
+              aria-label="Select"
+              aria-pressed={mode === "select"}
               onPointerEnter={() => setHoveredToolbarMode("select")}
               onClick={() => {
                 setMode("select");
@@ -3857,8 +3855,11 @@ function TunaInner(props: TunaConfig) {
           </Tooltip>
           <Tooltip content="Draw" shortcut="D" side="top">
             <button
+              type="button"
               ref={(node) => { modeButtonRefs.current.draw = node; }}
               className={`tuna-toolbar-btn tuna-toolbar-mode-btn${mode === "draw" ? " active" : ""}`}
+              aria-label="Draw"
+              aria-pressed={mode === "draw"}
               onPointerEnter={() => setHoveredToolbarMode("draw")}
               onClick={() => {
                 setMode("draw");
@@ -3873,8 +3874,11 @@ function TunaInner(props: TunaConfig) {
           </Tooltip>
           <Tooltip content="Tune" shortcut="T" side="top">
             <button
+              type="button"
               ref={(node) => { modeButtonRefs.current.edit = node; }}
               className={`tuna-toolbar-btn tuna-toolbar-mode-btn${mode === "edit" ? " active" : ""}`}
+              aria-label="Tune"
+              aria-pressed={mode === "edit"}
               onPointerEnter={() => setHoveredToolbarMode("edit")}
               onClick={() => {
                 setMode("edit");
@@ -3892,8 +3896,11 @@ function TunaInner(props: TunaConfig) {
           </Tooltip>
           <Tooltip content="Comment" shortcut="C" side="top">
             <button
+              type="button"
               ref={(node) => { modeButtonRefs.current.comment = node; }}
               className={`tuna-toolbar-btn tuna-toolbar-mode-btn${mode === "comment" ? " active" : ""}`}
+              aria-label="Comment"
+              aria-pressed={mode === "comment"}
               onPointerEnter={() => setHoveredToolbarMode("comment")}
               onClick={() => {
                 setMode("comment");
@@ -3908,7 +3915,9 @@ function TunaInner(props: TunaConfig) {
           </Tooltip>
           <Tooltip content="Copy" shortcut="⌘C" side="top" onPointerEnter={clearToolbarModeHover}>
             <button
+              type="button"
               className={`tuna-toolbar-btn${changeCount === 0 && commentCount === 0 ? " disabled" : ""}`}
+              aria-label={copied ? "Copied Tuna changes" : "Copy Tuna changes"}
               onClick={handleCopy}
               disabled={changeCount === 0 && commentCount === 0}
             >
@@ -3924,7 +3933,9 @@ function TunaInner(props: TunaConfig) {
           </Tooltip>
           <Tooltip content="Reset" shortcut="⌘R" side="top" onPointerEnter={clearToolbarModeHover}>
             <button
+              type="button"
               className={`tuna-toolbar-btn${changeCount === 0 && commentCount === 0 ? " disabled" : ""}`}
+              aria-label="Reset Tuna changes"
               onClick={handleReset}
               disabled={changeCount === 0 && commentCount === 0}
             >
@@ -3933,7 +3944,9 @@ function TunaInner(props: TunaConfig) {
           </Tooltip>
           <Tooltip content="Settings" shortcut="⌘," side="top" onPointerEnter={clearToolbarModeHover}>
             <button
+              type="button"
               className="tuna-toolbar-btn"
+              aria-label="Open Tuna settings"
               onClick={toggleSettingsPanel}
             >
               <IconSettingsGear2 size={20} />
@@ -3941,7 +3954,9 @@ function TunaInner(props: TunaConfig) {
           </Tooltip>
           <Tooltip content="Close" shortcut="Esc" side="top" onPointerEnter={clearToolbarModeHover}>
             <button
+              type="button"
               className="tuna-toolbar-btn"
+              aria-label="Close Tuna"
               onClick={handleClose}
             >
               <IconCrossMedium size={20} />

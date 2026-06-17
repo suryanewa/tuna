@@ -7,6 +7,7 @@
 
 import { useState, useCallback, useRef, useEffect, memo } from "react";
 import { getDirectReactComponent } from "../selector/identifier";
+import { isEffectiveNoOp } from "../selector/picker-geometry";
 
 export interface ReparentEntry {
   element: Element;
@@ -832,7 +833,7 @@ export function ElementTree({ selectedElement, onSelect, onHover, visualOrderMap
     if (mode === "reparent" && reparentTarget && onTreeReparent) {
       // Reparent: move element to a different parent
       onTreeReparent(element, reparentTarget, reparentIndex);
-    } else if (mode === "reorder" && dropIndex !== dragIndex && onTreeReorder) {
+    } else if (mode === "reorder" && !isEffectiveNoOp(dragIndex, dropIndex) && onTreeReorder) {
       // Reorder within siblings
       onTreeReorder(element, dragIndex, dropIndex);
     } else if (wasExpanded) {

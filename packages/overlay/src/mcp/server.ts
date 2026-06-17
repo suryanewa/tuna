@@ -7,7 +7,7 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { existsSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { join } from "path";
 import type { Bridge } from "./bridge.js";
 import { MANIFEST_PROMPT, MANIFEST_COMPONENTS_PROMPT } from "../manifest/prompts.js";
@@ -19,7 +19,7 @@ function checkManifest(): { exists: boolean; hasComponents: boolean; prompt: str
     const path = join(process.cwd(), dir, "tuna.manifest.json");
     if (existsSync(path)) {
       try {
-        const data = JSON.parse(require("fs").readFileSync(path, "utf-8"));
+        const data = JSON.parse(readFileSync(path, "utf-8"));
         if (data && !("components" in data)) {
           return { exists: true, hasComponents: false, prompt: MANIFEST_COMPONENTS_PROMPT };
         }

@@ -1,7 +1,7 @@
 /**
  * WebSocket bridge between the browser overlay and the MCP server.
  *
- * The browser overlay connects via ws://localhost:{port}/ws.
+ * The browser overlay connects via ws://127.0.0.1:{port}/ws.
  * The MCP server sends requests through this bridge to the browser,
  * and receives pushed changes from the browser.
  */
@@ -15,6 +15,7 @@ export class Bridge {
   private wss: WebSocketServer | null = null;
   private client: WebSocket | null = null;
   private port: number;
+  private host = "127.0.0.1";
   private requestId = 0;
   private pendingRequests = new Map<string, RequestHandler>();
   private changeBuffer: any[] = [];
@@ -78,8 +79,8 @@ export class Bridge {
   /** Start the WebSocket server */
   start(): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.wss = new WebSocketServer({ port: this.port }, () => {
-        console.error(`[Tuna MCP] WebSocket bridge listening on port ${this.port}`);
+      this.wss = new WebSocketServer({ host: this.host, port: this.port }, () => {
+        console.error(`[Tuna MCP] WebSocket bridge listening on ${this.host}:${this.port}`);
         resolve();
       });
 

@@ -107,7 +107,7 @@ export function SelectionActionBar({
       onPointerDown={(e) => e.stopPropagation()}
     >
       <Tooltip content="Comment" shortcut="C" side="top">
-        <button type="button" className="tuna-selection-action-btn" onClick={onComment}>
+        <button type="button" className="tuna-selection-action-btn" aria-label="Comment on selection" onClick={onComment}>
           <IconComment />
         </button>
       </Tooltip>
@@ -115,6 +115,7 @@ export function SelectionActionBar({
         <button
           type="button"
           className="tuna-selection-action-btn"
+          aria-label={copied ? "Copied selection context" : "Copy selection context"}
           onClick={onCopy}
         >
           <span className="tuna-icon-swap">
@@ -132,6 +133,8 @@ export function SelectionActionBar({
           <button
             type="button"
             className={`tuna-selection-action-btn${editMode ? " active" : ""}`}
+            aria-label={editMode ? "Exit tune mode" : "Tune selection"}
+            aria-pressed={editMode}
             onClick={onToggleEdit}
           >
             <IconWrench size={18} />
@@ -144,6 +147,7 @@ export function SelectionActionBar({
           <button
             type="button"
             className="tuna-selection-action-btn"
+            aria-label="Delete selection"
             onClick={onDelete}
             style={{ color: "#FF6B6B" }}
           >
@@ -156,7 +160,7 @@ export function SelectionActionBar({
         </Tooltip>
       )}
       <Tooltip content="Deselect all" shortcut="Shift+Esc" side="top">
-        <button type="button" className="tuna-selection-action-btn" onClick={onDeselect}>
+        <button type="button" className="tuna-selection-action-btn" aria-label="Deselect all" onClick={onDeselect}>
           <IconCrossMedium size={18} />
         </button>
       </Tooltip>

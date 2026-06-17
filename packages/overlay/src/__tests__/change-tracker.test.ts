@@ -516,4 +516,50 @@ describe("ChangeTracker", () => {
       expect(changes[0].variableAssociations).toBeUndefined();
     });
   });
+
+  describe("migrateChanges", () => {
+    it("moves base, breakpoint, token, and unlink state to the new selector", () => {
+      const from = ".btn";
+      const to = ".btn.primary";
+      tracker.track(from, "BUTTON", "Save", ["btn"], [], { padding: "8px", color: "red" });
+      tracker.track(to, "BUTTON", "Save", ["btn", "primary"], [], { padding: "8px", color: "red" });
+      tracker.trackBreakpoint(from, "768px", { padding: "8px", color: "red" });
+
+      const varRef = { className: "var(--spacing-4)", values: { padding: "16px" } };
+      tracker.recordChange(from, "padding", "16px");
+      tracker.recordChange(from, "color", "blue", "768px");
+      tracker.setVariableAssociation(from, ["padding"], varRef);
+      tracker.recordUnlink(from, ["color"]);
+
+      tracker.migrateChanges(from, to);
+
+      const changes = tracker.getPendingChanges();
+      expect(changes).toHaveLength(1);
+      expect(changes[0].selector).toBe(to);
+      expect(changes[0].changes).toEqual(expect.arrayContaining([
+        { property: "padding", from: "8px", to: "16px" },
+        { property: "color", from: "red", to: "blue", breakpoint: "768px" },
+      ]));
+      expect(changes[0].variableAssociations?.padding).toEqual(varRef);
+      expect(changes[0].unlinkedProperties).toEqual([{ property: "color", value: "red" }]);
+    });
+
+    it("moves prop and attribute changes to the new selector", () => {
+      const from = ".card";
+      const to = ".card.featured";
+      tracker.track(from, "ARTICLE", "Card", ["card"], [], {}, null, undefined, null, null, null, null, null, "", null, undefined, { variant: "plain" });
+      tracker.track(to, "ARTICLE", "Card", ["card", "featured"], [], {}, null, undefined, null, null, null, null, null, "", null, undefined, { variant: "plain" });
+
+      tracker.recordPropChange(from, "variant", "featured");
+      tracker.recordAttributeChange(from, "aria-label", "Plain card", "Featured card");
+
+      tracker.migrateChanges(from, to);
+
+      const changes = tracker.getPendingChanges();
+      expect(changes).toHaveLength(1);
+      expect(changes[0].selector).toBe(to);
+      expect(changes[0].propChanges).toEqual([{ prop: "variant", from: "plain", to: "featured" }]);
+      expect(changes[0].attributeChanges).toEqual([{ attr: "aria-label", from: "Plain card", to: "Featured card" }]);
+    });
+  });
 });

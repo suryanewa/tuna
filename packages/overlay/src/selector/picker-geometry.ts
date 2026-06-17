@@ -49,7 +49,7 @@ export function computeCanvasDropIndex(
 
 /** Check if drop index is effectively the same position. */
 export function isEffectiveNoOp(dragIndex: number, dropIndex: number): boolean {
-  return dragIndex === dropIndex;
+  return dragIndex === dropIndex || dropIndex === dragIndex + 1;
 }
 
 /** Format selection label as dimensions only. */

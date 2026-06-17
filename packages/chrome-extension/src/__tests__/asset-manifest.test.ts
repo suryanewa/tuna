@@ -7,6 +7,8 @@ const manifestPath = join(distDir, "manifest.json");
 
 interface ExtensionManifest {
   background?: { service_worker?: string };
+  permissions?: string[];
+  host_permissions?: string[];
   content_scripts?: Array<{ js?: string[]; css?: string[] }>;
 }
 
@@ -37,6 +39,7 @@ describe("Chrome extension assets", () => {
     const manifest = readManifest();
     const bundles = [
       manifest.background?.service_worker,
+      "content.global.js",
       ...(manifest.content_scripts ?? []).flatMap((script) => script.js ?? []),
     ].filter((file): file is string => !!file);
 
@@ -46,5 +49,13 @@ describe("Chrome extension assets", () => {
       expect(source).not.toMatch(/from ["']react-dom/);
       expect(source).not.toMatch(/import\(["']@xenova\/transformers["']\)/);
     }
+  });
+
+  it("does not inject the content script into every page by default", () => {
+    const manifest = readManifest();
+    expect(manifest.content_scripts).toBeUndefined();
+    expect(manifest.permissions).toContain("activeTab");
+    expect(manifest.permissions).toContain("scripting");
+    expect(manifest.host_permissions ?? []).not.toContain("<all_urls>");
   });
 });

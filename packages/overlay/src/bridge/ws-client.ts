@@ -50,7 +50,7 @@ export class BridgeClient {
     if (this.ws) return;
 
     try {
-      this.ws = new WebSocket(`ws://localhost:${this.port}/ws`);
+      this.ws = new WebSocket(`ws://127.0.0.1:${this.port}/ws`);
 
       this.ws.onopen = () => {
         this.reconnectDelay = 3000;

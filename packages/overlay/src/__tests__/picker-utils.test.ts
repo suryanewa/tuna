@@ -125,15 +125,14 @@ describe("isEffectiveNoOp", () => {
     expect(isEffectiveNoOp(3, 3)).toBe(true);
   });
 
-  it("returns false when indices differ", () => {
-    expect(isEffectiveNoOp(0, 1)).toBe(false);
+  it("returns false when insertion indices produce a visual move", () => {
     expect(isEffectiveNoOp(2, 0)).toBe(false);
     expect(isEffectiveNoOp(1, 3)).toBe(false);
   });
 
-  it("returns false for adjacent indices", () => {
-    expect(isEffectiveNoOp(0, 1)).toBe(false);
-    expect(isEffectiveNoOp(1, 2)).toBe(false);
+  it("returns true when insertion index is immediately after the dragged element", () => {
+    expect(isEffectiveNoOp(0, 1)).toBe(true);
+    expect(isEffectiveNoOp(1, 2)).toBe(true);
   });
 });
 

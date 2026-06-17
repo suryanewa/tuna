@@ -15,21 +15,7 @@
     "scripting"
   ],
   "host_permissions": [
-    "<all_urls>",
     "http://localhost/*",
     "http://127.0.0.1/*"
-  ],
-  "content_scripts": [
-    {
-      "matches": [
-        "http://*/*",
-        "https://*/*",
-        "file://*/*"
-      ],
-      "js": [
-        "content.global.js"
-      ],
-      "run_at": "document_idle"
-    }
   ]
 }
