@@ -208,7 +208,7 @@ export default function Home() {
         <div className="footer-links">
           <a
             className="footer-icon"
-            href="https://github.com/khadgi-sujan/tuna"
+            href="https://github.com/suryanewa/tuna"
             aria-label="GitHub"
           >
             <GitHubIcon />

@@ -1,6 +1,6 @@
 # Tuna
 
-> The visual layer for vibe coding.
+> Visual edits your agents can ship.
 
 Tuna is a browser overlay for developers that lets you visually edit any element in your running web app — spacing, colors, typography, layout, and more — with instant preview. Your AI coding tool, such as Codex, Claude Code, or Cursor, then writes the changes to source code via MCP (Model Context Protocol).
 
@@ -42,8 +42,8 @@ npx @suryanewa/tuna setup
 
 ## Links
 
-- Website: https://tuna.dev
-- GitHub: https://github.com/khadgi-sujan/tuna
+- Website: https://tuna.suryanewa.com
+- GitHub: https://github.com/suryanewa/tuna
 - npm: https://www.npmjs.com/package/@suryanewa/tuna
 - License: PolyForm Shield 1.0.0
-- Author: Sujan Khadgi (@___sujan)
+- Authors: Surya Newa (@suryaships) and Sujan Khadgi (@___sujan)
