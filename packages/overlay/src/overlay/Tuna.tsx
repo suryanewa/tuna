@@ -3073,7 +3073,7 @@ function TunaInner(props: TunaConfig) {
       if (active && (e.metaKey || e.ctrlKey) && e.key === ",") {
         if (isEditableKeyboardTarget(e)) return;
         e.preventDefault();
-        openSettingsPanel();
+        toggleSettingsPanel();
       }
       if (active && e.key === "Escape" && !e.metaKey && !e.ctrlKey && !e.altKey) {
         if (isEditableKeyboardTarget(e)) return;
@@ -3186,7 +3186,7 @@ function TunaInner(props: TunaConfig) {
     }
     document.addEventListener("keydown", handleKeyDown, true);
     return () => document.removeEventListener("keydown", handleKeyDown, true);
-  }, [active, config.hotkey, deactivateOverlay, openSettingsPanel, toggleOverlay, togglePageAndTunaColorMode, handleUndo, handleRedo, handleDelete, handleReorderByKey]);
+  }, [active, config.hotkey, deactivateOverlay, toggleOverlay, togglePageAndTunaColorMode, toggleSettingsPanel, handleUndo, handleRedo, handleDelete, handleReorderByKey]);
 
   const handleReset = useCallback(() => {
     const tracker = trackerRef.current;
